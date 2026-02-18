@@ -144,15 +144,15 @@ export default function Onboarding() {
           </button>
         </div>
 
-        <div className="flex flex-col items-center mb-3">
-          <h1 className="text-xl font-bold text-foreground">Complete Your Profile</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">All fields are optional</p>
+        <div className="flex flex-col items-center mb-2">
+          <h1 className="text-base font-bold text-foreground">Complete Your Profile</h1>
+          <p className="text-[10px] text-muted-foreground mt-0.5">All fields are optional</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-2">
           {/* Username */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">
               Username <span className="text-muted-foreground">(optional)</span>
             </label>
             <Input
@@ -160,13 +160,13 @@ export default function Onboarding() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               maxLength={30}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-9"
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-xs"
             />
           </div>
 
           {/* Gender */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">
               Gender <span className="text-muted-foreground">(optional)</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -175,13 +175,13 @@ export default function Onboarding() {
                   key={opt.value}
                   type="button"
                   onClick={() => setGender(opt.value)}
-                  className={`flex items-center justify-center gap-1.5 py-2 rounded-full border transition-all text-xs font-medium ${
+                  className={`flex items-center justify-center gap-1 py-1.5 rounded-full border transition-all text-[11px] font-medium ${
                     gender === opt.value
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border bg-muted text-muted-foreground hover:border-primary/50"
                   }`}
                 >
-                  <span className="text-base">{opt.icon}</span>
+                  <span className="text-sm">{opt.icon}</span>
                   {opt.label}
                 </button>
               ))}
@@ -189,8 +189,8 @@ export default function Onboarding() {
           </div>
 
           {/* Location */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">
               Location <span className="text-muted-foreground">(optional)</span>
             </label>
             <LocationSelector
@@ -205,8 +205,8 @@ export default function Onboarding() {
           </div>
 
           {/* Reference ID */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">
               Reference ID <span className="text-muted-foreground">(optional)</span>
             </label>
             <Input
@@ -214,13 +214,13 @@ export default function Onboarding() {
               value={referralId}
               onChange={(e) => setReferralId(e.target.value)}
               maxLength={20}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-9"
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-xs"
             />
           </div>
 
           {/* Description / Bio */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">
               Bio <span className="text-muted-foreground">(optional)</span>
             </label>
             <Textarea
@@ -229,15 +229,15 @@ export default function Onboarding() {
               onChange={(e) => setDescription(e.target.value)}
               maxLength={200}
               rows={2}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground resize-none"
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground resize-none text-xs"
             />
-            <p className="text-[10px] text-muted-foreground text-right">{description.length}/200</p>
+            <p className="text-[9px] text-muted-foreground text-right">{description.length}/200</p>
           </div>
 
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-5"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-4 text-sm"
           >
             {loading ? "Saving..." : "Get Started"}
           </Button>
