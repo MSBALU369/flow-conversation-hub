@@ -129,7 +129,7 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-      <div className="w-full max-w-sm glass-card p-5 animate-scale-in">
+      <div className="w-full max-w-md glass-card p-6 animate-scale-in">
         {/* Top row: Logo left, Skip right */}
         <div className="flex items-center justify-between mb-3">
           <EFLogo size="lg" className="scale-110 origin-left" />
