@@ -87,16 +87,16 @@ export default function Premium() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Hero Section - Compact */}
-      <div className="relative h-72 bg-gradient-to-b from-primary/20 via-primary/10 to-background overflow-hidden">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-b from-primary/20 via-primary/10 to-background overflow-hidden flex-shrink-0">
         <button onClick={() => navigate(-1)} className="absolute top-3 left-3 p-2 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors safe-top z-10">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
-        <div className="absolute inset-0 flex flex-col items-center justify-start pt-4">
-          <img src={premiumHero} alt="Premium" className="w-32 h-32 object-contain" />
-          <div className="text-center px-4 mt-2">
-            <h1 className="text-xl font-bold text-foreground mb-1">
+        <div className="flex flex-col items-center pt-3 pb-2">
+          <img src={premiumHero} alt="Premium" className="w-40 h-40 object-contain" />
+          <div className="text-center px-4">
+            <h1 className="text-xl font-bold text-foreground mb-0.5">
               Serious learners choose
             </h1>
             <span className="text-2xl font-bold text-primary premium-shimmer">Premium 👑</span>
@@ -107,18 +107,18 @@ export default function Premium() {
         </button>
       </div>
 
-      <main className="px-3 mt-9">
-        {/* One-Time Deal - Small Left-Aligned Chip */}
-        <div className="mb-3">
-          <button className="inline-flex items-center gap-1.5 glass-button px-3 py-1.5 rounded-full hover:bg-muted transition-colors">
+      <main className="px-3 flex-1 flex flex-col pb-16">
+        {/* One-Time Deal */}
+        <div className="mb-2">
+          <button className="inline-flex items-center gap-1.5 glass-button px-3 py-1 rounded-full hover:bg-muted transition-colors">
             <Sparkles className="w-3 h-3 text-accent" />
             <span className="text-xs text-foreground">Try ₹49 ( 1 Day )</span>
           </button>
         </div>
 
         {/* Plan Selection */}
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="mb-2">
+          <div className="flex items-center gap-2 mb-2">
             <h2 className="text-base font-semibold text-foreground">
               Choose your plan
             </h2>
@@ -127,7 +127,7 @@ export default function Premium() {
             </span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {plans.
             filter((p) =>
             ["6_month", "1_month", "1_week"].includes(p.duration)
@@ -141,7 +141,7 @@ export default function Premium() {
                   key={plan.id}
                   onClick={() => setSelectedPlan(plan.id)}
                   className={cn(
-                    "w-full p-3 rounded-xl border-2 transition-all text-left relative",
+                    "w-full p-2.5 rounded-xl border-2 transition-all text-left relative",
                     isSelected ?
                     "border-primary bg-primary/10" :
                     "border-border bg-card"
@@ -159,7 +159,6 @@ export default function Premium() {
                           <span className="text-sm text-foreground font-medium">
                             {durationLabels[plan.duration]}
                           </span>
-                          {/* Subtle savings inside the bar */}
                           {savings > 0 &&
                         <span className="text-primary text-[10px] ml-1.5">
                               Save {savings}%
@@ -185,14 +184,14 @@ export default function Premium() {
         </div>
 
         {/* Continue Button */}
-        <Button className="w-full py-5 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-teal">
+        <Button className="w-full py-4 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-teal mb-2">
           CONTINUE
         </Button>
 
-        {/* Premium Features List - At bottom, compact */}
-        <div className="glass-card p-2.5 px-3 mt-3">
-          <h3 className="text-[10px] font-semibold text-foreground mb-1.5">Premium Features</h3>
-          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+        {/* Premium Features List */}
+        <div className="glass-card p-2 px-3">
+          <h3 className="text-[10px] font-semibold text-foreground mb-1">Premium Features</h3>
+          <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
             {premiumFeatures.map((feature, index) =>
             <div key={index} className="flex items-start gap-1">
                 <div className="w-3 h-3 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-px">
@@ -205,7 +204,7 @@ export default function Premium() {
         </div>
 
         {/* T&C */}
-        <p className="text-center text-muted-foreground text-[10px] mt-3 px-4">
+        <p className="text-center text-muted-foreground text-[10px] mt-1 px-4">
           Subscription will auto-renew. Cancel anytime from your account settings. By continuing, you agree to our Terms & Conditions.
         </p>
       </main>
