@@ -93,7 +93,7 @@ export default function Premium() {
         <button onClick={() => navigate(-1)} className="absolute top-3 left-3 p-2 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors safe-top z-10">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
-        <div className="flex flex-col items-center pt-1 pb-0">
+        <div className="flex flex-col items-center pt-3 pb-2">
           <img src={premiumHero} alt="Premium" className="w-40 h-40 object-contain" />
           <div className="text-center px-4">
             <h1 className="text-xl font-bold text-foreground mb-0.5">
@@ -107,9 +107,9 @@ export default function Premium() {
         </button>
       </div>
 
-      <main className="px-3 flex-1 flex flex-col justify-end pb-16 gap-2 -mt-14">
+      <main className="px-3 flex-1 flex flex-col pb-16">
         {/* One-Time Deal */}
-        <div>
+        <div className="mb-2">
           <button className="inline-flex items-center gap-1.5 glass-button px-3 py-1 rounded-full hover:bg-muted transition-colors">
             <Sparkles className="w-3 h-3 text-accent" />
             <span className="text-xs text-foreground">Try ₹49 ( 1 Day )</span>
@@ -117,7 +117,7 @@ export default function Premium() {
         </div>
 
         {/* Plan Selection */}
-        <div>
+        <div className="mb-2">
           <div className="flex items-center gap-2 mb-2">
             <h2 className="text-base font-semibold text-foreground">
               Choose your plan
@@ -184,7 +184,7 @@ export default function Premium() {
         </div>
 
         {/* Continue Button */}
-        <Button className="w-full py-4 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-teal">
+        <Button className="w-full py-4 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-teal mb-2">
           CONTINUE
         </Button>
 
@@ -204,7 +204,7 @@ export default function Premium() {
         </div>
 
         {/* T&C */}
-        <p className="text-center text-muted-foreground text-[10px] px-4">
+        <p className="text-center text-muted-foreground text-[10px] mt-1 px-4">
           Subscription will auto-renew. Cancel anytime from your account settings. By continuing, you agree to our Terms & Conditions.
         </p>
       </main>
