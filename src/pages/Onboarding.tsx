@@ -147,9 +147,9 @@ export default function Onboarding() {
                 type="button"
                 onClick={handleSkip}
                 disabled={skipping}
-                className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-[10px] font-semibold transition-colors disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 px-5 py-1.5 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-xs font-bold transition-colors disabled:opacity-50"
               >
-                <SkipForward className="w-2.5 h-2.5" />
+                <SkipForward className="w-3.5 h-3.5" />
                 {skipping ? "Skipping..." : "Skip All"}
               </button>
             </div>
