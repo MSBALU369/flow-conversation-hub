@@ -719,6 +719,14 @@ export default function Profile() {
             </div>
           </button>
 
+          {/* About Me */}
+          <div className="glass-card w-full px-4 py-3 mb-2">
+            <p className="text-sm font-bold text-foreground mb-1">📝 About Me</p>
+            <p className="text-sm text-muted-foreground">
+              {profile?.description || "Hello"}
+            </p>
+          </div>
+
         </main>
 
         {/* Edit Name Modal */}
