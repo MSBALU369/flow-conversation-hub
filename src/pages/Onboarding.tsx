@@ -130,29 +130,31 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="w-full max-w-sm glass-card p-5 animate-scale-in">
+        {/* Top row: Logo left, Skip right */}
+        <div className="flex items-center justify-between mb-3">
+          <EFLogo size="lg" />
+          <button
+            type="button"
+            onClick={handleSkip}
+            disabled={skipping}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-xs font-bold transition-colors disabled:opacity-50"
+          >
+            <SkipForward className="w-3.5 h-3.5" />
+            {skipping ? "Skipping..." : "Skip"}
+          </button>
+        </div>
+
         <div className="flex flex-col items-center mb-3">
-          <EFLogo size="lg" className="mb-2" />
           <h1 className="text-xl font-bold text-foreground">Complete Your Profile</h1>
           <p className="text-xs text-muted-foreground mt-0.5">All fields are optional</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Username + Skip All */}
+          {/* Username */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">
-                Username <span className="text-muted-foreground">(optional)</span>
-              </label>
-              <button
-                type="button"
-                onClick={handleSkip}
-                disabled={skipping}
-                className="flex items-center justify-center gap-1.5 px-5 py-1.5 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-xs font-bold transition-colors disabled:opacity-50"
-              >
-                <SkipForward className="w-3.5 h-3.5" />
-                {skipping ? "Skipping..." : "Skip All"}
-              </button>
-            </div>
+            <label className="text-sm font-medium text-foreground">
+              Username <span className="text-muted-foreground">(optional)</span>
+            </label>
             <Input
               placeholder="Choose a username"
               value={username}
