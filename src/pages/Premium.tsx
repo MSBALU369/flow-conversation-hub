@@ -18,18 +18,18 @@ const durationLabels: Record<string, string> = {
   "1_week": "1 Week",
   "1_month": "1 Month",
   "6_month": "6 Months",
-  "1_year": "1 Year",
+  "1_year": "1 Year"
 };
 
 const premiumFeatures = [
-  "Gender filter (Female/Male)",
-  "No advertisements",
-  "Book recommendations",
-  "Restrict your talent visibility",
-  "Priority matching",
-  "Exclusive badges",
-  "Choose speaker level (1-15)",
-];
+"Gender filter (Female/Male)",
+"No advertisements",
+"Book recommendations",
+"Restrict your talent visibility",
+"Priority matching",
+"Exclusive badges",
+"Choose speaker level (1-15)"];
+
 
 export default function Premium() {
   const navigate = useNavigate();
@@ -40,11 +40,11 @@ export default function Premium() {
   useEffect(() => {
     const fetchPlans = async () => {
       // Default to INDIA region for demo
-      const { data, error } = await supabase
-        .from("plans")
-        .select("*")
-        .eq("region", "INDIA")
-        .order("price", { ascending: false });
+      const { data, error } = await supabase.
+      from("plans").
+      select("*").
+      eq("region", "INDIA").
+      order("price", { ascending: false });
 
       if (!error && data) {
         setPlans(data);
@@ -71,7 +71,7 @@ export default function Premium() {
       "1_week": 1,
       "1_month": 4,
       "6_month": 26,
-      "1_year": 52,
+      "1_year": 52
     };
     return Math.round(price / weeks[duration]);
   };
@@ -80,7 +80,7 @@ export default function Premium() {
     const savings: Record<string, number> = {
       "6_month": 83,
       "1_month": 60,
-      "1_week": 0,
+      "1_week": 0
     };
     return savings[duration] || 0;
   };
@@ -95,17 +95,17 @@ export default function Premium() {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center px-4">
             {/* People Image Placeholder */}
-            <div className="flex justify-center mb-3 -space-x-3">
-              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center border-2 border-background">
-                <span className="text-base">👨</span>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center border-2 border-background z-10">
-                <Crown className="w-5 h-5 text-primary" />
-              </div>
-              <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center border-2 border-background">
-                <span className="text-base">👩</span>
-              </div>
-            </div>
+            
+
+
+
+
+
+
+
+
+
+
             <h1 className="text-xl font-bold text-foreground mb-1">
               Serious learners choose
             </h1>
@@ -117,7 +117,7 @@ export default function Premium() {
         </button>
       </div>
 
-      <main className="px-3 mt-9">
+      <main className="px-3 -mt-3">
         {/* One-Time Deal - Small Left-Aligned Chip */}
         <div className="mb-3">
           <button className="inline-flex items-center gap-1.5 glass-button px-3 py-1.5 rounded-full hover:bg-muted transition-colors">
@@ -138,31 +138,31 @@ export default function Premium() {
           </div>
 
           <div className="space-y-2">
-            {plans
-              .filter((p) =>
-                ["6_month", "1_month", "1_week"].includes(p.duration)
-              )
-              .map((plan) => {
-                const isSelected = selectedPlan === plan.id;
-                const savings = getSavingsPercent(plan.duration);
+            {plans.
+            filter((p) =>
+            ["6_month", "1_month", "1_week"].includes(p.duration)
+            ).
+            map((plan) => {
+              const isSelected = selectedPlan === plan.id;
+              const savings = getSavingsPercent(plan.duration);
 
-                return (
-                  <button
-                    key={plan.id}
-                    onClick={() => setSelectedPlan(plan.id)}
-                    className={cn(
-                      "w-full p-3 rounded-xl border-2 transition-all text-left relative",
-                      isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-card"
-                    )}
-                  >
+              return (
+                <button
+                  key={plan.id}
+                  onClick={() => setSelectedPlan(plan.id)}
+                  className={cn(
+                    "w-full p-3 rounded-xl border-2 transition-all text-left relative",
+                    isSelected ?
+                    "border-primary bg-primary/10" :
+                    "border-border bg-card"
+                  )}>
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className={cn(
-                          "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                          isSelected ? "border-primary bg-primary" : "border-muted-foreground"
-                        )}>
+                        "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                        isSelected ? "border-primary bg-primary" : "border-muted-foreground"
+                      )}>
                           {isSelected && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                         </div>
                         <div>
@@ -170,27 +170,27 @@ export default function Premium() {
                             {durationLabels[plan.duration]}
                           </span>
                           {/* Subtle savings inside the bar */}
-                          {savings > 0 && (
-                            <span className="text-primary text-[10px] ml-1.5">
+                          {savings > 0 &&
+                        <span className="text-primary text-[10px] ml-1.5">
                               Save {savings}%
                             </span>
-                          )}
+                        }
                         </div>
                       </div>
                       <div className="text-right">
                         <span className="text-sm text-foreground font-bold">
                           {formatPrice(plan.price, plan.currency)}
                         </span>
-                        {plan.duration !== "1_week" && (
-                          <span className="text-muted-foreground text-[10px] ml-1">
+                        {plan.duration !== "1_week" &&
+                      <span className="text-muted-foreground text-[10px] ml-1">
                             ({formatPrice(getWeeklyPrice(plan.price, plan.duration), plan.currency)}/week)
                           </span>
-                        )}
+                      }
                       </div>
                     </div>
-                  </button>
-                );
-              })}
+                  </button>);
+
+            })}
           </div>
         </div>
 
@@ -203,14 +203,14 @@ export default function Premium() {
         <div className="glass-card p-2.5 px-3 mt-3">
           <h3 className="text-[10px] font-semibold text-foreground mb-1.5">Premium Features</h3>
           <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-            {premiumFeatures.map((feature, index) => (
-              <div key={index} className="flex items-start gap-1">
+            {premiumFeatures.map((feature, index) =>
+            <div key={index} className="flex items-start gap-1">
                 <div className="w-3 h-3 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-px">
                   <Check className="w-1.5 h-1.5 text-primary" />
                 </div>
                 <span className="text-[9px] leading-tight text-muted-foreground">{feature}</span>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -221,6 +221,6 @@ export default function Premium() {
       </main>
 
       <BottomNav />
-    </div>
-  );
+    </div>);
+
 }
