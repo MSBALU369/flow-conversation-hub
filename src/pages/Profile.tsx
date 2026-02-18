@@ -54,6 +54,8 @@ export default function Profile() {
   const [listLoading, setListLoading] = useState(false);
   const [followedBackIds, setFollowedBackIds] = useState<Set<string>>(new Set());
   const [showTrustScore, setShowTrustScore] = useState(false);
+  const [editingAboutMe, setEditingAboutMe] = useState(false);
+  const [aboutMeText, setAboutMeText] = useState("");
 
   // Fetch real counts from friendships table
   const fetchCounts = useCallback(async () => {
@@ -706,7 +708,7 @@ export default function Profile() {
           {/* Trust Score Button */}
           <button
             onClick={() => setShowTrustScore(true)}
-            className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-2 hover:bg-muted/60 transition-colors"
+            className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
@@ -719,12 +721,58 @@ export default function Profile() {
             </div>
           </button>
 
-          {/* About Me */}
+          {/* About Me - Editable */}
           <div className="glass-card w-full px-4 py-3 mb-2">
-            <p className="text-sm font-bold text-foreground mb-1">📝 About Me</p>
-            <p className="text-sm text-muted-foreground">
-              {profile?.description || "Hello"}
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-bold text-foreground">📝 About Me</p>
+              {editingAboutMe ? (
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={async () => {
+                      await updateProfile({ description: aboutMeText.trim() || "Hello" });
+                      setEditingAboutMe(false);
+                      toast({ title: "Bio updated!" });
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAboutMeText(profile?.description || "Hello");
+                      setEditingAboutMe(false);
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setAboutMeText(profile?.description || "Hello");
+                    setEditingAboutMe(true);
+                  }}
+                  className="p-1 hover:bg-muted/50 rounded"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+            {editingAboutMe ? (
+              <textarea
+                value={aboutMeText}
+                onChange={(e) => setAboutMeText(e.target.value)}
+                maxLength={200}
+                rows={3}
+                className="w-full bg-muted border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                autoFocus
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {profile?.description || "Hello"}
+              </p>
+            )}
           </div>
 
         </main>
