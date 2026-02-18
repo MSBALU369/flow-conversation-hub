@@ -8,41 +8,97 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LocationSelector } from "@/components/LocationSelector";
+import { SkipForward } from "lucide-react";
 
 const genderOptions = [
   { value: "male" as const, label: "Male", icon: "👨" },
   { value: "female" as const, label: "Female", icon: "👩" },
 ];
 
+function generateAnonymousUsername(): string {
+  const num = Math.floor(100000 + Math.random() * 900000);
+  return `Anonymous${num}`;
+}
+
 export default function Onboarding() {
   const [username, setUsername] = useState("");
   const [gender, setGender] = useState<"male" | "female" | null>(null);
   const [description, setDescription] = useState("");
+  const [referralId, setReferralId] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [loading, setLoading] = useState(false);
+  const [skipping, setSkipping] = useState(false);
   const { updateProfile } = useProfile();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const processReferral = async (code: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: referrer } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("unique_id", code)
+        .maybeSingle();
+      if (referrer && referrer.id !== user.id) {
+        await supabase.from("referrals").insert({
+          referrer_id: referrer.id,
+          referred_user_id: user.id,
+        });
+        const { data: rProfile } = await supabase
+          .from("profiles")
+          .select("coins")
+          .eq("id", referrer.id)
+          .single();
+        if (rProfile) {
+          await supabase
+            .from("profiles")
+            .update({ coins: (rProfile.coins || 0) + 50 })
+            .eq("id", referrer.id);
+        }
+        await supabase
+          .from("profiles")
+          .update({ referred_by: referrer.id })
+          .eq("id", user.id);
+      }
+    } catch {
+      // Referral processing failed silently
+    }
+  };
+
+  const handleSkip = async () => {
+    setSkipping(true);
+    try {
+      const updates: any = {
+        username: generateAnonymousUsername(),
+        gender: "male" as const,
+        description: "Hello",
+      };
+      const { error } = await updateProfile(updates);
+      if (error) throw error;
+      navigate("/", { replace: true });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSkipping(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!username.trim()) {
-      toast({ title: "Username is required", variant: "destructive" });
-      return;
-    }
-    if (!gender) {
-      toast({ title: "Please select your gender", variant: "destructive" });
-      return;
-    }
 
     setLoading(true);
     try {
       const updates: any = {
-        username: username.trim(),
-        gender,
-        description: description.trim() || null,
+        username: username.trim() || generateAnonymousUsername(),
+        gender: gender || ("male" as const),
+        description: description.trim() || "Hello",
       };
       if (selectedCountry && selectedCity) {
         updates.country = selectedCountry;
@@ -52,48 +108,11 @@ export default function Onboarding() {
       const { error } = await updateProfile(updates);
       if (error) throw error;
 
-      // Process referral code from signup
-      const storedReferral = localStorage.getItem("ef_referral_code");
-      if (storedReferral) {
+      // Process referral code (from field or from signup localStorage)
+      const codeToProcess = referralId.trim() || localStorage.getItem("ef_referral_code") || "";
+      if (codeToProcess) {
         localStorage.removeItem("ef_referral_code");
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            // Find referrer by unique_id
-            const { data: referrer } = await supabase
-              .from("profiles")
-              .select("id")
-              .eq("unique_id", storedReferral)
-              .maybeSingle();
-
-            if (referrer && referrer.id !== user.id) {
-              // Create referral record
-              await supabase.from("referrals").insert({
-                referrer_id: referrer.id,
-                referred_user_id: user.id,
-              });
-              // Award 50 coins to referrer
-              const { data: rProfile } = await supabase
-                .from("profiles")
-                .select("coins")
-                .eq("id", referrer.id)
-                .single();
-              if (rProfile) {
-                await supabase
-                  .from("profiles")
-                  .update({ coins: (rProfile.coins || 0) + 50 })
-                  .eq("id", referrer.id);
-              }
-              // Save referred_by on new user
-              await supabase
-                .from("profiles")
-                .update({ referred_by: referrer.id })
-                .eq("id", user.id);
-            }
-          }
-        } catch {
-          // Referral processing failed silently - don't block onboarding
-        }
+        await processReferral(codeToProcess);
       }
 
       navigate("/", { replace: true });
@@ -111,29 +130,45 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="w-full max-w-sm glass-card p-8 animate-scale-in">
+        {/* Skip Button */}
+        <div className="flex justify-end -mt-2 mb-2">
+          <button
+            type="button"
+            onClick={handleSkip}
+            disabled={skipping}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            <SkipForward className="w-3.5 h-3.5" />
+            {skipping ? "Skipping..." : "Skip"}
+          </button>
+        </div>
+
         <div className="flex flex-col items-center mb-6">
           <EFLogo size="lg" className="mb-4" />
           <h1 className="text-2xl font-bold text-foreground">Complete Your Profile</h1>
-          <p className="text-sm text-muted-foreground mt-1">Tell us about yourself to get started</p>
+          <p className="text-sm text-muted-foreground mt-1">All fields are optional</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Username */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Username *</label>
+            <label className="text-sm font-medium text-foreground">
+              Username <span className="text-muted-foreground">(optional)</span>
+            </label>
             <Input
               placeholder="Choose a username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               maxLength={30}
-              required
               className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
           {/* Gender */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Gender *</label>
+            <label className="text-sm font-medium text-foreground">
+              Gender <span className="text-muted-foreground">(optional)</span>
+            </label>
             <div className="grid grid-cols-2 gap-3">
               {genderOptions.map((opt) => (
                 <button
@@ -169,10 +204,24 @@ export default function Onboarding() {
             />
           </div>
 
-          {/* Description */}
+          {/* Reference ID */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
-              About You <span className="text-muted-foreground">(optional)</span>
+              Reference ID <span className="text-muted-foreground">(optional)</span>
+            </label>
+            <Input
+              placeholder="Enter referrer's UID"
+              value={referralId}
+              onChange={(e) => setReferralId(e.target.value)}
+              maxLength={20}
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+
+          {/* Description / Bio */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Bio <span className="text-muted-foreground">(optional)</span>
             </label>
             <Textarea
               placeholder="Write a short bio..."
