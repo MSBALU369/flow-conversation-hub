@@ -262,6 +262,7 @@ export type Database = {
           country: string | null
           created_at: string
           description: string | null
+          early_end_count: number | null
           email: string | null
           energy_bars: number | null
           followers_count: number | null
@@ -296,6 +297,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           description?: string | null
+          early_end_count?: number | null
           email?: string | null
           energy_bars?: number | null
           followers_count?: number | null
@@ -330,6 +332,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           description?: string | null
+          early_end_count?: number | null
           email?: string | null
           energy_bars?: number | null
           followers_count?: number | null

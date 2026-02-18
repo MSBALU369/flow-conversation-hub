@@ -128,7 +128,6 @@ export default function Call() {
   const [pulseIntensity, setPulseIntensity] = useState(0);
   const [isPartnerMuted, setIsPartnerMuted] = useState(false);
   const [showEndCallWarning, setShowEndCallWarning] = useState(false);
-  const [endCallWarningMessage, setEndCallWarningMessage] = useState("");
   
   const callStartTime = useRef<number>(Date.now());
 
@@ -236,10 +235,8 @@ export default function Call() {
 
   const handleAttemptEndCall = () => {
     if (seconds < 30) {
-      setEndCallWarningMessage("Ending before 30 seconds will cost you 1 battery bar. Are you sure?");
       setShowEndCallWarning(true);
     } else if (seconds < 60) {
-      setEndCallWarningMessage("Stay a little longer! Calls over 1 minute earn you a battery bar.");
       setShowEndCallWarning(true);
     } else {
       handleEndCall();
@@ -273,16 +270,45 @@ export default function Call() {
       }).then(() => {});
     }
 
-    let batteryChange = 0;
+    // Penalty logic
     const currentBars = profile?.energy_bars ?? 5;
-    if (callDuration < 30) batteryChange = -1;
-    else if (callDuration >= 60) batteryChange = 1;
+    const currentCoins = profile?.coins ?? 0;
+    const currentEarlyEndCount = (profile as any)?.early_end_count ?? 0;
+    let batteryChange = 0;
+    let coinDeduction = 0;
+    let newEarlyEndCount = currentEarlyEndCount;
+
+    if (callDuration < 30) {
+      // <30s: lose 2 coins + 0.5 battery (tracked as count toward full bar drain)
+      coinDeduction = currentCoins > 0 ? 2 : 0;
+      newEarlyEndCount += 1;
+      // Every 2 early ends (<30s) = 1 full battery bar drain (0.5 each)
+      if (newEarlyEndCount % 2 === 0) batteryChange -= 1;
+    } else if (callDuration < 60) {
+      // 30s-59s: lose 1 coin
+      coinDeduction = currentCoins > 0 ? 1 : 0;
+      newEarlyEndCount += 1;
+    } else {
+      // >=60s: reward battery
+      batteryChange = 1;
+      newEarlyEndCount = 0; // reset early end counter
+    }
+
+    // Every 3 early ends (<1 min total) = drain 1 extra battery bar
+    if (callDuration < 60 && newEarlyEndCount > 0 && newEarlyEndCount % 3 === 0) {
+      batteryChange -= 1;
+    }
+
     if (callDuration >= 1200) batteryChange = 7 - currentBars;
 
+    const updates: any = { early_end_count: newEarlyEndCount };
     if (batteryChange !== 0) {
-      const newBars = Math.max(0, Math.min(7, currentBars + batteryChange));
-      updateProfile({ energy_bars: newBars });
+      updates.energy_bars = Math.max(0, Math.min(7, currentBars + batteryChange));
     }
+    if (coinDeduction > 0) {
+      updates.coins = Math.max(0, currentCoins - coinDeduction);
+    }
+    updateProfile(updates);
   };
 
   const handleSubmitPostCall = async () => {
@@ -613,7 +639,30 @@ export default function Call() {
               End Call?
             </DialogTitle>
           </DialogHeader>
-          <p className="text-muted-foreground text-sm">{endCallWarningMessage}</p>
+          {seconds < 30 ? (
+            <div className="space-y-1.5">
+              <p className="text-destructive text-sm font-semibold flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
+                Ending before 30 seconds will cost you 2 coins and battery will drain.
+              </p>
+              {(profile?.coins ?? 0) === 0 && (
+                <p className="text-muted-foreground text-xs italic">You have no coins — only battery penalty applies.</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <p className="text-destructive text-sm font-semibold flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
+                Ending before 1 minute will cost you 1 coin.
+              </p>
+              {(profile?.coins ?? 0) === 0 && (
+                <p className="text-muted-foreground text-xs italic">You have no coins — no coin penalty applies.</p>
+              )}
+              <p className="text-muted-foreground text-xs">
+                ⚠️ Ending early 3 times will drain 1 battery bar.
+              </p>
+            </div>
+          )}
 
           {/* Inline rating for stranger calls */}
           {!isFriendCall && (
