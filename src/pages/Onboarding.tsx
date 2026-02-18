@@ -132,12 +132,12 @@ export default function Onboarding() {
       <div className="w-full max-w-sm glass-card p-5 animate-scale-in">
         {/* Top row: Logo left, Skip right */}
         <div className="flex items-center justify-between mb-3">
-          <EFLogo size="lg" />
+          <EFLogo size="lg" className="scale-110 origin-left" />
           <button
             type="button"
             onClick={handleSkip}
             disabled={skipping}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-xs font-bold transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-xs font-bold transition-colors disabled:opacity-50 mr-[-4px]"
           >
             <SkipForward className="w-3.5 h-3.5" />
             {skipping ? "Skipping..." : "Skip"}
