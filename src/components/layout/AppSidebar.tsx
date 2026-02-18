@@ -32,6 +32,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { LevelsModal } from "@/components/LevelsModal";
@@ -50,6 +51,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
   const [levelsModalOpen, setLevelsModalOpen] = useState(false);
   const [trustScoreModalOpen, setTrustScoreModalOpen] = useState(false);
   const { profile } = useProfile();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -165,7 +167,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
                     {profile?.username || "User"}
                   </SheetTitle>
                   <p className="text-[10px] text-muted-foreground truncate">
-                    {profile?.email || "No email"}
+                    {user?.email || "No email"}
                   </p>
                 </div>
               </button>

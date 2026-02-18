@@ -4,6 +4,7 @@ import { format, startOfWeek, endOfWeek, getDay } from "date-fns";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export default function Profile() {
     loading,
     updateProfile
   } = useProfile();
+  const { user } = useAuth();
   const {
     toast
   } = useToast();
@@ -687,7 +689,7 @@ export default function Profile() {
               <p className="text-[7px] text-muted-foreground uppercase tracking-wider">
                 Email (Private)
               </p>
-              <p className="text-[10px] text-foreground leading-tight">{profile?.email || "Not set"}</p>
+              <p className="text-[10px] text-foreground leading-tight">{user?.email || "Not set"}</p>
             </div>
           </div>
 
