@@ -481,20 +481,14 @@ export default function Profile() {
 
             {/* Account ID */}
             <div className="flex items-center justify-center gap-1.5 mt-1">
-              <p className="text-xs text-muted-foreground font-bold font-mono">
+              <p className="text-sm text-muted-foreground font-bold font-mono">
                 ID: {profile?.unique_id || "Loading..."}
               </p>
               <button onClick={copyUniqueId} className="p-0.5 hover:bg-muted/50 rounded transition-colors">
-                <Copy className="w-2.5 h-2.5 text-muted-foreground" />
+                <Copy className="w-3 h-3 text-muted-foreground" />
               </button>
             </div>
 
-            {/* Bio */}
-            {profile?.description && (
-              <p className="text-sm text-muted-foreground mt-2 italic max-w-[260px] mx-auto">
-                "{profile.description}"
-              </p>
-            )}
           </div>
 
           {/* Stats Row - Clickable */}
