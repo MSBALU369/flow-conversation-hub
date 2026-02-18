@@ -117,7 +117,7 @@ export default function Premium() {
         </button>
       </div>
 
-      <main className="px-3 -mt-3">
+      <main className="px-3 mt-9">
         {/* One-Time Deal - Small Left-Aligned Chip */}
         <div className="mb-3">
           <button className="inline-flex items-center gap-1.5 glass-button px-3 py-1.5 rounded-full hover:bg-muted transition-colors">
