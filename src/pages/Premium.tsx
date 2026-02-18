@@ -189,7 +189,7 @@ export default function Premium() {
         </Button>
 
         {/* Premium Features List */}
-        <div className="glass-card p-2 px-3 mt-6">
+        <div className="glass-card p-2 px-3 mt-3">
           <h3 className="text-[10px] font-semibold text-foreground mb-1">Premium Features</h3>
           <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
             {premiumFeatures.map((feature, index) =>
@@ -204,7 +204,7 @@ export default function Premium() {
         </div>
 
         {/* T&C */}
-        <p className="text-center text-muted-foreground text-[10px] mt-7 px-4">
+        <p className="text-center text-muted-foreground text-[10px] mt-4 px-4">
           Subscription will auto-renew. Cancel anytime from your account settings. By continuing, you agree to our Terms & Conditions.
         </p>
       </main>
