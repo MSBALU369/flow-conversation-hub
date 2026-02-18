@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Crown, Sparkles, ArrowLeft } from "lucide-react";
+import premiumHero from "@/assets/premium-hero.png";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,24 +89,13 @@ export default function Premium() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Hero Section - Compact */}
-      <div className="relative h-56 bg-gradient-to-b from-primary/20 via-primary/10 to-background overflow-hidden">
+      <div className="relative h-72 bg-gradient-to-b from-primary/20 via-primary/10 to-background overflow-hidden">
         <button onClick={() => navigate(-1)} className="absolute top-3 left-3 p-2 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors safe-top z-10">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
-        <div className="absolute inset-0 flex items-center justify-center pt-10">
-          <div className="text-center px-4">
-            {/* People Image Placeholder */}
-            
-
-
-
-
-
-
-
-
-
-
+        <div className="absolute inset-0 flex flex-col items-center justify-start pt-4">
+          <img src={premiumHero} alt="Premium" className="w-32 h-32 object-contain" />
+          <div className="text-center px-4 mt-2">
             <h1 className="text-xl font-bold text-foreground mb-1">
               Serious learners choose
             </h1>
