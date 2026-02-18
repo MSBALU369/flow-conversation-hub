@@ -129,55 +129,57 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-      <div className="w-full max-w-sm glass-card p-8 animate-scale-in">
-        <div className="flex flex-col items-center mb-6">
+      <div className="w-full max-w-sm glass-card p-5 animate-scale-in">
+        <div className="flex flex-col items-center mb-3">
           <EFLogo size="lg" className="mb-2" />
-          <button
-            type="button"
-            onClick={handleSkip}
-            disabled={skipping}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-xs font-semibold transition-colors disabled:opacity-50 self-end -mt-8 mb-4"
-          >
-            <SkipForward className="w-3 h-3" />
-            {skipping ? "Skipping..." : "Skip All"}
-          </button>
-          <h1 className="text-2xl font-bold text-foreground">Complete Your Profile</h1>
-          <p className="text-sm text-muted-foreground mt-1">All fields are optional</p>
+          <h1 className="text-xl font-bold text-foreground">Complete Your Profile</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">All fields are optional</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Username */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Username <span className="text-muted-foreground">(optional)</span>
-            </label>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {/* Username + Skip All */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">
+                Username <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleSkip}
+                disabled={skipping}
+                className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-[10px] font-semibold transition-colors disabled:opacity-50"
+              >
+                <SkipForward className="w-2.5 h-2.5" />
+                {skipping ? "Skipping..." : "Skip All"}
+              </button>
+            </div>
             <Input
               placeholder="Choose a username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               maxLength={30}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-9"
             />
           </div>
 
           {/* Gender */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">
               Gender <span className="text-muted-foreground">(optional)</span>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {genderOptions.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setGender(opt.value)}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-full border transition-all text-sm font-medium ${
+                  className={`flex items-center justify-center gap-1.5 py-2 rounded-full border transition-all text-xs font-medium ${
                     gender === opt.value
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border bg-muted text-muted-foreground hover:border-primary/50"
                   }`}
                 >
-                  <span className="text-lg">{opt.icon}</span>
+                  <span className="text-base">{opt.icon}</span>
                   {opt.label}
                 </button>
               ))}
@@ -185,7 +187,7 @@ export default function Onboarding() {
           </div>
 
           {/* Location */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">
               Location <span className="text-muted-foreground">(optional)</span>
             </label>
@@ -201,7 +203,7 @@ export default function Onboarding() {
           </div>
 
           {/* Reference ID */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">
               Reference ID <span className="text-muted-foreground">(optional)</span>
             </label>
@@ -210,12 +212,12 @@ export default function Onboarding() {
               value={referralId}
               onChange={(e) => setReferralId(e.target.value)}
               maxLength={20}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-9"
             />
           </div>
 
           {/* Description / Bio */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">
               Bio <span className="text-muted-foreground">(optional)</span>
             </label>
@@ -224,16 +226,16 @@ export default function Onboarding() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={200}
-              rows={3}
+              rows={2}
               className="bg-muted border-border text-foreground placeholder:text-muted-foreground resize-none"
             />
-            <p className="text-xs text-muted-foreground text-right">{description.length}/200</p>
+            <p className="text-[10px] text-muted-foreground text-right">{description.length}/200</p>
           </div>
 
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-5"
           >
             {loading ? "Saving..." : "Get Started"}
           </Button>
