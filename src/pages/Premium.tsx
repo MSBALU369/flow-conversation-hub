@@ -107,7 +107,7 @@ export default function Premium() {
         </button>
       </div>
 
-      <main className="px-3 flex-1 flex flex-col justify-end pb-16 gap-2 -mt-2">
+      <main className="px-3 flex-1 flex flex-col justify-end pb-16 gap-2 -mt-10">
         {/* One-Time Deal */}
         <div>
           <button className="inline-flex items-center gap-1.5 glass-button px-3 py-1 rounded-full hover:bg-muted transition-colors">
