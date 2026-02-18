@@ -52,19 +52,12 @@ function AppRoutes() {
     return <LoadingSpinner />;
   }
 
-  // Not logged in
+  // Not logged in — only allow /login
   if (!user) {
-    const skipped = localStorage.getItem("ef_skipped_login") === "true";
-    if (!skipped) {
-      if (location.pathname !== "/login") {
-        return <Navigate to="/login" replace />;
-      }
-      return <Login />;
+    if (location.pathname !== "/login") {
+      return <Navigate to="/login" replace />;
     }
-    // Skipped — allow access as guest, but block onboarding
-    if (location.pathname === "/login") {
-      return <Navigate to="/" replace />;
-    }
+    return <Login />;
   }
 
   // Logged in but profile incomplete — only allow /onboarding

@@ -49,22 +49,9 @@ export default function Login() {
     }
   };
 
-  const handleSkip = () => {
-    localStorage.setItem("ef_skipped_login", "true");
-    navigate("/");
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="fixed inset-0 gradient-mesh pointer-events-none" />
-
-      {/* Skip button */}
-      <button
-        onClick={handleSkip}
-        className="fixed top-4 right-4 z-20 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        Skip →
-      </button>
 
       <div className="relative z-10 w-full max-w-sm glass-card p-6 animate-scale-in">
         {/* Logo & Branding */}
