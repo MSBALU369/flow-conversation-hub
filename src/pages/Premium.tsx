@@ -92,7 +92,7 @@ export default function Premium() {
         <button onClick={() => navigate(-1)} className="absolute top-3 left-3 p-2 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors safe-top z-10">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center pt-10">
           <div className="text-center px-4">
             {/* People Image Placeholder */}
             
