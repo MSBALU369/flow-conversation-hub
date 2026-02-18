@@ -486,6 +486,13 @@ export default function Profile() {
                 <Copy className="w-2.5 h-2.5 text-muted-foreground" />
               </button>
             </div>
+
+            {/* Bio */}
+            {profile?.description && (
+              <p className="text-sm text-muted-foreground mt-2 italic max-w-[260px] mx-auto">
+                "{profile.description}"
+              </p>
+            )}
           </div>
 
           {/* Stats Row - Clickable */}
