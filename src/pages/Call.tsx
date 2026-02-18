@@ -313,9 +313,11 @@ export default function Call() {
 
   const handleSubmitPostCall = async () => {
     if (postCallRating === "dislike" && selectedReportReasons.length > 0) {
-      toast({ title: "Report Submitted", description: "Thank you for helping keep our community safe." });
+      toast({ title: "Report Submitted", description: "Thank you for helping keep our community safe.", duration: 2000 });
     } else if (postCallRating === "like") {
-      toast({ title: "👍 Liked!", description: "Thanks for your feedback" });
+      toast({ title: `👍 You liked ${partnerProfile?.username || "Anonymous"}`, duration: 2000 });
+    } else if (postCallRating === "dislike") {
+      toast({ title: `👎 You disliked ${partnerProfile?.username || "Anonymous"}`, duration: 2000 });
     }
     navigate("/");
   };
@@ -768,9 +770,11 @@ export default function Call() {
             <Button variant="destructive" onClick={() => {
               setShowEndCallWarning(false);
               if (postCallRating === "dislike" && selectedReportReasons.length > 0) {
-                toast({ title: "Report Submitted", description: "Thank you for helping keep our community safe." });
+                toast({ title: "Report Submitted", description: "Thank you for helping keep our community safe.", duration: 2000 });
               } else if (postCallRating === "like") {
-                toast({ title: "👍 Liked!", description: "Thanks for your feedback" });
+                toast({ title: `👍 You liked ${partnerProfile?.username || "Anonymous"}`, duration: 2000 });
+              } else if (postCallRating === "dislike") {
+                toast({ title: `👎 You disliked ${partnerProfile?.username || "Anonymous"}`, duration: 2000 });
               }
               endCall();
               if (isFriendCall) {
