@@ -35,34 +35,9 @@ export default function Onboarding() {
 
   const processReferral = async (code: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: referrer } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("unique_id", code)
-        .maybeSingle();
-      if (referrer && referrer.id !== user.id) {
-        await supabase.from("referrals").insert({
-          referrer_id: referrer.id,
-          referred_user_id: user.id,
-        });
-        const { data: rProfile } = await supabase
-          .from("profiles")
-          .select("coins")
-          .eq("id", referrer.id)
-          .single();
-        if (rProfile) {
-          await supabase
-            .from("profiles")
-            .update({ coins: (rProfile.coins || 0) + 50 })
-            .eq("id", referrer.id);
-        }
-        await supabase
-          .from("profiles")
-          .update({ referred_by: referrer.id })
-          .eq("id", user.id);
-      }
+      // Only set referred_by — the database trigger handles
+      // referral record creation and coin rewards atomically
+      await updateProfile({ referred_by: code });
     } catch {
       // Referral processing failed silently
     }
