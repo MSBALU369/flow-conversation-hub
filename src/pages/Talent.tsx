@@ -282,9 +282,16 @@ export default function Talent() {
 
   const totalPlaylistCount = Object.values(playlist).reduce((sum, set) => sum + set.size, 0);
 
-  const handleDelete = (id: string) => {
-    setPosts(prev => prev.filter(p => p.id !== id));
-    toast({ title: "Deleted", description: "Talent post deleted." });
+  const handleDelete = (id: string, isOwn: boolean) => {
+    if (isOwn) {
+      // Only truly delete if the user owns this talent
+      setPosts(prev => prev.filter(p => p.id !== id));
+      toast({ title: "Deleted", description: "Your talent post has been deleted." });
+    } else {
+      // For other users' talents, just hide it from this user's feed (per-user action)
+      setHiddenIds(prev => new Set(prev).add(id));
+      toast({ title: "Removed", description: "This talent has been removed from your feed." });
+    }
   };
 
   const handleReport = (id: string) => {
@@ -446,8 +453,8 @@ export default function Talent() {
                         <DropdownMenuItem onClick={() => handleHide(post.id)}>
                           <EyeOff className="w-4 h-4 mr-2" /> Hide
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(post.id)} className="text-destructive focus:text-destructive">
-                          <Trash2 className="w-4 h-4 mr-2" /> Delete
+                        <DropdownMenuItem onClick={() => handleDelete(post.id, post.username === (profile?.username || "You"))} className="text-destructive focus:text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" /> {post.username === (profile?.username || "You") ? "Delete" : "Remove from feed"}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleReport(post.id)}>
                           <Flag className="w-4 h-4 mr-2" /> Report
@@ -878,8 +885,8 @@ export default function Talent() {
                               <DropdownMenuItem onClick={() => handleRemoveFromPlaylist(post.id, post.category)}>
                                 <X className="w-4 h-4 mr-2" /> Remove
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete(post.id)} className="text-destructive focus:text-destructive">
-                                <Trash2 className="w-4 h-4 mr-2" /> Delete
+                              <DropdownMenuItem onClick={() => handleDelete(post.id, post.username === (profile?.username || "You"))} className="text-destructive focus:text-destructive">
+                                <Trash2 className="w-4 h-4 mr-2" /> {post.username === (profile?.username || "You") ? "Delete" : "Remove from feed"}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleReport(post.id)}>
                                 <Flag className="w-4 h-4 mr-2" /> Report
@@ -1046,8 +1053,8 @@ export default function Talent() {
                     <DropdownMenuItem onClick={() => { handleRemoveFromPlaylist(previewPost.id, previewPost.category); setPreviewPostId(null); }}>
                       <X className="w-4 h-4 mr-2" /> Remove
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { handleDelete(previewPost.id); setPreviewPostId(null); }} className="text-destructive focus:text-destructive">
-                      <Trash2 className="w-4 h-4 mr-2" /> Delete
+                    <DropdownMenuItem onClick={() => { handleDelete(previewPost.id, previewPost.username === (profile?.username || "You")); setPreviewPostId(null); }} className="text-destructive focus:text-destructive">
+                      <Trash2 className="w-4 h-4 mr-2" /> {previewPost.username === (profile?.username || "You") ? "Delete" : "Remove from feed"}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleReport(previewPost.id)}>
                       <Flag className="w-4 h-4 mr-2" /> Report
