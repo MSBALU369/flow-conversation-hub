@@ -130,21 +130,21 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="w-full max-w-sm glass-card p-8 animate-scale-in">
-        {/* Skip Button */}
-        <div className="flex justify-end -mt-2 mb-2">
+        {/* Top row: Logo left, Skip right */}
+        <div className="flex items-center justify-between -mt-2 mb-4">
+          <EFLogo size="sm" />
           <button
             type="button"
             onClick={handleSkip}
             disabled={skipping}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-sm font-semibold transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white text-base font-bold transition-colors disabled:opacity-50"
           >
-            <SkipForward className="w-3.5 h-3.5" />
-            {skipping ? "Skipping..." : "Skip"}
+            <SkipForward className="w-5 h-5" />
+            {skipping ? "Skipping..." : "Skip All"}
           </button>
         </div>
 
         <div className="flex flex-col items-center mb-6">
-          <EFLogo size="lg" className="mb-4" />
           <h1 className="text-2xl font-bold text-foreground">Complete Your Profile</h1>
           <p className="text-sm text-muted-foreground mt-1">All fields are optional</p>
         </div>
