@@ -1,0 +1,861 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { MessageCircle, Phone, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown } from "lucide-react";
+import { BottomNav } from "@/components/layout/BottomNav";
+import { useProfile } from "@/hooks/useProfile";
+import { useCallState } from "@/hooks/useCallState";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
+
+interface Friend {
+  id: string;
+  name: string;
+  avatar: string | null;
+  lastMessage: string;
+  time: string;
+  unread: number;
+  isOnline: boolean;
+}
+
+interface Message {
+  id: string;
+  content: string;
+  senderId: string;
+  timestamp: Date;
+  status: "sent" | "delivered" | "read";
+  type: "text" | "image" | "voice";
+  viewOnce?: boolean;
+}
+
+// Mock friends data (mutual follows only) - already in chat
+const mockFriends: Friend[] = [
+  {
+    id: "1",
+    name: "Sarah",
+    avatar: null,
+    lastMessage: "Hey! How's your English practice going?",
+    time: "now",
+    unread: 2,
+    isOnline: true,
+  },
+  {
+    id: "2",
+    name: "Raj",
+    avatar: null,
+    lastMessage: "That was a great call!",
+    time: "1h",
+    unread: 0,
+    isOnline: true,
+  },
+  {
+    id: "3",
+    name: "Maria",
+    avatar: null,
+    lastMessage: "See you tomorrow!",
+    time: "1d",
+    unread: 0,
+    isOnline: false,
+  },
+];
+
+// Mock mutual followers available to add to chat
+const mockMutualFollowers: { id: string; name: string; avatar: string | null; isOnline: boolean }[] = [
+  { id: "4", name: "Alex", avatar: null, isOnline: true },
+  { id: "5", name: "Priya", avatar: null, isOnline: false },
+  { id: "6", name: "James", avatar: null, isOnline: true },
+  { id: "7", name: "Aisha", avatar: null, isOnline: false },
+];
+
+// Mock messages
+const mockMessages: Message[] = [
+  { id: "1", content: "Hey! How's your English practice going?", senderId: "1", timestamp: new Date(Date.now() - 60000), status: "read", type: "text" },
+  { id: "2", content: "It's going great! I've been practicing every day.", senderId: "me", timestamp: new Date(Date.now() - 50000), status: "read", type: "text" },
+  { id: "3", content: "That's awesome! Want to do a call later?", senderId: "1", timestamp: new Date(Date.now() - 40000), status: "read", type: "text" },
+  { id: "4", content: "Sure! I'm free in an hour.", senderId: "me", timestamp: new Date(Date.now() - 30000), status: "delivered", type: "text" },
+];
+
+const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function CompareGraph({ userName, friendName }: { userName: string; friendName: string }) {
+  const myData = [
+    { day: "Mon", minutes: 15 }, { day: "Tue", minutes: 22 }, { day: "Wed", minutes: 8 },
+    { day: "Thu", minutes: 30 }, { day: "Fri", minutes: 12 }, { day: "Sat", minutes: 45 }, { day: "Sun", minutes: 20 },
+  ];
+  const friendData = [
+    { day: "Mon", minutes: 10 }, { day: "Tue", minutes: 35 }, { day: "Wed", minutes: 18 },
+    { day: "Thu", minutes: 25 }, { day: "Fri", minutes: 40 }, { day: "Sat", minutes: 15 }, { day: "Sun", minutes: 30 },
+  ];
+  const maxMin = Math.max(...myData.map(d => d.minutes), ...friendData.map(d => d.minutes), 1);
+  const cW = 280, cH = 140, pL = 40, pR = 10, pT = 10, pB = 10;
+  const plotW = cW - pL - pR, plotH = cH - pT - pB;
+  const toPoints = (data: typeof myData) =>
+    data.map((d, i) => ({ x: pL + (i / (data.length - 1)) * plotW, y: cH - pB - (d.minutes / maxMin) * plotH }));
+  const toPath = (pts: { x: number; y: number }[]) =>
+    pts.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ");
+  const myPts = toPoints(myData), friendPts = toPoints(friendData);
+  const myTotal = myData.reduce((s, d) => s + d.minutes, 0);
+  const friendTotal = friendData.reduce((s, d) => s + d.minutes, 0);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-center gap-4 text-xs">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full" style={{ background: "#9ca3af" }} />
+          <span className="text-muted-foreground">{userName} ({myTotal}m)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full" style={{ background: "#38bdf8" }} />
+          <span className="text-muted-foreground">{friendName} ({friendTotal}m)</span>
+        </div>
+      </div>
+      <div className="flex justify-center">
+        <svg width={cW} height={cH + 20} viewBox={`0 0 ${cW} ${cH + 20}`}>
+          {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
+            const y = cH - pB - pct * plotH;
+            return (
+              <g key={pct}>
+                <line x1={pL} y1={y} x2={cW - pR} y2={y} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} />
+                <text x={pL - 5} y={y + 3} textAnchor="end" fontSize={9} fontWeight="bold" fill="hsl(var(--foreground))">{Math.round(pct * maxMin)}m</text>
+              </g>
+            );
+          })}
+          <path d={toPath(myPts)} fill="none" stroke="#9ca3af" strokeWidth={2} />
+          {myPts.map((p, i) => <circle key={`m${i}`} cx={p.x} cy={p.y} r={3} fill="#9ca3af" />)}
+          <path d={toPath(friendPts)} fill="none" stroke="#38bdf8" strokeWidth={2} />
+          {friendPts.map((p, i) => <circle key={`f${i}`} cx={p.x} cy={p.y} r={3} fill="#38bdf8" />)}
+          {dayLabels.map((day, i) => {
+            const x = pL + (i / (dayLabels.length - 1)) * plotW;
+            return <text key={day} x={x} y={cH + 14} textAnchor="middle" fontSize={10} fontWeight="bold" fill="hsl(var(--foreground))">{day}</text>;
+          })}
+        </svg>
+      </div>
+      <p className="text-center text-[10px] text-muted-foreground">Weekly speaking time comparison</p>
+    </div>
+  );
+}
+
+export default function Chat() {
+  const { profile } = useProfile();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { startCall } = useCallState();
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [newMessage, setNewMessage] = useState("");
+  const [showImageOptions, setShowImageOptions] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [showCompareGraph, setShowCompareGraph] = useState(false);
+  const [mutedUsers, setMutedUsers] = useState<Set<string>>(new Set());
+  const [showGallery, setShowGallery] = useState(false);
+  const [showClearChat, setShowClearChat] = useState(false);
+  const [clearChatOption, setClearChatOption] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [addFriendOpen, setAddFriendOpen] = useState(false);
+  const [chatFriends, setChatFriends] = useState<Friend[]>(mockFriends);
+  const [swipeOffsets, setSwipeOffsets] = useState<Record<string, number>>({});
+  const touchStartRef = useRef<{ x: number; y: number; id: string } | null>(null);
+  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleRemoveChat = useCallback((friend: Friend) => {
+    setChatFriends(prev => prev.filter(f => f.id !== friend.id));
+    setSwipeOffsets(prev => { const n = { ...prev }; delete n[friend.id]; return n; });
+
+    // Clear any existing undo timer
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+
+    toast({
+      title: `Chat with ${friend.name} removed`,
+      description: "Tap Undo to restore",
+      action: (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setChatFriends(prev => [friend, ...prev]);
+          }}
+          className="gap-1"
+        >
+          <Undo2 className="w-3 h-3" />
+          Undo
+        </Button>
+      ),
+      duration: 5000,
+    });
+  }, [toast]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent, friendId: string) => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, id: friendId };
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent, friendId: string) => {
+    if (!touchStartRef.current || touchStartRef.current.id !== friendId) return;
+    const deltaX = e.touches[0].clientX - touchStartRef.current.x;
+    const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+    // Only horizontal swipe, ignore vertical scrolling
+    if (deltaY > 30) { touchStartRef.current = null; return; }
+    if (deltaX < 0) {
+      setSwipeOffsets(prev => ({ ...prev, [friendId]: Math.min(0, deltaX) }));
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((friendId: string) => {
+    const offset = swipeOffsets[friendId] || 0;
+    if (offset < -100) {
+      // Swiped far enough — remove
+      const friend = chatFriends.find(f => f.id === friendId);
+      if (friend) handleRemoveChat(friend);
+    } else {
+      // Snap back
+      setSwipeOffsets(prev => ({ ...prev, [friendId]: 0 }));
+    }
+    touchStartRef.current = null;
+  }, [swipeOffsets, chatFriends, handleRemoveChat]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Recording timer
+  useEffect(() => {
+    if (isRecording) {
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime((prev) => {
+          if (prev >= 90) {
+            stopRecording();
+            return 90;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } else {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setRecordingTime(0);
+    }
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    };
+  }, [isRecording]);
+
+  const handleSendMessage = () => {
+    if (!newMessage.trim()) return;
+
+    const message: Message = {
+      id: Date.now().toString(),
+      content: newMessage,
+      senderId: "me",
+      timestamp: new Date(),
+      status: "sent",
+      type: "text",
+    };
+
+    setMessages([...messages, message]);
+    setNewMessage("");
+  };
+
+  const startRecording = () => {
+    setIsRecording(true);
+    toast({
+      title: "🎙️ Recording...",
+      description: "Max 90 seconds. Tap again to stop.",
+    });
+  };
+
+  const stopRecording = () => {
+    setIsRecording(false);
+    if (recordingTime > 0) {
+      const voiceMessage: Message = {
+        id: Date.now().toString(),
+        content: `🎤 Voice note (${recordingTime}s)`,
+        senderId: "me",
+        timestamp: new Date(),
+        status: "sent",
+        type: "voice",
+      };
+      setMessages([...messages, voiceMessage]);
+      toast({
+        title: "Voice note sent!",
+        description: `${recordingTime} seconds recorded.`,
+      });
+    }
+  };
+
+  const handleImageOption = (viewOnce: boolean) => {
+    setShowImageOptions(false);
+    toast({
+      title: viewOnce ? "📸 View Once Image" : "🖼️ Send Image",
+      description: viewOnce ? "Image will disappear after viewing" : "Selecting image...",
+    });
+    // Simulate sending image
+    const imageMessage: Message = {
+      id: Date.now().toString(),
+      content: viewOnce ? "📸 View once photo" : "🖼️ Photo",
+      senderId: "me",
+      timestamp: new Date(),
+      status: "sent",
+      type: "image",
+      viewOnce,
+    };
+    setMessages([...messages, imageMessage]);
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  };
+
+  const formatRecordingTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getStatusIcon = (status: Message["status"]) => {
+    switch (status) {
+      case "sent":
+        return <Check className="w-3 h-3 text-muted-foreground" />;
+      case "delivered":
+        return <CheckCheck className="w-3 h-3 text-muted-foreground" />;
+      case "read":
+        return <CheckCheck className="w-3 h-3 text-primary" />;
+    }
+  };
+
+  // Chat Room View
+  if (selectedFriend) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Chat Header */}
+        <header className="flex items-center gap-3 px-4 py-3 glass-nav safe-top sticky top-0 z-10">
+          <button
+            onClick={() => setSelectedFriend(null)}
+            className="p-2 -ml-2 rounded-lg hover:bg-muted/50"
+          >
+            <ArrowLeft className="w-5 h-5 text-foreground" />
+          </button>
+
+          <button onClick={() => navigate(`/user/${selectedFriend.id}`, { state: { id: selectedFriend.id, name: selectedFriend.name, avatar: selectedFriend.avatar, level: 3, isOnline: selectedFriend.isOnline, followersCount: 12, followingCount: 8, fansCount: 0, location: "Mumbai, India", uniqueId: "EF" + selectedFriend.id.padStart(10, "0").slice(0, 10).toUpperCase(), createdAt: "2024-08-15T00:00:00Z", myName: profile?.username || "You" } })} className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                {selectedFriend.avatar ? (
+                  <img src={selectedFriend.avatar} alt={selectedFriend.name} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <span>{selectedFriend.name[0].toUpperCase()}</span>
+                )}
+              </div>
+              {selectedFriend.isOnline && (
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
+              )}
+            </div>
+
+            <div className="text-left">
+              <h2 className="font-semibold text-foreground">{selectedFriend.name}</h2>
+              <p className="text-xs text-muted-foreground">
+                {selectedFriend.isOnline ? "Online" : "Offline"}
+              </p>
+            </div>
+          </button>
+
+          {/* Audio Call Button */}
+          <button
+            className="p-2 rounded-lg hover:bg-muted/50 text-primary"
+            onClick={() => {
+              startCall(selectedFriend.name, selectedFriend.avatar);
+              navigate("/call", { state: { partnerName: selectedFriend.name, partnerAvatar: selectedFriend.avatar } });
+            }}
+          >
+            <Phone className="w-5 h-5" />
+          </button>
+
+          {/* Settings Menu - Updated options */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-2 rounded-lg hover:bg-muted/50">
+                <MoreVertical className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-popover border-border">
+              <DropdownMenuItem onClick={() => setShowGallery(true)}>
+                <Images className="w-4 h-4 mr-2" />
+                View Gallery
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/user/${selectedFriend?.id}`, { state: { id: selectedFriend?.id, name: selectedFriend?.name, avatar: selectedFriend?.avatar, level: 3, isOnline: selectedFriend?.isOnline, followersCount: 12, followingCount: 8, fansCount: 0, location: "Mumbai, India", uniqueId: "EF" + (selectedFriend?.id || "").padStart(10, "0").slice(0, 10).toUpperCase(), createdAt: "2024-08-15T00:00:00Z", myName: profile?.username || "You" } })}>
+                <User className="w-4 h-4 mr-2" />
+                View Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive" onClick={() => setShowClearChat(true)}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Clear Chat
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                if (!selectedFriend) return;
+                setMutedUsers(prev => {
+                  const next = new Set(prev);
+                  if (next.has(selectedFriend.id)) {
+                    next.delete(selectedFriend.id);
+                    toast({ title: `Unmuted ${selectedFriend.name}` });
+                  } else {
+                    next.add(selectedFriend.id);
+                    toast({ title: `Muted ${selectedFriend.name}`, description: "You won't receive notifications from this user." });
+                  }
+                  return next;
+                });
+              }}>
+                {selectedFriend && mutedUsers.has(selectedFriend.id) ? (
+                  <><VolumeX className="w-4 h-4 mr-2" />Unmute User</>
+                ) : (
+                  <><Volume2 className="w-4 h-4 mr-2" />Mute User</>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowCompareGraph(true)}>
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Compare Graph
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </header>
+
+        {/* Messages */}
+        <main className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          {messages.map((message) => {
+            const isMe = message.senderId === "me";
+            return (
+              <div
+                key={message.id}
+                className={cn("flex", isMe ? "justify-end" : "justify-start")}
+              >
+                <div
+                  className={cn(
+                    "max-w-[75%] px-4 py-2 rounded-2xl",
+                    isMe
+                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      : "glass-card rounded-bl-md"
+                  )}
+                >
+                  <p className={cn(
+                    isMe ? "text-primary-foreground" : "text-foreground",
+                    message.type === "voice" && "flex items-center gap-2"
+                  )}>
+                    {message.type === "voice" && <Mic className="w-4 h-4" />}
+                    {message.type === "image" && message.viewOnce && <Eye className="w-4 h-4 inline mr-1" />}
+                    {message.content}
+                  </p>
+                  <div className={cn(
+                    "flex items-center gap-1 mt-1",
+                    isMe ? "justify-end" : "justify-start"
+                  )}>
+                    <span className={cn(
+                      "text-[10px]",
+                      isMe ? "text-primary-foreground/70" : "text-muted-foreground"
+                    )}>
+                      {formatTime(message.timestamp)}
+                    </span>
+                    {isMe && getStatusIcon(message.status)}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
+        </main>
+
+        {/* Message Input */}
+        <div className="p-4 glass-nav safe-bottom">
+          {isRecording ? (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 flex items-center gap-3 bg-destructive/20 rounded-xl px-4 py-3">
+                <div className="w-3 h-3 bg-destructive rounded-full animate-pulse" />
+                <span className="text-foreground font-medium">Recording...</span>
+                <span className="text-muted-foreground ml-auto">{formatRecordingTime(recordingTime)} / 1:30</span>
+              </div>
+              <Button
+                onClick={stopRecording}
+                size="icon"
+                className="bg-destructive text-destructive-foreground"
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {/* Image Button with Options */}
+              <button 
+                onClick={() => setShowImageOptions(true)}
+                className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground"
+              >
+                <Image className="w-5 h-5" />
+              </button>
+              
+              {/* Mic Button - Voice Recording */}
+              <button 
+                onClick={startRecording}
+                className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground"
+              >
+                <Mic className="w-5 h-5" />
+              </button>
+              
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                className="flex-1 bg-muted border-border"
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              />
+              <Button
+                onClick={handleSendMessage}
+                size="icon"
+                className="bg-primary text-primary-foreground"
+                disabled={!newMessage.trim()}
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Image Options Dialog */}
+        <Dialog open={showImageOptions} onOpenChange={setShowImageOptions}>
+          <DialogContent className="glass-card border-border max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Send Image</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-3">
+              <button
+                onClick={() => handleImageOption(false)}
+                className="w-full flex items-center gap-3 p-4 glass-button rounded-xl hover:bg-muted transition-colors"
+              >
+                <ImageIcon className="w-6 h-6 text-primary" />
+                <div className="text-left">
+                  <p className="font-medium text-foreground">Send Image</p>
+                  <p className="text-xs text-muted-foreground">Standard photo sharing</p>
+                </div>
+              </button>
+              <button
+                onClick={() => handleImageOption(true)}
+                className="w-full flex items-center gap-3 p-4 glass-button rounded-xl hover:bg-muted transition-colors"
+              >
+                <Eye className="w-6 h-6 text-accent" />
+                <div className="text-left">
+                  <p className="font-medium text-foreground">View Once</p>
+                  <p className="text-xs text-muted-foreground">Disappears after viewing</p>
+                </div>
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Compare Graph Dialog */}
+        <Dialog open={showCompareGraph} onOpenChange={setShowCompareGraph}>
+          <DialogContent className="glass-card border-border max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-primary" />
+                Speaking Time with {selectedFriend?.name}
+              </DialogTitle>
+            </DialogHeader>
+            <CompareGraph userName={profile?.username || "You"} friendName={selectedFriend?.name || "User"} />
+          </DialogContent>
+        </Dialog>
+
+
+        {/* Gallery Dialog */}
+        <Dialog open={showGallery} onOpenChange={setShowGallery}>
+          <DialogContent className="glass-card border-border max-w-sm max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <Images className="w-5 h-5 text-primary" />
+                Shared Media
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-2">
+              {(() => {
+                const mediaMessages = messages.filter(m => m.type === "image");
+                if (mediaMessages.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-10">
+                      <Images className="w-12 h-12 text-muted-foreground mb-3" />
+                      <p className="text-sm text-muted-foreground">No shared media yet</p>
+                      <p className="text-xs text-muted-foreground mt-1">Photos shared in chat will appear here</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="grid grid-cols-3 gap-2">
+                    {mediaMessages.map(msg => (
+                      <div key={msg.id} className="aspect-square rounded-lg bg-muted overflow-hidden">
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Clear Chat Dialog */}
+        <Dialog open={showClearChat} onOpenChange={(open) => { setShowClearChat(open); if (!open) setClearChatOption(null); }}>
+          <DialogContent className="glass-card border-border max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-destructive" />
+                Clear Chat
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">Select how far back to clear messages:</p>
+            <div className="space-y-2 py-2">
+              {[
+                { label: "Last 1 Hour", value: "1h" },
+                { label: "Last 1 Day", value: "1d" },
+                { label: "Last 1 Month", value: "1m" },
+                { label: "All Time", value: "all" },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setClearChatOption(opt.value)}
+                  className={cn(
+                    "w-full p-3 rounded-xl text-left text-sm font-medium transition-colors",
+                    clearChatOption === opt.value
+                      ? "bg-destructive/15 text-destructive border border-destructive/30"
+                      : "bg-muted/50 text-foreground hover:bg-muted"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <DialogFooter className="flex gap-2 sm:gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setShowClearChat(false); setClearChatOption(null); }}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                disabled={!clearChatOption}
+                onClick={() => {
+                  const now = new Date();
+                  let cutoff: Date;
+                  switch (clearChatOption) {
+                    case "1h": cutoff = new Date(now.getTime() - 60 * 60 * 1000); break;
+                    case "1d": cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000); break;
+                    case "1m": cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+                    default: cutoff = new Date(0);
+                  }
+                  setMessages(prev => prev.filter(m => m.timestamp < cutoff));
+                  toast({ title: "Chat cleared", description: `Messages from ${clearChatOption === "all" ? "all time" : `last ${clearChatOption === "1h" ? "1 hour" : clearChatOption === "1d" ? "1 day" : "1 month"}`} have been removed.` });
+                  setShowClearChat(false);
+                  setClearChatOption(null);
+                }}
+              >
+                Clear
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+      </div>
+    );
+  }
+
+  // Friends List View
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header */}
+      <header className="flex items-center justify-between px-4 py-4 safe-top">
+        <div className="relative">
+          <div
+            className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden cursor-pointer ${
+              profile?.is_premium ? 'ring-2 ring-[hsl(45,100%,50%)]' : 'bg-primary/20'
+            }`}
+            onClick={() => navigate("/profile")}
+          >
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt="Avatar"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-lg">👤</span>
+            )}
+          </div>
+          {profile?.is_premium && (
+            <Crown className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 text-[hsl(45,100%,50%)] drop-shadow-sm" fill="hsl(45,100%,50%)" />
+          )}
+        </div>
+
+        <h1 className="text-xl font-bold text-foreground">Chat</h1>
+
+        <Popover open={addFriendOpen} onOpenChange={setAddFriendOpen}>
+          <PopoverTrigger asChild>
+            <button className="relative w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-primary" />
+              {mockMutualFollowers.filter(mf => !chatFriends.some(cf => cf.id === mf.id)).length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
+                  {mockMutualFollowers.filter(mf => !chatFriends.some(cf => cf.id === mf.id)).length}
+                </span>
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-64 p-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1.5">Mutual Followers</p>
+            {mockMutualFollowers.filter(mf => !chatFriends.some(cf => cf.id === mf.id)).length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No new followers to add</p>
+            ) : (
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                {mockMutualFollowers
+                  .filter(mf => !chatFriends.some(cf => cf.id === mf.id))
+                  .map((follower) => (
+                    <button
+                      key={follower.id}
+                      onClick={() => {
+                        const newFriend: Friend = {
+                          id: follower.id,
+                          name: follower.name,
+                          avatar: follower.avatar,
+                          lastMessage: "Start a conversation!",
+                          time: "now",
+                          unread: 0,
+                          isOnline: follower.isOnline,
+                        };
+                        setChatFriends(prev => [newFriend, ...prev]);
+                        setAddFriendOpen(false);
+                        setSelectedFriend(newFriend);
+                        toast({ title: `Chat started with ${follower.name}` });
+                      }}
+                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="relative">
+                        <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-foreground">
+                          {follower.avatar ? (
+                            <img src={follower.avatar} alt={follower.name} className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            follower.name[0].toUpperCase()
+                          )}
+                        </div>
+                        {follower.isOnline && (
+                          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
+                        )}
+                      </div>
+                      <span className="text-sm font-medium text-foreground flex-1 text-left">{follower.name}</span>
+                      <span className="text-xs text-primary font-medium">Add</span>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      </header>
+
+      {/* Info Banner */}
+      <div className="px-4 mb-4">
+        <div className="glass-card p-3 text-center">
+          <p className="text-sm text-muted-foreground">
+            💬 Only mutual followers can chat with each other
+          </p>
+        </div>
+      </div>
+
+      <main className="px-4">
+        {chatFriends.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <MessageCircle className="w-16 h-16 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No chats yet</p>
+            <p className="text-sm text-muted-foreground">
+              Tap + to add a mutual follower!
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {chatFriends.map((friend) => {
+              const offset = swipeOffsets[friend.id] || 0;
+              return (
+                <div key={friend.id} className="relative overflow-hidden rounded-xl">
+                  {/* Delete background */}
+                  <div className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 bg-destructive rounded-xl w-full">
+                    <Trash2 className="w-5 h-5 text-destructive-foreground" />
+                  </div>
+
+                  {/* Swipeable card */}
+                  <div
+                    onTouchStart={(e) => handleTouchStart(e, friend.id)}
+                    onTouchMove={(e) => handleTouchMove(e, friend.id)}
+                    onTouchEnd={() => handleTouchEnd(friend.id)}
+                    onClick={() => { if (Math.abs(offset) < 10) setSelectedFriend(friend); }}
+                    className="relative flex items-center gap-3 p-3 rounded-xl bg-background transition-transform duration-200 ease-out cursor-pointer"
+                    style={{ transform: `translateX(${offset}px)` }}
+                  >
+                    <div className="relative">
+                      <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center text-xl font-bold text-foreground">
+                        {friend.avatar ? (
+                          <img src={friend.avatar} alt={friend.name} className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          friend.name[0].toUpperCase()
+                        )}
+                      </div>
+                      {friend.isOnline && (
+                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
+                      )}
+                    </div>
+
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-semibold text-foreground">{friend.name}</p>
+                          {mutedUsers.has(friend.id) && (
+                            <BellOff className="w-3.5 h-3.5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{friend.time}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {friend.lastMessage}
+                      </p>
+                    </div>
+
+                    {friend.unread > 0 && (
+                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                        <span className="text-xs font-bold text-primary-foreground">
+                          {friend.unread}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      <BottomNav />
+    </div>
+  );
+}

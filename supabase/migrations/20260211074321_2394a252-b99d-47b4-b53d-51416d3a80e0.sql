@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN last_location_change timestamp with time zone DEFAULT NULL;
