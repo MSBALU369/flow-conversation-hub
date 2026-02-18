@@ -93,7 +93,7 @@ export default function Premium() {
         <button onClick={() => navigate(-1)} className="absolute top-3 left-3 p-2 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors safe-top z-10">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
-        <div className="flex flex-col items-center pt-3 pb-0">
+        <div className="flex flex-col items-center pt-1 pb-0">
           <img src={premiumHero} alt="Premium" className="w-40 h-40 object-contain" />
           <div className="text-center px-4">
             <h1 className="text-xl font-bold text-foreground mb-0.5">
@@ -107,7 +107,7 @@ export default function Premium() {
         </button>
       </div>
 
-      <main className="px-3 flex-1 flex flex-col justify-end pb-16 gap-2 -mt-10">
+      <main className="px-3 flex-1 flex flex-col justify-end pb-16 gap-2 -mt-14">
         {/* One-Time Deal */}
         <div>
           <button className="inline-flex items-center gap-1.5 glass-button px-3 py-1 rounded-full hover:bg-muted transition-colors">
