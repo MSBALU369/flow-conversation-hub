@@ -560,7 +560,11 @@ export default function Profile() {
                 {/* Row 1: This Week */}
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">This Week</p>
-                  <div className="grid grid-cols-2 gap-2">
+              {(() => {
+                      const rawMutual = getOpponentMutual(selectedCompareUser.name).mutualThisWeek;
+                      const safeMutual = Math.min(rawMutual, totalWeekMinutes, compareTotal);
+                      return (
+                    <div className="grid grid-cols-2 gap-2">
                     <div className="bg-[hsl(0,0%,90%)]/60 dark:bg-[hsl(0,0%,25%)]/40 rounded-lg px-2 py-1 text-center">
                       <span className="text-[9px] text-muted-foreground block">You</span>
                       <p className="text-xs font-bold text-[hsl(0,0%,20%)] dark:text-[hsl(0,0%,85%)]">{formatDuration(totalWeekMinutes)}</p>
@@ -571,18 +575,24 @@ export default function Profile() {
                     </div>
                     <div className="bg-[hsl(220,50%,93%)]/60 dark:bg-[hsl(220,40%,20%)]/40 rounded-lg px-2 py-1 text-center">
                       <span className="text-[9px] text-muted-foreground block">Mutual Talk</span>
-                      <p className="text-xs font-bold text-[hsl(220,60%,45%)] dark:text-[hsl(220,60%,65%)]">{formatDuration(getOpponentMutual(selectedCompareUser.name).mutualThisWeek)}</p>
+                      <p className="text-xs font-bold text-[hsl(220,60%,45%)] dark:text-[hsl(220,60%,65%)]">{formatDuration(safeMutual)}</p>
                     </div>
                     <div className="bg-[hsl(0,60%,93%)]/60 dark:bg-[hsl(0,40%,20%)]/40 rounded-lg px-2 py-1 text-center">
                       <span className="text-[9px] text-muted-foreground block">Together Total</span>
-                      <p className="text-xs font-bold text-[hsl(0,70%,45%)] dark:text-[hsl(0,70%,60%)]">{formatDuration(calculateTogetherTotal(totalWeekMinutes, compareTotal, getOpponentMutual(selectedCompareUser.name).mutualThisWeek))}</p>
+                      <p className="text-xs font-bold text-[hsl(0,70%,45%)] dark:text-[hsl(0,70%,60%)]">{formatDuration(totalWeekMinutes + compareTotal)}</p>
                     </div>
                   </div>
+                      );
+                    })()}
                 </div>
                 {/* Row 2: All Time */}
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">All Time</p>
-                  <div className="grid grid-cols-2 gap-2">
+              {(() => {
+                      const rawMutual = getOpponentMutual(selectedCompareUser.name).mutualAllTime;
+                      const safeMutual = Math.min(rawMutual, totalAllTimeMinutes, selectedCompareUser.allTimeMinutes);
+                      return (
+                    <div className="grid grid-cols-2 gap-2">
                     <div className="bg-[hsl(0,0%,90%)]/60 dark:bg-[hsl(0,0%,25%)]/40 rounded-lg px-2 py-1 text-center">
                       <span className="text-[9px] text-muted-foreground block">You</span>
                       <p className="text-xs font-bold text-[hsl(0,0%,20%)] dark:text-[hsl(0,0%,85%)]">{formatDuration(totalAllTimeMinutes)}</p>
@@ -593,13 +603,15 @@ export default function Profile() {
                     </div>
                     <div className="bg-[hsl(220,50%,93%)]/60 dark:bg-[hsl(220,40%,20%)]/40 rounded-lg px-2 py-1 text-center">
                       <span className="text-[9px] text-muted-foreground block">Mutual Talk</span>
-                      <p className="text-xs font-bold text-[hsl(220,60%,45%)] dark:text-[hsl(220,60%,65%)]">{formatDuration(getOpponentMutual(selectedCompareUser.name).mutualAllTime)}</p>
+                      <p className="text-xs font-bold text-[hsl(220,60%,45%)] dark:text-[hsl(220,60%,65%)]">{formatDuration(safeMutual)}</p>
                     </div>
                     <div className="bg-[hsl(0,60%,93%)]/60 dark:bg-[hsl(0,40%,20%)]/40 rounded-lg px-2 py-1 text-center">
                       <span className="text-[9px] text-muted-foreground block">Together Total</span>
-                      <p className="text-xs font-bold text-[hsl(0,70%,45%)] dark:text-[hsl(0,70%,60%)]">{formatDuration(calculateTogetherTotal(totalAllTimeMinutes, selectedCompareUser.allTimeMinutes, getOpponentMutual(selectedCompareUser.name).mutualAllTime))}</p>
+                      <p className="text-xs font-bold text-[hsl(0,70%,45%)] dark:text-[hsl(0,70%,60%)]">{formatDuration(totalAllTimeMinutes + selectedCompareUser.allTimeMinutes)}</p>
                     </div>
                   </div>
+                      );
+                    })()}
                 </div>
               </div>
             ) : (

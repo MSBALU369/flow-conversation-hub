@@ -382,24 +382,31 @@ export default function UserProfilePage() {
             <BarChart3 className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold text-foreground">Speaking Comparison</span>
           </div>
+          {(() => {
+            const myTotal = (user.myWeeklyData || defaultMyData).reduce((s, d) => s + d.minutes, 0);
+            const partnerTotal = defaultFriendData.reduce((s, d) => s + d.minutes, 0);
+            const safeMutual = Math.min(defaultMutualWeekMinutes, myTotal, partnerTotal);
+            return (
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="bg-[hsl(0,0%,90%)]/60 dark:bg-[hsl(0,0%,25%)]/40 rounded-lg px-2 py-1 text-center">
               <span className="text-[9px] text-muted-foreground block">You</span>
-              <p className="text-xs font-bold text-[hsl(0,0%,20%)] dark:text-[hsl(0,0%,85%)]">{formatSpeakTime((user.myWeeklyData || defaultMyData).reduce((s, d) => s + d.minutes, 0))}</p>
+              <p className="text-xs font-bold text-[hsl(0,0%,20%)] dark:text-[hsl(0,0%,85%)]">{formatSpeakTime(myTotal)}</p>
             </div>
             <div className="bg-[hsl(140,40%,90%)]/60 dark:bg-[hsl(140,30%,20%)]/40 rounded-lg px-2 py-1 text-center">
               <span className="text-[9px] text-muted-foreground block">{user.name}</span>
-              <p className="text-xs font-bold text-[hsl(140,50%,30%)] dark:text-[hsl(140,50%,60%)]">{formatSpeakTime(defaultFriendData.reduce((s, d) => s + d.minutes, 0))}</p>
+              <p className="text-xs font-bold text-[hsl(140,50%,30%)] dark:text-[hsl(140,50%,60%)]">{formatSpeakTime(partnerTotal)}</p>
             </div>
             <div className="bg-[hsl(220,50%,93%)]/60 dark:bg-[hsl(220,40%,20%)]/40 rounded-lg px-2 py-1 text-center">
               <span className="text-[9px] text-muted-foreground block">Mutual Talk</span>
-              <p className="text-xs font-bold text-[hsl(220,60%,45%)] dark:text-[hsl(220,60%,65%)]">{formatSpeakTime(defaultMutualWeekMinutes)}</p>
+              <p className="text-xs font-bold text-[hsl(220,60%,45%)] dark:text-[hsl(220,60%,65%)]">{formatSpeakTime(safeMutual)}</p>
             </div>
             <div className="bg-[hsl(0,60%,93%)]/60 dark:bg-[hsl(0,40%,20%)]/40 rounded-lg px-2 py-1 text-center">
               <span className="text-[9px] text-muted-foreground block">Together Total</span>
-              <p className="text-xs font-bold text-[hsl(0,70%,45%)] dark:text-[hsl(0,70%,60%)]">{formatSpeakTime(calculateTogetherTotal(defaultMyData.reduce((s, d) => s + d.minutes, 0), defaultFriendData.reduce((s, d) => s + d.minutes, 0), defaultMutualWeekMinutes))}</p>
+              <p className="text-xs font-bold text-[hsl(0,70%,45%)] dark:text-[hsl(0,70%,60%)]">{formatSpeakTime(myTotal + partnerTotal)}</p>
             </div>
           </div>
+            );
+          })()}
           <CompareGraphInline
             userName={user.name}
             friendName={user.myName || "You"}
