@@ -107,9 +107,9 @@ export default function Premium() {
         </button>
       </div>
 
-      <main className="px-3 flex-1 flex flex-col pb-16">
+      <main className="px-3 flex-1 flex flex-col justify-end pb-16 gap-2">
         {/* One-Time Deal */}
-        <div className="mb-2">
+        <div>
           <button className="inline-flex items-center gap-1.5 glass-button px-3 py-1 rounded-full hover:bg-muted transition-colors">
             <Sparkles className="w-3 h-3 text-accent" />
             <span className="text-xs text-foreground">Try ₹49 ( 1 Day )</span>
@@ -117,7 +117,7 @@ export default function Premium() {
         </div>
 
         {/* Plan Selection */}
-        <div className="mb-2">
+        <div>
           <div className="flex items-center gap-2 mb-2">
             <h2 className="text-base font-semibold text-foreground">
               Choose your plan
@@ -184,7 +184,7 @@ export default function Premium() {
         </div>
 
         {/* Continue Button */}
-        <Button className="w-full py-4 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-teal mb-2">
+        <Button className="w-full py-4 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-teal">
           CONTINUE
         </Button>
 
@@ -204,7 +204,7 @@ export default function Premium() {
         </div>
 
         {/* T&C */}
-        <p className="text-center text-muted-foreground text-[10px] mt-1 px-4">
+        <p className="text-center text-muted-foreground text-[10px] px-4">
           Subscription will auto-renew. Cancel anytime from your account settings. By continuing, you agree to our Terms & Conditions.
         </p>
       </main>
