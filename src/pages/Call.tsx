@@ -643,25 +643,20 @@ export default function Call() {
           </DialogHeader>
           {seconds < 30 ? (
             <div className="space-y-1.5">
-              <p className="text-destructive text-sm font-semibold flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-destructive" />
+              <p className="text-destructive text-sm font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-destructive flex-shrink-0" />
                 Ending before 30 seconds will cost you 2 coins and battery will drain.
               </p>
-              {(profile?.coins ?? 0) === 0 && (
-                <p className="text-muted-foreground text-xs italic">You have no coins — only battery penalty applies.</p>
-              )}
             </div>
           ) : (
             <div className="space-y-1.5">
-              <p className="text-destructive text-sm font-semibold flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-destructive" />
+              <p className="text-destructive text-sm font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-destructive flex-shrink-0" />
                 Ending before 1 minute will cost you 1 coin.
               </p>
-              {(profile?.coins ?? 0) === 0 && (
-                <p className="text-muted-foreground text-xs italic">You have no coins — no coin penalty applies.</p>
-              )}
-              <p className="text-muted-foreground text-xs">
-                ⚠️ Ending early 3 times will drain 1 battery bar.
+              <p className="text-muted-foreground text-xs flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                Ending early 3 times will drain 1 battery bar.
               </p>
             </div>
           )}
