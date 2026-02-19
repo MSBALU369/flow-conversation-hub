@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Crown, Sparkles, ArrowLeft } from "lucide-react";
 import premiumHero from "@/assets/premium-hero.png";
@@ -6,6 +6,9 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useProfile } from "@/hooks/useProfile";
+import { PremiumCelebration } from "@/components/PremiumCelebration";
+import { useToast } from "@/hooks/use-toast";
 
 interface Plan {
   id: string;
@@ -34,9 +37,12 @@ const premiumFeatures = [
 
 export default function Premium() {
   const navigate = useNavigate();
+  const { profile, updateProfile } = useProfile();
+  const { toast } = useToast();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -184,7 +190,24 @@ export default function Premium() {
         </div>
 
         {/* Continue Button */}
-        <Button className="w-full py-4 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-teal mb-2">
+        <Button
+          onClick={async () => {
+            if (!selectedPlan) return;
+            const plan = plans.find(p => p.id === selectedPlan);
+            if (!plan) return;
+            // Calculate expiry
+            const durationDays: Record<string, number> = { "1_day": 1, "1_week": 7, "1_month": 30, "6_month": 180, "1_year": 365 };
+            const days = durationDays[plan.duration] || 30;
+            const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+            await updateProfile({
+              is_premium: true,
+              premium_expires_at: expiresAt,
+              badges: [...(profile?.badges || []), "premium"].filter((b, i, a) => a.indexOf(b) === i),
+            });
+            setShowCelebration(true);
+          }}
+          className="w-full py-4 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-teal mb-2"
+        >
           CONTINUE
         </Button>
 
@@ -210,6 +233,14 @@ export default function Premium() {
       </main>
 
       <BottomNav />
+      <PremiumCelebration
+        show={showCelebration}
+        onComplete={() => {
+          setShowCelebration(false);
+          toast({ title: "Welcome to Premium! 👑", description: "Enjoy all premium features." });
+          navigate("/");
+        }}
+      />
     </div>);
 
 }

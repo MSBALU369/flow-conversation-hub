@@ -179,19 +179,6 @@ export default function Onboarding() {
             />
           </div>
 
-          {/* Reference ID */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Reference ID <span className="text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              placeholder="Enter referrer's UID"
-              value={referralId}
-              onChange={(e) => setReferralId(e.target.value)}
-              maxLength={20}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-xs"
-            />
-          </div>
 
           {/* Description / Bio */}
           <div className="space-y-1">

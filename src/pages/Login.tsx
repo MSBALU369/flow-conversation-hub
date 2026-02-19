@@ -5,13 +5,12 @@ import { useToast } from "@/hooks/use-toast";
 import { EFLogo } from "@/components/ui/EFLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, Gift, Shield } from "lucide-react";
+import { Phone, Shield, Gift } from "lucide-react";
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -25,10 +24,6 @@ export default function Login() {
       if (isSignUp) {
         const { error } = await signUp(email, password);
         if (error) throw error;
-        // Store referral code for onboarding to process
-        if (referralCode.trim()) {
-          localStorage.setItem("ef_referral_code", referralCode.trim());
-        }
         toast({
           title: "Check your email ✉️",
           description: "We've sent you a verification link.",
@@ -104,26 +99,6 @@ export default function Login() {
             className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
           />
 
-          {/* Referral code - only on signup */}
-          {isSignUp && (
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Referral ID (optional)"
-                value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value)}
-                maxLength={12}
-                className="bg-muted border-border text-foreground placeholder:text-muted-foreground pr-10"
-              />
-              <Gift className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(45,100%,50%)]" />
-            </div>
-          )}
-
-          {isSignUp && referralCode.trim() && (
-            <p className="text-[10px] text-[hsl(45,100%,50%)] text-center">
-              🎉 You & your friend both earn 50 Coins on joining!
-            </p>
-          )}
 
           <Button
             type="submit"

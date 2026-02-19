@@ -113,6 +113,7 @@ export default function UserProfilePage() {
   const [loadingTalents, setLoadingTalents] = useState(false);
   const [hiddenTalents, setHiddenTalents] = useState<Set<string>>(new Set());
   const [showPremiumPrompt, setShowPremiumPrompt] = useState(false);
+  const [userBio, setUserBio] = useState<string | null>(null);
 
   // Relationship list modal
   const [listModal, setListModal] = useState<{ type: "following" | "followers" | "fans"; title: string } | null>(null);
@@ -120,6 +121,19 @@ export default function UserProfilePage() {
   const [listLoading, setListLoading] = useState(false);
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const { profile: myProfile } = useProfile();
+
+  // Fetch user bio
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("profiles")
+      .select("description")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setUserBio(data?.description || null);
+      });
+  }, [user?.id]);
 
   // Fetch my following list to know who I already follow
   useEffect(() => {
@@ -414,6 +428,14 @@ export default function UserProfilePage() {
             friendData={user.myWeeklyData || defaultMyData}
           />
         </div>
+
+        {/* About Me / Bio */}
+        {userBio && (
+          <div className="w-full max-w-xs mt-4 glass-card p-4 rounded-xl">
+            <p className="text-xs font-semibold text-foreground mb-1.5">About</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{userBio}</p>
+          </div>
+        )}
       </div>
 
       {/* Talents Modal */}
