@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Trophy, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GameCallBubble } from "./GameCallBubble";
 
 interface ChessGameProps {
   onClose: () => void;
@@ -157,6 +158,7 @@ export function ChessGame({ onClose, partnerName }: ChessGameProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
+      <GameCallBubble />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-foreground">♟️ Chess</span>
         <span className={cn("text-xs font-bold", turn === "w" ? "text-primary" : "text-muted-foreground")}>

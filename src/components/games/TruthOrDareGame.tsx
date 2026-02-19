@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Trophy, Sparkles } from "lucide-react";
+import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 
 interface TruthOrDareGameProps {
@@ -120,6 +121,7 @@ export function TruthOrDareGame({ onClose, partnerName }: TruthOrDareGameProps) 
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
+      <GameCallBubble />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-primary">Round {round + 1}/{TOTAL_ROUNDS}</span>
         <div className="flex items-center gap-1">
