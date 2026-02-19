@@ -430,12 +430,10 @@ export default function UserProfilePage() {
         </div>
 
         {/* About Me / Bio */}
-        {userBio && (
-          <div className="w-full max-w-xs mt-4 glass-card p-4 rounded-xl">
-            <p className="text-xs font-semibold text-foreground mb-1.5">About</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{userBio}</p>
-          </div>
-        )}
+        <div className="w-full max-w-xs mt-4 glass-card p-4 rounded-xl">
+          <p className="text-xs font-semibold text-foreground mb-1.5">About</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{userBio || "Hello 👋"}</p>
+        </div>
       </div>
 
       {/* Talents Modal */}
