@@ -6,13 +6,14 @@ import { cn } from "@/lib/utils";
 
 interface LudoGameProps {
   onClose: () => void;
+  onMinimize?: () => void;
   partnerName: string;
 }
 
 const TRACK_LENGTH = 30;
 const DICE_ICONS = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
 
-export function LudoGame({ onClose, partnerName }: LudoGameProps) {
+export function LudoGame({ onClose, onMinimize, partnerName }: LudoGameProps) {
   const [myPos, setMyPos] = useState(0);
   const [partnerPos, setPartnerPos] = useState(0);
   const [isMyTurn, setIsMyTurn] = useState(true);
@@ -79,7 +80,7 @@ export function LudoGame({ onClose, partnerName }: LudoGameProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
-      <GameCallBubble />
+      <GameCallBubble onMinimize={onMinimize} />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-foreground">🎲 Ludo Race</span>
         <span className={cn("text-xs font-bold", isMyTurn ? "text-primary" : "text-muted-foreground")}>

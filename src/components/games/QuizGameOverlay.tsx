@@ -17,12 +17,13 @@ interface QuizGameOverlayProps {
   category: string;
   betAmount: number;
   onClose: () => void;
+  onMinimize?: () => void;
   partnerName: string;
 }
 
 const QUESTION_TIME = 15; // seconds per question
 
-export function QuizGameOverlay({ category, betAmount, onClose, partnerName }: QuizGameOverlayProps) {
+export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, partnerName }: QuizGameOverlayProps) {
   const { profile, updateProfile } = useProfile();
   const { toast } = useToast();
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -205,7 +206,7 @@ export function QuizGameOverlay({ category, betAmount, onClose, partnerName }: Q
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
-      <GameCallBubble />
+      <GameCallBubble onMinimize={onMinimize} />
       {/* Top Bar */}
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <div className="flex items-center gap-3">

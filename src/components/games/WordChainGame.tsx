@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface WordChainGameProps {
   onClose: () => void;
+  onMinimize?: () => void;
   partnerName: string;
 }
 
@@ -52,7 +53,7 @@ function findWord(startLetter: string, usedWords: Set<string>): string | null {
   return matches.length > 0 ? matches[Math.floor(Math.random() * matches.length)] : null;
 }
 
-export function WordChainGame({ onClose, partnerName }: WordChainGameProps) {
+export function WordChainGame({ onClose, onMinimize, partnerName }: WordChainGameProps) {
   const starter = STARTER_WORDS[Math.floor(Math.random() * STARTER_WORDS.length)];
   const [words, setWords] = useState<{ word: string; player: string }[]>([{ word: starter, player: "system" }]);
   const [input, setInput] = useState("");
@@ -153,7 +154,7 @@ export function WordChainGame({ onClose, partnerName }: WordChainGameProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
-      <GameCallBubble />
+      <GameCallBubble onMinimize={onMinimize} />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-primary">Round {round}/{MAX_ROUNDS}</span>
         <div className="flex items-center gap-1">
