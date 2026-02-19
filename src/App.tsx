@@ -11,6 +11,7 @@ import IncomingCallBanner from "@/components/IncomingCallBanner";
 import OutgoingCallBanner from "@/components/OutgoingCallBanner";
 import { IncomingCallDemo } from "@/components/IncomingCallDemo";
 import { RenewalReminder } from "@/components/RenewalReminder";
+import { BatteryWarningModal } from "@/components/BatteryWarningModal";
 
 // Pages
 import Login from "./pages/Login";
@@ -110,6 +111,7 @@ const App = () => (
             <OutgoingCallBanner />
             <IncomingCallDemo />
             <RenewalReminder />
+            <BatteryWarningModal />
           </CallStateProvider>
         </ProfileProvider>
       </BrowserRouter>

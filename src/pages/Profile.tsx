@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Coins, Gift, UserPlus, CheckCircle2, X, Shield } from "lucide-react";
+import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Coins, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2 } from "lucide-react";
 import { format, startOfWeek, endOfWeek, getDay } from "date-fns";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { TrustScoreModal } from "@/components/TrustScoreModal";
+import { CoinExchangeModal } from "@/components/CoinExchangeModal";
+import { ReferralTreeModal } from "@/components/ReferralTreeModal";
 import { formatDuration, sampleCompareUsers, calculateTogetherTotal, getOpponentMutual, currentUserTotals, type CompareUser } from "@/lib/mockData";
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export default function Profile() {
@@ -58,6 +60,31 @@ export default function Profile() {
   const [showTrustScore, setShowTrustScore] = useState(false);
   const [editingAboutMe, setEditingAboutMe] = useState(false);
   const [aboutMeText, setAboutMeText] = useState("");
+  const [showCoinExchange, setShowCoinExchange] = useState(false);
+  const [showReferralTree, setShowReferralTree] = useState(false);
+  const [watchingAd, setWatchingAd] = useState(false);
+  const [adProgress, setAdProgress] = useState(0);
+
+  // Ad watching effect for coins
+  useEffect(() => {
+    if (!watchingAd) return;
+    const interval = setInterval(() => {
+      setAdProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setWatchingAd(false);
+          // Award 5 coins
+          if (profile) {
+            updateProfile({ coins: (profile.coins ?? 0) + 5 });
+          }
+          toast({ title: "+5 Coins!", description: "Coins added for watching the ad." });
+          return 100;
+        }
+        return prev + (100 / 30); // 30 seconds
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [watchingAd]);
 
   // Fetch real counts from friendships table
   const fetchCounts = useCallback(async () => {
@@ -806,6 +833,8 @@ export default function Profile() {
         {/* Settings Modal */}
         <ProfileSettingsModal open={showSettingsModal} onOpenChange={setShowSettingsModal} />
         <TrustScoreModal open={showTrustScore} onOpenChange={setShowTrustScore} />
+        <CoinExchangeModal open={showCoinExchange} onOpenChange={setShowCoinExchange} />
+        <ReferralTreeModal open={showReferralTree} onOpenChange={setShowReferralTree} />
 
         {/* Compare User Selection Modal */}
         <Dialog open={showCompareList} onOpenChange={setShowCompareList}>
@@ -958,6 +987,48 @@ export default function Profile() {
               <div className="text-center py-2">
                 <p className="text-3xl font-bold text-[hsl(45,100%,50%)]">{profile?.coins ?? 0}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Total Coins Earned</p>
+
+                {/* Send & Request Buttons */}
+                <div className="flex gap-2 mt-2 justify-center">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-xs h-8"
+                    onClick={() => { setShowCoinsModal(false); setShowCoinExchange(true); }}
+                  >
+                    <Send className="w-3 h-3" /> Send
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-xs h-8"
+                    onClick={() => { setShowCoinsModal(false); setShowCoinExchange(true); }}
+                  >
+                    <ArrowDownLeft className="w-3 h-3" /> Request
+                  </Button>
+                </div>
+              </div>
+
+              {/* Watch Ad for Coins */}
+              <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-muted/30 border border-border/50">
+                <span className="text-sm">📺</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground">Watch Ad (+5 Coins)</p>
+                  <p className="text-[9px] text-muted-foreground">30-second ad</p>
+                </div>
+                {watchingAd ? (
+                  <div className="flex items-center gap-1.5">
+                    <Volume2 className="w-3.5 h-3.5 text-primary animate-pulse" />
+                    <span className="text-[9px] text-primary font-medium">{Math.round(adProgress)}%</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setWatchingAd(true); setAdProgress(0); }}
+                    className="shrink-0 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold hover:bg-primary/90 transition-colors"
+                  >
+                    <Play className="w-3 h-3 inline mr-0.5" /> Watch
+                  </button>
+                )}
               </div>
 
               {/* Refer & Earn */}
@@ -1002,6 +1073,16 @@ export default function Profile() {
                   <p className="text-[9px] text-muted-foreground">Joined</p>
                 </div>
               </div>
+
+              {/* Referral Tree Button */}
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-xs h-8"
+                onClick={() => { setShowCoinsModal(false); setShowReferralTree(true); }}
+              >
+                <GitBranch className="w-3.5 h-3.5" />
+                View Referral Tree
+              </Button>
 
               {/* Referred Members (compact) */}
               {referrals.length > 0 && (

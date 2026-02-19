@@ -20,6 +20,7 @@ import {
   Crown,
   X,
   Coins,
+  Phone,
 } from "lucide-react";
 import {
   Sheet,
@@ -38,6 +39,8 @@ import { cn } from "@/lib/utils";
 import { LevelsModal } from "@/components/LevelsModal";
 import { TrustScoreModal } from "@/components/TrustScoreModal";
 import { EFLogo } from "@/components/ui/EFLogo";
+import { SpeakWithModal } from "@/components/SpeakWithModal";
+import { PremiumModal } from "@/components/PremiumModal";
 
 interface AppSidebarProps {
   onHistoryClick?: () => void;
@@ -50,6 +53,8 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
   });
   const [levelsModalOpen, setLevelsModalOpen] = useState(false);
   const [trustScoreModalOpen, setTrustScoreModalOpen] = useState(false);
+  const [speakWithOpen, setSpeakWithOpen] = useState(false);
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const { profile } = useProfile();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -106,10 +111,23 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
     setTrustScoreModalOpen(true);
   };
 
+  const handleSpeakWithClick = () => {
+    setOpen(false);
+    if (profile?.is_premium) {
+      setSpeakWithOpen(true);
+    } else {
+      setPremiumModalOpen(true);
+    }
+  };
+
   const menuItems = [
     { icon: Home, label: "Home", path: "/" },
     { icon: User, label: "Profile", path: "/profile" },
     { icon: Users, label: "Rooms", path: "/rooms" },
+    // Non-premium: Show "Speak With" under Rooms, then Learn
+    ...(!profile?.is_premium ? [
+      { icon: Phone, label: "Speak With", action: handleSpeakWithClick, badge: "Premium" },
+    ] : []),
     { icon: BookOpen, label: "Learn", path: "/learn" },
     { icon: Trophy, label: "Levels", action: handleLevelsClick, badge: `Lv.${profile?.level ?? 1}` },
     { icon: Clock, label: "History", action: handleHistoryClick },
@@ -318,6 +336,16 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
       <TrustScoreModal
         open={trustScoreModalOpen}
         onOpenChange={setTrustScoreModalOpen}
+      />
+
+      <SpeakWithModal
+        open={speakWithOpen}
+        onOpenChange={setSpeakWithOpen}
+      />
+
+      <PremiumModal
+        open={premiumModalOpen}
+        onOpenChange={setPremiumModalOpen}
       />
     </Sheet>
   );
