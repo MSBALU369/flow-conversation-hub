@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Trophy } from "lucide-react";
+import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 
 interface WouldYouRatherGameProps {
@@ -79,6 +80,7 @@ export function WouldYouRatherGame({ onClose, partnerName }: WouldYouRatherGameP
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
+      <GameCallBubble />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-primary">Round {round + 1}/{TOTAL_ROUNDS}</span>
         <span className="text-xs text-muted-foreground">🤝 {matches} matches</span>

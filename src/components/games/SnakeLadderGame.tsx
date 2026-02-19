@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Trophy, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from "lucide-react";
+import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 
 interface SnakeLadderGameProps {
@@ -106,6 +107,7 @@ export function SnakeLadderGame({ onClose, partnerName }: SnakeLadderGameProps) 
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
+      <GameCallBubble />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-foreground">🐍 Snake & Ladder</span>
         <span className={cn("text-xs font-bold", isMyTurn ? "text-primary" : "text-muted-foreground")}>

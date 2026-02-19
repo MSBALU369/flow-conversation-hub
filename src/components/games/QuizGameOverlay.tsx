@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { GameCallBubble } from "./GameCallBubble";
 
 interface QuizQuestion {
   question: string;
@@ -204,6 +205,7 @@ export function QuizGameOverlay({ category, betAmount, onClose, partnerName }: Q
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
+      <GameCallBubble />
       {/* Top Bar */}
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <div className="flex items-center gap-3">
