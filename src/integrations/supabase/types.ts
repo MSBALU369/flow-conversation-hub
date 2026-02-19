@@ -748,6 +748,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_profile_columns: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          badges: string[]
+          country: string
+          created_at: string
+          description: string
+          followers_count: number
+          following_count: number
+          gender: Database["public"]["Enums"]["gender_type"]
+          id: string
+          is_online: boolean
+          is_premium: boolean
+          level: number
+          location_city: string
+          region: string
+          streak_count: number
+          unique_id: string
+          username: string
+          xp: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
