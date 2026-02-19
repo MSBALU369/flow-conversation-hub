@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { EFLogo } from "@/components/ui/EFLogo";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Phone, Shield, Gift } from "lucide-react";
 
@@ -16,11 +17,46 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const TEST_EMAIL = "324324324@ef.com";
+  const TEST_RAW = "324324324";
+  const TEST_PASS = "123456";
+
+  const handleTestAccount = async () => {
+    // Try sign in first
+    let { error } = await signIn(TEST_EMAIL, TEST_PASS);
+    if (error) {
+      // If user doesn't exist, sign up
+      const res = await signUp(TEST_EMAIL, TEST_PASS);
+      if (res.error) throw res.error;
+      // Try signing in again after signup
+      const res2 = await signIn(TEST_EMAIL, TEST_PASS);
+      if (res2.error) throw res2.error;
+    }
+    // Grant premium + 10000 coins
+    const { data: { user: u } } = await supabase.auth.getUser();
+    if (u) {
+      const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      await supabase.from("profiles").update({
+        is_premium: true,
+        premium_expires_at: expiresAt,
+        coins: 10000,
+        badges: ["premium"],
+      }).eq("id", u.id);
+    }
+    navigate("/");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Test account bypass
+      if (email === TEST_RAW && password === TEST_PASS) {
+        await handleTestAccount();
+        return;
+      }
+
       if (isSignUp) {
         const { error } = await signUp(email, password);
         if (error) throw error;
