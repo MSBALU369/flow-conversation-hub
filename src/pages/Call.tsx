@@ -37,6 +37,13 @@ import { cn } from "@/lib/utils";
 import { GameListModal } from "@/components/games/GameListModal";
 import { QuizBetModal } from "@/components/games/QuizBetModal";
 import { QuizGameOverlay } from "@/components/games/QuizGameOverlay";
+import { WordChainGame } from "@/components/games/WordChainGame";
+import { WouldYouRatherGame } from "@/components/games/WouldYouRatherGame";
+import { TruthOrDareGame } from "@/components/games/TruthOrDareGame";
+import { ChessGame } from "@/components/games/ChessGame";
+import { LudoGame } from "@/components/games/LudoGame";
+import { SnakeLadderGame } from "@/components/games/SnakeLadderGame";
+import { ArcheryGame } from "@/components/games/ArcheryGame";
 
 const CALL_DURATION_LIMIT = 60; // 1 minute loop bar
 const WARNING_TIME = 30; // Warning at 30 seconds
@@ -119,6 +126,7 @@ export default function Call() {
   const [quizActive, setQuizActive] = useState(false);
   const [quizCategory, setQuizCategory] = useState("general");
   const [quizBetAmount, setQuizBetAmount] = useState(0);
+  const [activeGame, setActiveGame] = useState<string | null>(null);
   const [showPostCallModal, setShowPostCallModal] = useState(false);
   
   const [selectedReportReasons, setSelectedReportReasons] = useState<string[]>([]);
@@ -801,6 +809,8 @@ export default function Call() {
           setShowGameModal(false);
           if (game === "quiz") {
             setShowQuizBet(true);
+          } else {
+            setActiveGame(game);
           }
         }}
       />
@@ -826,6 +836,15 @@ export default function Call() {
           onClose={() => setQuizActive(false)}
         />
       )}
+
+      {/* Other Game Overlays */}
+      {activeGame === "wordchain" && <WordChainGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
+      {activeGame === "wouldyourather" && <WouldYouRatherGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
+      {activeGame === "truthordare" && <TruthOrDareGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
+      {activeGame === "chess" && <ChessGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
+      {activeGame === "ludo" && <LudoGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
+      {activeGame === "snakeandladder" && <SnakeLadderGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
+      {activeGame === "archery" && <ArcheryGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
 
       {/* Unified Post-Call Modal: Rating + Optional Report */}
       <Dialog open={showPostCallModal} onOpenChange={setShowPostCallModal}>
