@@ -41,6 +41,38 @@ const games = [
     available: false,
     premiumOnly: true,
   },
+  {
+    id: "chess",
+    name: "Chess",
+    icon: "♟️",
+    description: "Classic strategy board game — challenge your partner",
+    available: false,
+    premiumOnly: false,
+  },
+  {
+    id: "ludo",
+    name: "Ludo",
+    icon: "🎲",
+    description: "Roll the dice and race to the finish",
+    available: false,
+    premiumOnly: false,
+  },
+  {
+    id: "snakeandladder",
+    name: "Snake & Ladder",
+    icon: "🐍",
+    description: "Climb ladders and dodge snakes to win",
+    available: false,
+    premiumOnly: false,
+  },
+  {
+    id: "archery",
+    name: "Archery",
+    icon: "🏹",
+    description: "Aim and shoot — test your precision skills",
+    available: false,
+    premiumOnly: false,
+  },
 ];
 
 export function GameListModal({ open, onOpenChange, onSelectGame }: GameListModalProps) {
