@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap } from "lucide-react";
+import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap, Users } from "lucide-react";
+import { SpeakWithModal } from "@/components/SpeakWithModal";
 import { LevelsModal } from "@/components/LevelsModal";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -48,6 +49,7 @@ export default function Home() {
   const [showBooksModal, setShowBooksModal] = useState(false);
   const [booksTab, setBooksTab] = useState<"books" | "courses">("books");
   const isPremium = profile?.is_premium ?? false;
+  const [showSpeakWith, setShowSpeakWith] = useState(false);
 
   // Simulate ad playback
   useEffect(() => {
@@ -227,15 +229,28 @@ export default function Home() {
 
           {/* Recommended Books & Courses Button (premium) / Ad Area (free) */}
           {isPremium ? (
-            <div className="mt-6 mb-2 flex justify-center">
-              <Button
-                variant="outline"
-                onClick={() => setShowBooksModal(true)}
-                className="gap-2 text-sm px-5 py-2.5 h-auto border-primary/30 text-primary hover:bg-primary/10"
-              >
-                <BookOpen className="w-4 h-4" />
-                Recommended Books & Courses
-              </Button>
+            <div className="mt-4 space-y-3">
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowBooksModal(true)}
+                  className="gap-2 text-sm px-5 py-2.5 h-auto border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Recommended Books & Courses
+                </Button>
+              </div>
+              {/* Speak With - Premium only on Home */}
+              <div className="flex justify-center">
+                <Button
+                  onClick={() => setShowSpeakWith(true)}
+                  className="gap-2 text-sm px-5 py-2.5 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                  variant="outline"
+                >
+                  <Users className="w-4 h-4" />
+                  Speak With (Filter by Level & Gender)
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="mt-4 glass-card p-4">
@@ -290,6 +305,9 @@ export default function Home() {
       
       {/* History Modal */}
       <CombinedHistoryModal open={showHistoryModal} onOpenChange={setShowHistoryModal} />
+
+      {/* Speak With Modal (Premium) */}
+      <SpeakWithModal open={showSpeakWith} onOpenChange={setShowSpeakWith} />
 
       {/* Levels Modal */}
       <LevelsModal

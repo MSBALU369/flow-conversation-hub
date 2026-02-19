@@ -690,7 +690,23 @@ export default function Talent() {
       <Dialog open={showMyTalents} onOpenChange={setShowMyTalents}>
         <DialogContent className="glass-card border-border max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-foreground text-lg">My Talents</DialogTitle>
+            <DialogTitle className="text-foreground text-lg flex items-center gap-2">
+              My Talents
+              <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {posts.filter(p => p.username === (profile?.username || "You")).length} total
+              </span>
+            </DialogTitle>
+            {/* Counts row */}
+            <div className="flex gap-2 mt-1">
+              <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                <Globe className="w-2.5 h-2.5 inline mr-0.5" />
+                {posts.filter(p => p.username === (profile?.username || "You") && !p.isPrivate).length} Public
+              </span>
+              <span className="text-[10px] text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                <Lock className="w-2.5 h-2.5 inline mr-0.5" />
+                {posts.filter(p => p.username === (profile?.username || "You") && p.isPrivate).length} Private
+              </span>
+            </div>
           </DialogHeader>
           <div className="space-y-3">
             {/* Visibility filter */}
