@@ -5,12 +5,15 @@ import { Coins, Zap } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
 const CATEGORIES = [
+  { id: "all", label: "All Categories", emoji: "🎲" },
   { id: "general", label: "General Knowledge", emoji: "🌍" },
   { id: "science", label: "Science", emoji: "🔬" },
   { id: "history", label: "History", emoji: "📜" },
   { id: "movies", label: "Movies & TV", emoji: "🎬" },
   { id: "sports", label: "Sports", emoji: "⚽" },
   { id: "geography", label: "Geography", emoji: "🗺️" },
+  { id: "news", label: "News & Current Affairs", emoji: "📰" },
+  { id: "reasoning", label: "Reasoning", emoji: "🧩" },
 ];
 
 const BET_OPTIONS = [0, 5, 10, 20, 50];
@@ -24,7 +27,7 @@ interface QuizBetModalProps {
 export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps) {
   const { profile } = useProfile();
   const coins = profile?.coins ?? 0;
-  const [selectedCategory, setSelectedCategory] = useState("general");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [betAmount, setBetAmount] = useState(0);
 
   return (
