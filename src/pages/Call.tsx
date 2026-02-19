@@ -34,6 +34,9 @@ import { useNetworkStrength } from "@/hooks/useNetworkStrength";
 import { useCallState } from "@/hooks/useCallState";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { GameListModal } from "@/components/games/GameListModal";
+import { QuizBetModal } from "@/components/games/QuizBetModal";
+import { QuizGameOverlay } from "@/components/games/QuizGameOverlay";
 
 const CALL_DURATION_LIMIT = 60; // 1 minute loop bar
 const WARNING_TIME = 30; // Warning at 30 seconds
@@ -112,6 +115,10 @@ export default function Call() {
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [showGameModal, setShowGameModal] = useState(false);
+  const [showQuizBet, setShowQuizBet] = useState(false);
+  const [quizActive, setQuizActive] = useState(false);
+  const [quizCategory, setQuizCategory] = useState("general");
+  const [quizBetAmount, setQuizBetAmount] = useState(0);
   const [showPostCallModal, setShowPostCallModal] = useState(false);
   
   const [selectedReportReasons, setSelectedReportReasons] = useState<string[]>([]);
@@ -786,21 +793,39 @@ export default function Call() {
         </DialogContent>
       </Dialog>
 
-      {/* Game Modal */}
-      <Dialog open={showGameModal} onOpenChange={setShowGameModal}>
-        <DialogContent className="glass-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground text-xl">Play a Game</DialogTitle>
-          </DialogHeader>
-          <div className="py-10 text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/20 flex items-center justify-center">
-              <Gamepad2 className="w-10 h-10 text-primary" />
-            </div>
-            <p className="text-foreground text-lg mb-2">Games Coming Soon!</p>
-            <p className="text-muted-foreground">Quiz is the only game available (Coming Soon)</p>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Game List Modal */}
+      <GameListModal
+        open={showGameModal}
+        onOpenChange={setShowGameModal}
+        onSelectGame={(game) => {
+          setShowGameModal(false);
+          if (game === "quiz") {
+            setShowQuizBet(true);
+          }
+        }}
+      />
+
+      {/* Quiz Bet Modal */}
+      <QuizBetModal
+        open={showQuizBet}
+        onOpenChange={setShowQuizBet}
+        onStart={(cat, bet) => {
+          setQuizCategory(cat);
+          setQuizBetAmount(bet);
+          setShowQuizBet(false);
+          setQuizActive(true);
+        }}
+      />
+
+      {/* Quiz Game Overlay */}
+      {quizActive && (
+        <QuizGameOverlay
+          category={quizCategory}
+          betAmount={quizBetAmount}
+          partnerName={partnerProfile?.username || "Partner"}
+          onClose={() => setQuizActive(false)}
+        />
+      )}
 
       {/* Unified Post-Call Modal: Rating + Optional Report */}
       <Dialog open={showPostCallModal} onOpenChange={setShowPostCallModal}>
