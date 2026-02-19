@@ -16,6 +16,7 @@ const GAME_ICONS: Record<string, string> = {
   ludo: "🎲",
   snakeandladder: "🐍",
   archery: "🏹",
+  sudoku: "🧩",
 };
 
 export function FloatingGameBubble({ gameName, onReopen }: FloatingGameBubbleProps) {

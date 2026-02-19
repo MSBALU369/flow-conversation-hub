@@ -44,6 +44,7 @@ import { ChessGame } from "@/components/games/ChessGame";
 import { LudoGame } from "@/components/games/LudoGame";
 import { SnakeLadderGame } from "@/components/games/SnakeLadderGame";
 import { ArcheryGame } from "@/components/games/ArcheryGame";
+import { SudokuGame } from "@/components/games/SudokuGame";
 import { FloatingGameBubble } from "@/components/games/FloatingGameBubble";
 
 const CALL_DURATION_LIMIT = 60; // 1 minute loop bar
@@ -848,6 +849,7 @@ export default function Call() {
       {activeGame === "ludo" && !gameMinimized && <LudoGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
       {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
       {activeGame === "archery" && !gameMinimized && <ArcheryGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "sudoku" && !gameMinimized && <SudokuGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
 
       {/* Floating Game Bubble - shown on call screen when game is minimized */}
       {gameMinimized && (activeGame || quizActive) && (
