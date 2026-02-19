@@ -1,20 +1,31 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import { Phone } from "lucide-react";
-import { useCallState } from "@/hooks/useCallState";
+import { Gamepad2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface GameCallBubbleProps {
-  onMinimize?: () => void;
+interface FloatingGameBubbleProps {
+  gameName: string;
+  onReopen: () => void;
 }
 
-export function GameCallBubble({ onMinimize }: GameCallBubbleProps) {
-  const { callState } = useCallState();
+const GAME_ICONS: Record<string, string> = {
+  quiz: "❓",
+  chess: "♟️",
+  wordchain: "🔤",
+  wouldyourather: "🤔",
+  truthordare: "🎭",
+  ludo: "🎲",
+  snakeandladder: "🐍",
+  archery: "🏹",
+};
+
+export function FloatingGameBubble({ gameName, onReopen }: FloatingGameBubbleProps) {
   const bubbleRef = useRef<HTMLButtonElement>(null);
   const dragState = useRef({ isDragging: false, startX: 0, startY: 0, offsetX: 0, offsetY: 0 });
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
 
   const resetPosition = useCallback(() => {
-    setPosition({ x: window.innerWidth - 72, y: window.innerHeight - 160 });
+    setPosition({ x: window.innerWidth - 64, y: 100 });
   }, []);
 
   useEffect(() => {
@@ -36,8 +47,8 @@ export function GameCallBubble({ onMinimize }: GameCallBubbleProps) {
     if (!dragState.current.isDragging) return;
     const dx = e.clientX - dragState.current.startX;
     const dy = e.clientY - dragState.current.startY;
-    const newX = Math.max(0, Math.min(window.innerWidth - 56, dragState.current.offsetX + dx));
-    const newY = Math.max(0, Math.min(window.innerHeight - 56, dragState.current.offsetY + dy));
+    const newX = Math.max(0, Math.min(window.innerWidth - 52, dragState.current.offsetX + dx));
+    const newY = Math.max(0, Math.min(window.innerHeight - 52, dragState.current.offsetY + dy));
     setPosition({ x: newX, y: newY });
   }, []);
 
@@ -47,16 +58,14 @@ export function GameCallBubble({ onMinimize }: GameCallBubbleProps) {
     const dy = Math.abs(e.clientY - dragState.current.startY);
     dragState.current.isDragging = false;
     setDragging(false);
-    if (wasDragging && dx < 5 && dy < 5 && onMinimize) {
-      onMinimize();
+    if (wasDragging && dx < 5 && dy < 5) {
+      onReopen();
     }
-  }, [onMinimize]);
+  }, [onReopen]);
 
-  if (!callState.isInCall || !position) return null;
+  if (!position) return null;
 
-  const mins = Math.floor(callState.callSeconds / 60);
-  const secs = callState.callSeconds % 60;
-  const time = `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  const icon = GAME_ICONS[gameName] || "🎮";
 
   return (
     <button
@@ -64,7 +73,7 @@ export function GameCallBubble({ onMinimize }: GameCallBubbleProps) {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      className="fixed z-[70] touch-none select-none"
+      className="fixed z-[55] touch-none select-none"
       style={{
         left: position.x,
         top: position.y,
@@ -72,27 +81,19 @@ export function GameCallBubble({ onMinimize }: GameCallBubbleProps) {
       }}
     >
       <div className="relative flex items-center justify-center">
-        {/* Pulse wave rings */}
+        {/* Blink effect */}
         {!dragging && (
-          <>
-            <div
-              className="absolute w-14 h-14 rounded-full border-2 border-green-400/50 animate-ping"
-              style={{ animationDuration: "2s" }}
-            />
-            <div
-              className="absolute w-[4.5rem] h-[4.5rem] rounded-full border border-green-400/25 animate-ping"
-              style={{ animationDuration: "2.5s", animationDelay: "0.3s" }}
-            />
-            <div
-              className="absolute w-20 h-20 rounded-full border border-green-400/15 animate-ping"
-              style={{ animationDuration: "3s", animationDelay: "0.6s" }}
-            />
-          </>
+          <div
+            className={cn(
+              "absolute w-12 h-12 rounded-xl border-2 border-primary/50 animate-pulse"
+            )}
+            style={{ animationDuration: "1.2s" }}
+          />
         )}
-        {/* Main bubble */}
-        <div className="w-14 h-14 rounded-full bg-green-500 flex flex-col items-center justify-center shadow-lg shadow-green-500/40 relative z-10">
-          <Phone className="w-5 h-5 text-white" />
-          <span className="text-[8px] font-mono font-bold text-white/90 -mt-0.5">{time}</span>
+        {/* Square bubble */}
+        <div className="w-12 h-12 rounded-xl bg-primary/90 flex flex-col items-center justify-center shadow-lg shadow-primary/30 relative z-10 border border-primary/60">
+          <span className="text-lg leading-none">{icon}</span>
+          <Gamepad2 className="w-3 h-3 text-primary-foreground/70 mt-0.5" />
         </div>
       </div>
     </button>

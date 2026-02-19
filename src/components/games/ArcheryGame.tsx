@@ -6,13 +6,14 @@ import { cn } from "@/lib/utils";
 
 interface ArcheryGameProps {
   onClose: () => void;
+  onMinimize?: () => void;
   partnerName: string;
 }
 
 const TOTAL_SHOTS = 5;
 const RING_SCORES = [10, 8, 6, 4, 2, 0]; // bullseye to miss
 
-export function ArcheryGame({ onClose, partnerName }: ArcheryGameProps) {
+export function ArcheryGame({ onClose, onMinimize, partnerName }: ArcheryGameProps) {
   const [myScore, setMyScore] = useState(0);
   const [partnerScore, setPartnerScore] = useState(0);
   const [shot, setShot] = useState(0);
@@ -101,7 +102,7 @@ export function ArcheryGame({ onClose, partnerName }: ArcheryGameProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
-      <GameCallBubble />
+      <GameCallBubble onMinimize={onMinimize} />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-foreground">🏹 Archery</span>
         <span className="text-xs font-bold text-primary">Shot {shot + 1}/{TOTAL_SHOTS}</span>

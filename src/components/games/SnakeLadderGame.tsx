@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface SnakeLadderGameProps {
   onClose: () => void;
+  onMinimize?: () => void;
   partnerName: string;
 }
 
@@ -14,7 +15,7 @@ const SNAKES: Record<number, number> = { 47: 19, 38: 12, 33: 6, 25: 9, 44: 22 };
 const LADDERS: Record<number, number> = { 3: 21, 8: 26, 14: 32, 28: 42, 36: 48 };
 const DICE_ICONS = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
 
-export function SnakeLadderGame({ onClose, partnerName }: SnakeLadderGameProps) {
+export function SnakeLadderGame({ onClose, onMinimize, partnerName }: SnakeLadderGameProps) {
   const [myPos, setMyPos] = useState(0);
   const [partnerPos, setPartnerPos] = useState(0);
   const [isMyTurn, setIsMyTurn] = useState(true);
@@ -107,7 +108,7 @@ export function SnakeLadderGame({ onClose, partnerName }: SnakeLadderGameProps) 
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
-      <GameCallBubble />
+      <GameCallBubble onMinimize={onMinimize} />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-foreground">🐍 Snake & Ladder</span>
         <span className={cn("text-xs font-bold", isMyTurn ? "text-primary" : "text-muted-foreground")}>

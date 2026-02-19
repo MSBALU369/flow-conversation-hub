@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface TruthOrDareGameProps {
   onClose: () => void;
+  onMinimize?: () => void;
   partnerName: string;
 }
 
@@ -47,7 +48,7 @@ const DARES = [
 
 const TOTAL_ROUNDS = 8;
 
-export function TruthOrDareGame({ onClose, partnerName }: TruthOrDareGameProps) {
+export function TruthOrDareGame({ onClose, onMinimize, partnerName }: TruthOrDareGameProps) {
   const [round, setRound] = useState(0);
   const [isMyTurn, setIsMyTurn] = useState(true);
   const [prompt, setPrompt] = useState<string | null>(null);
@@ -121,7 +122,7 @@ export function TruthOrDareGame({ onClose, partnerName }: TruthOrDareGameProps) 
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
-      <GameCallBubble />
+      <GameCallBubble onMinimize={onMinimize} />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-primary">Round {round + 1}/{TOTAL_ROUNDS}</span>
         <div className="flex items-center gap-1">

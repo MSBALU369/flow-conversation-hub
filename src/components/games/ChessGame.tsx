@@ -6,6 +6,7 @@ import { GameCallBubble } from "./GameCallBubble";
 
 interface ChessGameProps {
   onClose: () => void;
+  onMinimize?: () => void;
   partnerName: string;
 }
 
@@ -65,7 +66,7 @@ function isPathClear(board: Piece[][], fr: number, fc: number, tr: number, tc: n
   return true;
 }
 
-export function ChessGame({ onClose, partnerName }: ChessGameProps) {
+export function ChessGame({ onClose, onMinimize, partnerName }: ChessGameProps) {
   const [board, setBoard] = useState<Piece[][]>(createInitialBoard);
   const [selected, setSelected] = useState<[number, number] | null>(null);
   const [turn, setTurn] = useState<"w" | "b">("w");
@@ -158,7 +159,7 @@ export function ChessGame({ onClose, partnerName }: ChessGameProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
-      <GameCallBubble />
+      <GameCallBubble onMinimize={onMinimize} />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-foreground">♟️ Chess</span>
         <span className={cn("text-xs font-bold", turn === "w" ? "text-primary" : "text-muted-foreground")}>

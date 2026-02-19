@@ -44,6 +44,7 @@ import { ChessGame } from "@/components/games/ChessGame";
 import { LudoGame } from "@/components/games/LudoGame";
 import { SnakeLadderGame } from "@/components/games/SnakeLadderGame";
 import { ArcheryGame } from "@/components/games/ArcheryGame";
+import { FloatingGameBubble } from "@/components/games/FloatingGameBubble";
 
 const CALL_DURATION_LIMIT = 60; // 1 minute loop bar
 const WARNING_TIME = 30; // Warning at 30 seconds
@@ -127,6 +128,7 @@ export default function Call() {
   const [quizCategory, setQuizCategory] = useState("general");
   const [quizBetAmount, setQuizBetAmount] = useState(0);
   const [activeGame, setActiveGame] = useState<string | null>(null);
+  const [gameMinimized, setGameMinimized] = useState(false);
   const [showPostCallModal, setShowPostCallModal] = useState(false);
   
   const [selectedReportReasons, setSelectedReportReasons] = useState<string[]>([]);
@@ -828,23 +830,32 @@ export default function Call() {
       />
 
       {/* Quiz Game Overlay */}
-      {quizActive && (
+      {quizActive && !gameMinimized && (
         <QuizGameOverlay
           category={quizCategory}
           betAmount={quizBetAmount}
           partnerName={partnerProfile?.username || "Partner"}
-          onClose={() => setQuizActive(false)}
+          onClose={() => { setQuizActive(false); setGameMinimized(false); }}
+          onMinimize={() => setGameMinimized(true)}
         />
       )}
 
-      {/* Other Game Overlays */}
-      {activeGame === "wordchain" && <WordChainGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
-      {activeGame === "wouldyourather" && <WouldYouRatherGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
-      {activeGame === "truthordare" && <TruthOrDareGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
-      {activeGame === "chess" && <ChessGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
-      {activeGame === "ludo" && <LudoGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
-      {activeGame === "snakeandladder" && <SnakeLadderGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
-      {activeGame === "archery" && <ArcheryGame partnerName={partnerProfile?.username || "Partner"} onClose={() => setActiveGame(null)} />}
+      {/* Other Game Overlays - hidden when minimized to preserve state */}
+      {activeGame === "wordchain" && !gameMinimized && <WordChainGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "wouldyourather" && !gameMinimized && <WouldYouRatherGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "truthordare" && !gameMinimized && <TruthOrDareGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "chess" && !gameMinimized && <ChessGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "ludo" && !gameMinimized && <LudoGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "archery" && !gameMinimized && <ArcheryGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
+
+      {/* Floating Game Bubble - shown on call screen when game is minimized */}
+      {gameMinimized && (activeGame || quizActive) && (
+        <FloatingGameBubble
+          gameName={activeGame || "quiz"}
+          onReopen={() => setGameMinimized(false)}
+        />
+      )}
 
       {/* Unified Post-Call Modal: Rating + Optional Report */}
       <Dialog open={showPostCallModal} onOpenChange={setShowPostCallModal}>

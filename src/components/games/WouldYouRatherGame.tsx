@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface WouldYouRatherGameProps {
   onClose: () => void;
+  onMinimize?: () => void;
   partnerName: string;
 }
 
@@ -29,7 +30,7 @@ const QUESTIONS = [
 
 const TOTAL_ROUNDS = 8;
 
-export function WouldYouRatherGame({ onClose, partnerName }: WouldYouRatherGameProps) {
+export function WouldYouRatherGame({ onClose, onMinimize, partnerName }: WouldYouRatherGameProps) {
   const [shuffled] = useState(() => [...QUESTIONS].sort(() => Math.random() - 0.5).slice(0, TOTAL_ROUNDS));
   const [round, setRound] = useState(0);
   const [myChoice, setMyChoice] = useState<"a" | "b" | null>(null);
@@ -80,7 +81,7 @@ export function WouldYouRatherGame({ onClose, partnerName }: WouldYouRatherGameP
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
-      <GameCallBubble />
+      <GameCallBubble onMinimize={onMinimize} />
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <span className="text-xs font-bold text-primary">Round {round + 1}/{TOTAL_ROUNDS}</span>
         <span className="text-xs text-muted-foreground">🤝 {matches} matches</span>
