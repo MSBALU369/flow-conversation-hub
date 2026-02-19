@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Gamepad2, Brain, Coins, Lock, Crown } from "lucide-react";
+import { Gamepad2, Coins, Lock, Crown } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
 interface GameListModalProps {
@@ -18,11 +18,19 @@ const games = [
     premiumOnly: false,
   },
   {
+    id: "chess",
+    name: "Chess",
+    icon: "♟️",
+    description: "Classic strategy board game — challenge your partner",
+    available: true,
+    premiumOnly: false,
+  },
+  {
     id: "wordchain",
     name: "Word Chain",
     icon: "🔗",
     description: "Take turns saying words that start with the last letter",
-    available: false,
+    available: true,
     premiumOnly: false,
   },
   {
@@ -30,7 +38,7 @@ const games = [
     name: "Would You Rather",
     icon: "🤔",
     description: "Fun dilemma questions to spark conversation",
-    available: false,
+    available: true,
     premiumOnly: false,
   },
   {
@@ -38,23 +46,15 @@ const games = [
     name: "Truth or Dare",
     icon: "🎯",
     description: "Classic party game — premium only",
-    available: false,
+    available: true,
     premiumOnly: true,
-  },
-  {
-    id: "chess",
-    name: "Chess",
-    icon: "♟️",
-    description: "Classic strategy board game — challenge your partner",
-    available: false,
-    premiumOnly: false,
   },
   {
     id: "ludo",
     name: "Ludo",
     icon: "🎲",
     description: "Roll the dice and race to the finish",
-    available: false,
+    available: true,
     premiumOnly: false,
   },
   {
@@ -62,7 +62,7 @@ const games = [
     name: "Snake & Ladder",
     icon: "🐍",
     description: "Climb ladders and dodge snakes to win",
-    available: false,
+    available: true,
     premiumOnly: false,
   },
   {
@@ -70,7 +70,7 @@ const games = [
     name: "Archery",
     icon: "🏹",
     description: "Aim and shoot — test your precision skills",
-    available: false,
+    available: true,
     premiumOnly: false,
   },
 ];
@@ -117,11 +117,7 @@ export function GameListModal({ open, onOpenChange, onSelectGame }: GameListModa
                 </div>
                 {locked && (
                   <div className="shrink-0">
-                    {!game.available ? (
-                      <span className="text-[9px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Soon</span>
-                    ) : (
-                      <Lock className="w-4 h-4 text-muted-foreground" />
-                    )}
+                    <Lock className="w-4 h-4 text-muted-foreground" />
                   </div>
                 )}
               </button>
