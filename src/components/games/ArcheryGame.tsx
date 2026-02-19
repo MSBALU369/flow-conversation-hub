@@ -1,27 +1,31 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Target } from "lucide-react";
+import { X, Trophy, Target, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
+import { useGameBet } from "@/hooks/useGameBet";
 
 interface ArcheryGameProps {
   onClose: () => void;
   onMinimize?: () => void;
+  betAmount?: number;
   partnerName: string;
 }
 
 const TOTAL_SHOTS = 5;
 const RING_SCORES = [10, 8, 6, 4, 2, 0]; // bullseye to miss
 
-export function ArcheryGame({ onClose, onMinimize, partnerName }: ArcheryGameProps) {
+export function ArcheryGame({ onClose, onMinimize, betAmount = 0, partnerName }: ArcheryGameProps) {
+  const { settleBet } = useGameBet(betAmount);
   const [myScore, setMyScore] = useState(0);
   const [partnerScore, setPartnerScore] = useState(0);
   const [shot, setShot] = useState(0);
-  const [arrowPos, setArrowPos] = useState(50); // 0-100 horizontal position
+  const [arrowPos, setArrowPos] = useState(50);
   const [moving, setMoving] = useState(true);
   const [lastScore, setLastScore] = useState<number | null>(null);
   const [partnerLastScore, setPartnerLastScore] = useState<number | null>(null);
   const [gameOver, setGameOver] = useState(false);
+  const [settled, setSettled] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const dirRef = useRef(1);
   const speedRef = useRef(2);
@@ -85,6 +89,7 @@ export function ArcheryGame({ onClose, onMinimize, partnerName }: ArcheryGamePro
   if (gameOver) {
     const won = myScore > partnerScore;
     const tied = myScore === partnerScore;
+    if (!settled) { settleBet(won ? "win" : tied ? "tie" : "lose"); setSettled(true); }
     return (
       <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4 px-6">
         <div className={cn("w-20 h-20 rounded-full flex items-center justify-center", won ? "bg-[hsl(45,100%,50%)]/20" : tied ? "bg-primary/20" : "bg-destructive/20")}>
@@ -95,6 +100,12 @@ export function ArcheryGame({ onClose, onMinimize, partnerName }: ArcheryGamePro
           <div className="text-center"><p className="text-2xl font-bold text-primary">{myScore}</p><p className="text-xs text-muted-foreground">You</p></div>
           <div className="text-center"><p className="text-2xl font-bold text-destructive">{partnerScore}</p><p className="text-xs text-muted-foreground">{partnerName}</p></div>
         </div>
+        {betAmount > 0 && (
+          <p className="text-sm font-semibold flex items-center gap-1">
+            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            {won ? `+${betAmount * 2} coins` : tied ? "Bet refunded" : `-${betAmount} coins`}
+          </p>
+        )}
         <Button onClick={onClose} className="mt-4 w-full max-w-[200px]">Back to Call</Button>
       </div>
     );

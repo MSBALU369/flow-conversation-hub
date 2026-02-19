@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy } from "lucide-react";
+import { X, Trophy, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
+import { useGameBet } from "@/hooks/useGameBet";
 
 interface WouldYouRatherGameProps {
   onClose: () => void;
   onMinimize?: () => void;
+  betAmount?: number;
   partnerName: string;
 }
 
@@ -30,7 +32,8 @@ const QUESTIONS = [
 
 const TOTAL_ROUNDS = 8;
 
-export function WouldYouRatherGame({ onClose, onMinimize, partnerName }: WouldYouRatherGameProps) {
+export function WouldYouRatherGame({ onClose, onMinimize, betAmount = 0, partnerName }: WouldYouRatherGameProps) {
+  const { settleBet } = useGameBet(betAmount);
   const [shuffled] = useState(() => [...QUESTIONS].sort(() => Math.random() - 0.5).slice(0, TOTAL_ROUNDS));
   const [round, setRound] = useState(0);
   const [myChoice, setMyChoice] = useState<"a" | "b" | null>(null);
@@ -38,6 +41,7 @@ export function WouldYouRatherGame({ onClose, onMinimize, partnerName }: WouldYo
   const [showResult, setShowResult] = useState(false);
   const [matches, setMatches] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [settled, setSettled] = useState(false);
 
   const handleChoice = (choice: "a" | "b") => {
     if (showResult) return;
@@ -61,6 +65,8 @@ export function WouldYouRatherGame({ onClose, onMinimize, partnerName }: WouldYo
 
   if (gameOver) {
     const matchPercent = Math.round((matches / TOTAL_ROUNDS) * 100);
+    const won = matchPercent >= 50;
+    if (!settled) { settleBet(won ? "win" : "lose"); setSettled(true); }
     return (
       <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4 px-6">
         <div className="w-20 h-20 rounded-full flex items-center justify-center bg-primary/20">
@@ -72,6 +78,12 @@ export function WouldYouRatherGame({ onClose, onMinimize, partnerName }: WouldYo
         <p className="text-xs text-muted-foreground mt-1">
           {matchPercent >= 75 ? "🔥 You two think alike!" : matchPercent >= 50 ? "😊 Pretty good compatibility!" : "🤷 Opposites attract!"}
         </p>
+        {betAmount > 0 && (
+          <p className="text-sm font-semibold flex items-center gap-1">
+            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            {won ? `+${betAmount * 2} coins (≥50% match)` : `-${betAmount} coins (<50% match)`}
+          </p>
+        )}
         <Button onClick={onClose} className="mt-4 w-full max-w-[200px]">Back to Call</Button>
       </div>
     );

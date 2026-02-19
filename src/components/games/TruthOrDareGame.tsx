@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Sparkles } from "lucide-react";
+import { X, Trophy, Sparkles, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
+import { useGameBet } from "@/hooks/useGameBet";
 
 interface TruthOrDareGameProps {
   onClose: () => void;
   onMinimize?: () => void;
+  betAmount?: number;
   partnerName: string;
 }
 
@@ -48,7 +50,8 @@ const DARES = [
 
 const TOTAL_ROUNDS = 8;
 
-export function TruthOrDareGame({ onClose, onMinimize, partnerName }: TruthOrDareGameProps) {
+export function TruthOrDareGame({ onClose, onMinimize, betAmount = 0, partnerName }: TruthOrDareGameProps) {
+  const { settleBet } = useGameBet(betAmount);
   const [round, setRound] = useState(0);
   const [isMyTurn, setIsMyTurn] = useState(true);
   const [prompt, setPrompt] = useState<string | null>(null);
@@ -59,6 +62,7 @@ export function TruthOrDareGame({ onClose, onMinimize, partnerName }: TruthOrDar
   const [usedDares] = useState(new Set<number>());
   const [waitingComplete, setWaitingComplete] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [settled, setSettled] = useState(false);
 
   const getRandomPrompt = (type: "truth" | "dare") => {
     const pool = type === "truth" ? TRUTHS : DARES;
@@ -105,6 +109,7 @@ export function TruthOrDareGame({ onClose, onMinimize, partnerName }: TruthOrDar
   if (gameOver) {
     const won = myScore > partnerScore;
     const tied = myScore === partnerScore;
+    if (!settled) { settleBet(won ? "win" : tied ? "tie" : "lose"); setSettled(true); }
     return (
       <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4 px-6">
         <div className={cn("w-20 h-20 rounded-full flex items-center justify-center", won ? "bg-[hsl(45,100%,50%)]/20" : tied ? "bg-primary/20" : "bg-destructive/20")}>
@@ -115,6 +120,12 @@ export function TruthOrDareGame({ onClose, onMinimize, partnerName }: TruthOrDar
           <div className="text-center"><p className="text-2xl font-bold text-primary">{myScore}</p><p className="text-xs text-muted-foreground">You</p></div>
           <div className="text-center"><p className="text-2xl font-bold text-destructive">{partnerScore}</p><p className="text-xs text-muted-foreground">{partnerName}</p></div>
         </div>
+        {betAmount > 0 && (
+          <p className="text-sm font-semibold flex items-center gap-1">
+            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            {won ? `+${betAmount * 2} coins` : tied ? "Bet refunded" : `-${betAmount} coins`}
+          </p>
+        )}
         <Button onClick={onClose} className="mt-4 w-full max-w-[200px]">Back to Call</Button>
       </div>
     );
