@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { GameListModal } from "@/components/games/GameListModal";
 import { QuizBetModal } from "@/components/games/QuizBetModal";
+import { GameBetModal } from "@/components/games/GameBetModal";
 import { QuizGameOverlay } from "@/components/games/QuizGameOverlay";
 import { WordChainGame } from "@/components/games/WordChainGame";
 import { WouldYouRatherGame } from "@/components/games/WouldYouRatherGame";
@@ -125,10 +126,13 @@ export default function Call() {
   const [seconds, setSeconds] = useState(0);
   const [showGameModal, setShowGameModal] = useState(false);
   const [showQuizBet, setShowQuizBet] = useState(false);
+  const [showGameBet, setShowGameBet] = useState(false);
+  const [pendingGame, setPendingGame] = useState<string | null>(null);
   const [quizActive, setQuizActive] = useState(false);
   const [quizCategory, setQuizCategory] = useState("general");
   const [quizBetAmount, setQuizBetAmount] = useState(0);
   const [activeGame, setActiveGame] = useState<string | null>(null);
+  const [gameBetAmount, setGameBetAmount] = useState(0);
   const [gameMinimized, setGameMinimized] = useState(false);
   const [showPostCallModal, setShowPostCallModal] = useState(false);
   
@@ -813,7 +817,8 @@ export default function Call() {
           if (game === "quiz") {
             setShowQuizBet(true);
           } else {
-            setActiveGame(game);
+            setPendingGame(game);
+            setShowGameBet(true);
           }
         }}
       />
@@ -830,6 +835,19 @@ export default function Call() {
         }}
       />
 
+      {/* Generic Game Bet Modal */}
+      <GameBetModal
+        open={showGameBet}
+        onOpenChange={setShowGameBet}
+        gameId={pendingGame || ""}
+        onStart={(bet) => {
+          setGameBetAmount(bet);
+          setActiveGame(pendingGame);
+          setShowGameBet(false);
+          setPendingGame(null);
+        }}
+      />
+
       {/* Quiz Game Overlay */}
       {quizActive && !gameMinimized && (
         <QuizGameOverlay
@@ -842,14 +860,14 @@ export default function Call() {
       )}
 
       {/* Other Game Overlays - hidden when minimized to preserve state */}
-      {activeGame === "wordchain" && !gameMinimized && <WordChainGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "wouldyourather" && !gameMinimized && <WouldYouRatherGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "truthordare" && !gameMinimized && <TruthOrDareGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "chess" && !gameMinimized && <ChessGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "ludo" && !gameMinimized && <LudoGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "archery" && !gameMinimized && <ArcheryGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "sudoku" && !gameMinimized && <SudokuGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "wordchain" && !gameMinimized && <WordChainGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "wouldyourather" && !gameMinimized && <WouldYouRatherGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "truthordare" && !gameMinimized && <TruthOrDareGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "chess" && !gameMinimized && <ChessGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "ludo" && !gameMinimized && <LudoGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "archery" && !gameMinimized && <ArcheryGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "sudoku" && !gameMinimized && <SudokuGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
 
       {/* Floating Game Bubble - shown on call screen when game is minimized */}
       {gameMinimized && (activeGame || quizActive) && (

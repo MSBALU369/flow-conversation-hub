@@ -1,12 +1,14 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, RotateCcw } from "lucide-react";
+import { X, Trophy, RotateCcw, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCallBubble } from "./GameCallBubble";
+import { useGameBet } from "@/hooks/useGameBet";
 
 interface ChessGameProps {
   onClose: () => void;
   onMinimize?: () => void;
+  betAmount?: number;
   partnerName: string;
 }
 
@@ -66,11 +68,13 @@ function isPathClear(board: Piece[][], fr: number, fc: number, tr: number, tc: n
   return true;
 }
 
-export function ChessGame({ onClose, onMinimize, partnerName }: ChessGameProps) {
+export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName }: ChessGameProps) {
+  const { settleBet } = useGameBet(betAmount);
   const [board, setBoard] = useState<Piece[][]>(createInitialBoard);
   const [selected, setSelected] = useState<[number, number] | null>(null);
   const [turn, setTurn] = useState<"w" | "b">("w");
   const [gameOver, setGameOver] = useState<string | null>(null);
+  const [settled, setSettled] = useState(false);
   const [captures, setCaptures] = useState<{ w: string[]; b: string[] }>({ w: [], b: [] });
 
   const makeAIMove = useCallback((currentBoard: Piece[][]) => {
@@ -143,12 +147,19 @@ export function ChessGame({ onClose, onMinimize, partnerName }: ChessGameProps) 
 
   if (gameOver) {
     const won = gameOver.includes("Win");
+    if (!settled) { settleBet(won ? "win" : "lose"); setSettled(true); }
     return (
       <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4 px-6">
         <div className={cn("w-20 h-20 rounded-full flex items-center justify-center", won ? "bg-[hsl(45,100%,50%)]/20" : "bg-destructive/20")}>
           <Trophy className={cn("w-10 h-10", won ? "text-[hsl(45,100%,50%)]" : "text-destructive")} />
         </div>
         <h2 className="text-2xl font-bold text-foreground">{gameOver} {won ? "🎉" : "😔"}</h2>
+        {betAmount > 0 && (
+          <p className="text-sm font-semibold flex items-center gap-1">
+            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            {won ? `+${betAmount * 2} coins` : `-${betAmount} coins`}
+          </p>
+        )}
         <div className="flex gap-3">
           <Button onClick={resetGame} variant="outline" className="gap-1"><RotateCcw className="w-4 h-4" /> Play Again</Button>
           <Button onClick={onClose}>Back to Call</Button>

@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Trophy, Send, Clock } from "lucide-react";
+import { X, Trophy, Send, Clock, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
+import { useGameBet } from "@/hooks/useGameBet";
 
 interface WordChainGameProps {
   onClose: () => void;
   onMinimize?: () => void;
+  betAmount?: number;
   partnerName: string;
 }
 
@@ -53,7 +55,8 @@ function findWord(startLetter: string, usedWords: Set<string>): string | null {
   return matches.length > 0 ? matches[Math.floor(Math.random() * matches.length)] : null;
 }
 
-export function WordChainGame({ onClose, onMinimize, partnerName }: WordChainGameProps) {
+export function WordChainGame({ onClose, onMinimize, betAmount = 0, partnerName }: WordChainGameProps) {
+  const { settleBet } = useGameBet(betAmount);
   const starter = STARTER_WORDS[Math.floor(Math.random() * STARTER_WORDS.length)];
   const [words, setWords] = useState<{ word: string; player: string }[]>([{ word: starter, player: "system" }]);
   const [input, setInput] = useState("");
@@ -62,6 +65,7 @@ export function WordChainGame({ onClose, onMinimize, partnerName }: WordChainGam
   const [partnerScore, setPartnerScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TURN_TIME);
   const [gameOver, setGameOver] = useState(false);
+  const [settled, setSettled] = useState(false);
   const [round, setRound] = useState(1);
   const [usedWords] = useState<Set<string>>(new Set([starter]));
   const [error, setError] = useState("");
@@ -137,6 +141,7 @@ export function WordChainGame({ onClose, onMinimize, partnerName }: WordChainGam
   if (gameOver) {
     const won = myScore > partnerScore;
     const tied = myScore === partnerScore;
+    if (!settled) { settleBet(won ? "win" : tied ? "tie" : "lose"); setSettled(true); }
     return (
       <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4 px-6">
         <div className={cn("w-20 h-20 rounded-full flex items-center justify-center", won ? "bg-[hsl(45,100%,50%)]/20" : tied ? "bg-primary/20" : "bg-destructive/20")}>
@@ -147,6 +152,12 @@ export function WordChainGame({ onClose, onMinimize, partnerName }: WordChainGam
           <div className="text-center"><p className="text-2xl font-bold text-primary">{myScore}</p><p className="text-xs text-muted-foreground">You</p></div>
           <div className="text-center"><p className="text-2xl font-bold text-destructive">{partnerScore}</p><p className="text-xs text-muted-foreground">{partnerName}</p></div>
         </div>
+        {betAmount > 0 && (
+          <p className="text-sm font-semibold flex items-center gap-1">
+            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            {won ? `+${betAmount * 2} coins` : tied ? "Bet refunded" : `-${betAmount} coins`}
+          </p>
+        )}
         <Button onClick={onClose} className="mt-4 w-full max-w-[200px]">Back to Call</Button>
       </div>
     );

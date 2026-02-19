@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from "lucide-react";
+import { X, Trophy, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
+import { useGameBet } from "@/hooks/useGameBet";
 
 interface SnakeLadderGameProps {
   onClose: () => void;
   onMinimize?: () => void;
+  betAmount?: number;
   partnerName: string;
 }
 
@@ -48,13 +50,15 @@ function getBoardNumber(row: number, col: number): number {
   }
 }
 
-export function SnakeLadderGame({ onClose, onMinimize, partnerName }: SnakeLadderGameProps) {
+export function SnakeLadderGame({ onClose, onMinimize, betAmount = 0, partnerName }: SnakeLadderGameProps) {
+  const { settleBet } = useGameBet(betAmount);
   const [myPos, setMyPos] = useState(0);
   const [partnerPos, setPartnerPos] = useState(0);
   const [isMyTurn, setIsMyTurn] = useState(true);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [rolling, setRolling] = useState(false);
   const [gameOver, setGameOver] = useState<string | null>(null);
+  const [settled, setSettled] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [lastPartnerDice, setLastPartnerDice] = useState<number | null>(null);
 
@@ -108,12 +112,19 @@ export function SnakeLadderGame({ onClose, onMinimize, partnerName }: SnakeLadde
 
   if (gameOver) {
     const won = gameOver.includes("Win");
+    if (!settled) { settleBet(won ? "win" : "lose"); setSettled(true); }
     return (
       <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4 px-6">
         <div className={cn("w-20 h-20 rounded-full flex items-center justify-center", won ? "bg-[hsl(45,100%,50%)]/20" : "bg-destructive/20")}>
           <Trophy className={cn("w-10 h-10", won ? "text-[hsl(45,100%,50%)]" : "text-destructive")} />
         </div>
         <h2 className="text-2xl font-bold text-foreground">{gameOver} {won ? "🎉" : "😔"}</h2>
+        {betAmount > 0 && (
+          <p className="text-sm font-semibold flex items-center gap-1">
+            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            {won ? `+${betAmount * 2} coins` : `-${betAmount} coins`}
+          </p>
+        )}
         <Button onClick={onClose} className="mt-4 w-full max-w-[200px]">Back to Call</Button>
       </div>
     );

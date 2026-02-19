@@ -1,12 +1,14 @@
 import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Eraser, Lightbulb, RotateCcw } from "lucide-react";
+import { X, Trophy, Eraser, Lightbulb, RotateCcw, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
+import { useGameBet } from "@/hooks/useGameBet";
 
 interface SudokuGameProps {
   onClose: () => void;
   onMinimize?: () => void;
+  betAmount?: number;
   partnerName: string;
 }
 
@@ -85,7 +87,8 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-export function SudokuGame({ onClose, onMinimize, partnerName }: SudokuGameProps) {
+export function SudokuGame({ onClose, onMinimize, betAmount = 0, partnerName }: SudokuGameProps) {
+  const { settleBet } = useGameBet(betAmount);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [puzzle, setPuzzle] = useState<number[][]>([]);
   const [solution, setSolution] = useState<number[][]>([]);
@@ -231,8 +234,9 @@ export function SudokuGame({ onClose, onMinimize, partnerName }: SudokuGameProps
     );
   }
 
-  // Game over
+  // Game over - sudoku is always a win (you solved it)
   if (gameOver) {
+    settleBet("win");
     return (
       <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4 px-6">
         <div className="w-20 h-20 rounded-full flex items-center justify-center bg-[hsl(45,100%,50%)]/20">
@@ -240,6 +244,12 @@ export function SudokuGame({ onClose, onMinimize, partnerName }: SudokuGameProps
         </div>
         <h2 className="text-2xl font-bold text-foreground">Puzzle Solved! 🎉</h2>
         <p className="text-sm text-muted-foreground">Time: {formatTime(seconds)} • {difficulty?.toUpperCase()}</p>
+        {betAmount > 0 && (
+          <p className="text-sm font-semibold flex items-center gap-1">
+            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            +{betAmount * 2} coins
+          </p>
+        )}
         <div className="flex gap-3 mt-2">
           <Button variant="outline" onClick={() => { setDifficulty(null); }}>New Game</Button>
           <Button onClick={onClose}>Back to Call</Button>
