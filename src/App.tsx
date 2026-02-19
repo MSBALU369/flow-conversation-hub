@@ -10,6 +10,7 @@ import FloatingCallBubble from "@/components/FloatingCallBubble";
 import IncomingCallBanner from "@/components/IncomingCallBanner";
 import OutgoingCallBanner from "@/components/OutgoingCallBanner";
 import { IncomingCallDemo } from "@/components/IncomingCallDemo";
+import { RenewalReminder } from "@/components/RenewalReminder";
 
 // Pages
 import Login from "./pages/Login";
@@ -108,6 +109,7 @@ const App = () => (
             <IncomingCallBanner />
             <OutgoingCallBanner />
             <IncomingCallDemo />
+            <RenewalReminder />
           </CallStateProvider>
         </ProfileProvider>
       </BrowserRouter>

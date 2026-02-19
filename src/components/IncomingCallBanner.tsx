@@ -42,7 +42,7 @@ export default function IncomingCallBanner() {
     <div className="fixed top-0 left-0 right-0 z-[60] px-3 pt-2 safe-top">
       <div
         className={cn(
-          "mx-auto w-fit rounded-2xl bg-blue-500 backdrop-blur-xl border border-white/60 shadow-lg shadow-blue-500/20 px-2.5 py-1.5 flex items-center gap-2 transition-all duration-300",
+          "mx-auto w-fit rounded-2xl bg-[hsl(142,70%,45%)] backdrop-blur-xl border border-white/60 shadow-lg shadow-[hsl(142,70%,45%)]/20 px-2.5 py-1.5 flex items-center gap-2 transition-all duration-300",
           visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
         )}
       >
