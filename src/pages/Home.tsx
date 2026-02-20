@@ -119,27 +119,27 @@ export default function Home() {
 
         <main className="px-3 pt-2 relative">
           {/* Premium/Role status banner */}
-          {(isPremium || role) && <div className="glass-card p-2 mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Zap className="w-3 h-3 text-primary" />
+          {(isPremium || role) && <div className="bg-card rounded-2xl p-3 mb-3 flex items-center justify-between shadow-md border border-border">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center">
+                  <Zap className="w-4 h-4 text-primary" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-xs font-medium text-foreground">{isPremium ? "Premium Active" : "Free Tier"}</p>
+                    <p className="text-xs font-semibold text-foreground">{isPremium ? "Premium Active" : "Free Tier"}</p>
                     {role && (
-                      <span className="inline-flex items-center gap-0.5 bg-primary/10 px-1.5 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-0.5 bg-secondary px-2 py-0.5 rounded-full">
                         <BadgeCheck className="w-2.5 h-2.5 text-primary" />
-                        <span className="text-[9px] font-semibold text-primary capitalize">{role}</span>
+                        <span className="text-[9px] font-bold text-primary capitalize">{role}</span>
                       </span>
                     )}
-                    <span className="inline-flex items-center gap-0.5 bg-accent/10 px-1.5 py-0.5 rounded-full">
-                      <Coins className="w-2.5 h-2.5 text-accent" />
-                      <span className="text-[9px] font-semibold text-accent">{profile?.coins ?? 0}</span>
+                    <span className="inline-flex items-center gap-0.5 bg-secondary px-2 py-0.5 rounded-full">
+                      <Coins className="w-2.5 h-2.5 text-primary" />
+                      <span className="text-[9px] font-bold text-primary">{profile?.coins ?? 0}</span>
                     </span>
                   </div>
                   {isPremium && profile?.premium_expires_at && (
-                    <p className="text-[10px] text-primary">
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
                       {(() => {
                         const daysLeft = Math.ceil((new Date(profile.premium_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
                         return daysLeft > 36000 ? "Lifetime Access" : `${daysLeft} days left`;
@@ -151,7 +151,7 @@ export default function Home() {
             </div>}
 
           {/* Main Card */}
-          <div className={cn("glass-card-glow p-4 animate-fade-in relative", isPremium ? "mt-0" : "mt-2")}>
+          <div className={cn("bg-card rounded-3xl p-5 animate-fade-in relative shadow-lg border border-border", isPremium ? "mt-0" : "mt-2")}>
             {/* Battery - Positioned on top-right of card (hidden for premium) */}
             {!isPremium && (
               <div className="absolute -top-6 -right-1 scale-75 flex items-center gap-1.5">
@@ -172,21 +172,21 @@ export default function Home() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 {/* Online Count */}
-                <div className="flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full shadow-sm">
+                <div className="flex items-center gap-1.5 bg-secondary px-3 py-1.5 rounded-full">
                   <div className="w-1.5 h-1.5 bg-[hsl(var(--ef-online))] rounded-full animate-pulse" />
-                  <span className="text-xs font-bold text-primary">{onlineCount} Online</span>
+                  <span className="text-xs font-semibold text-primary">{onlineCount} Online</span>
                 </div>
               </div>
               
               {/* History Button */}
-              <button onClick={() => setShowHistoryModal(true)} className="h-8 w-8 glass-button rounded-full flex items-center justify-center hover:bg-muted transition-all duration-200 group">
+              <button onClick={() => setShowHistoryModal(true)} className="h-8 w-8 bg-secondary rounded-full flex items-center justify-center hover:bg-muted transition-all duration-200 group">
                 <Clock className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
               </button>
             </div>
 
             {/* Center: Large Circular Icon Container */}
-            <div className="flex justify-center mb-3">
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center glow-teal">
+            <div className="flex justify-center mb-4">
+              <div className="w-18 h-18 rounded-full bg-secondary flex items-center justify-center" style={{width: '4.5rem', height: '4.5rem'}}>
                 <Phone className="w-8 h-8 text-primary" />
               </div>
             </div>
@@ -213,24 +213,24 @@ export default function Home() {
             <div className="mb-4">
               <div className="flex gap-2">
                 {/* Random - Always available */}
-                <button onClick={() => handleGenderFilter("random")} className={cn("flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200", selectedFilter === "random" ? "bg-primary text-primary-foreground glow-teal" : "glass-button text-foreground hover:bg-muted")}>
+                <button onClick={() => handleGenderFilter("random")} className={cn("flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all duration-200 border", selectedFilter === "random" ? "bg-secondary border-primary text-primary" : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground")}>
                   Random
                 </button>
 
                 {/* Female - Locked for non-premium */}
-                <button onClick={() => handleGenderFilter("female")} className={cn("flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 relative", selectedFilter === "female" && isPremium ? "bg-primary text-primary-foreground glow-teal" : "glass-button text-foreground/70 filter-locked")}>
+                <button onClick={() => handleGenderFilter("female")} className={cn("flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all duration-200 relative border", selectedFilter === "female" && isPremium ? "bg-secondary border-primary text-primary" : "border-border text-muted-foreground filter-locked")}>
                   Female
                 </button>
 
                 {/* Male - Locked for non-premium */}
-                <button onClick={() => handleGenderFilter("male")} className={cn("flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 relative", selectedFilter === "male" && isPremium ? "bg-primary text-primary-foreground glow-teal" : "glass-button text-foreground/70 filter-locked")}>
+                <button onClick={() => handleGenderFilter("male")} className={cn("flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all duration-200 relative border", selectedFilter === "male" && isPremium ? "bg-secondary border-primary text-primary" : "border-border text-muted-foreground filter-locked")}>
                   Male
                 </button>
               </div>
             </div>
 
             {/* Start Call Button */}
-            <Button onClick={handleStartCall} className="w-full py-6 text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 pulse-glow rounded-xl">
+            <Button onClick={handleStartCall} className="w-full py-6 text-lg font-bold rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 pulse-glow shadow-lg">
               <Phone className="w-6 h-6 mr-2" />
               Start Speaking
             </Button>
@@ -272,7 +272,7 @@ export default function Home() {
               <div className="h-24" />
             </div>
           ) : (
-            <div className="mt-4 glass-card p-4">
+            <div className="mt-4 bg-card rounded-3xl p-4 shadow-md border border-border">
               <div className="text-center">
                 {!adPlaying && !adFinished && (
                   <div className="border border-dashed border-border rounded-xl py-8 flex flex-col items-center justify-center gap-3">

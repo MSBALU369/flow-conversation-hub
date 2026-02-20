@@ -30,7 +30,7 @@ export function BottomNav() {
               <div className="relative">
                 <item.icon className={cn(
                   "w-5 h-5 transition-all duration-200",
-                  isActive && "text-primary"
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )} />
                 {item.badge && item.badge > 0 && (
                   <span className="absolute -top-1 -right-2 bg-destructive text-destructive-foreground text-[8px] font-bold px-1 rounded-full min-w-[14px] text-center">
@@ -40,7 +40,7 @@ export function BottomNav() {
               </div>
               <span className={cn(
                 "text-[10px] font-medium tracking-wide mt-1",
-                isActive && "text-primary"
+                isActive ? "text-primary" : "text-muted-foreground"
               )}>
                 {item.label}
               </span>
