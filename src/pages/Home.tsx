@@ -247,21 +247,21 @@ export default function Home() {
 
           {/* Recommended Books & Courses Button (premium) / Ad Area (free) */}
           {isPremium ? (
-            <div className="mt-2 flex flex-wrap justify-center gap-2">
+            <div className="mt-3 space-y-2">
                 <Button
                   variant="outline"
                   onClick={() => setShowBooksModal(true)}
-                  className="gap-1.5 text-xs px-3 py-1.5 h-auto border-primary/30 text-primary hover:bg-primary/10"
+                  className="w-full gap-2 text-base px-5 py-5 h-auto border-primary/30 text-primary hover:bg-primary/10 font-semibold"
                 >
-                  <BookOpen className="w-3.5 h-3.5" />
+                  <BookOpen className="w-5 h-5" />
                   Books & Courses
                 </Button>
                 <Button
                   onClick={() => setShowSpeakWith(true)}
-                  className="gap-1.5 text-xs px-3 py-1.5 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                  className="w-full gap-2 text-base px-5 py-5 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 font-semibold"
                   variant="outline"
                 >
-                  <Users className="w-3.5 h-3.5" />
+                  <Users className="w-5 h-5" />
                   Speak With
                 </Button>
             </div>
