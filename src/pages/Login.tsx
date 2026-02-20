@@ -40,12 +40,8 @@ export default function Login() {
       setReferenceIdValid(false);
       return;
     }
-    const { data } = await supabase
-      .from("profiles")
-      .select("unique_id")
-      .eq("unique_id", value.trim())
-      .maybeSingle();
-    if (data) {
+    const { data, error } = await supabase.rpc("check_reference_id", { ref_id: value.trim() });
+    if (data === true) {
       setReferenceIdValid(true);
       setReferenceIdError("");
     } else {
