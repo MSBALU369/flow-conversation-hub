@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap, Users } from "lucide-react";
+import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap, Users, BadgeCheck } from "lucide-react";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
 import { LevelsModal } from "@/components/LevelsModal";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -13,6 +13,7 @@ import { CombinedHistoryModal } from "@/components/CombinedHistoryModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useRole } from "@/hooks/useRole";
 type GenderFilter = "random" | "female" | "male";
 const sampleBooks = [
   { title: "Think and Grow Rich", author: "Napoleon Hill", category: "Motivational", url: "https://www.amazon.com/dp/0449214923" },
@@ -41,6 +42,7 @@ export default function Home() {
   const {
     toast
   } = useToast();
+  const { role } = useRole();
   const [onlineCount] = useState(() => Math.floor(Math.random() * 200 + 500));
   const [adPlaying, setAdPlaying] = useState(false);
   const [adProgress, setAdProgress] = useState(0);
@@ -116,18 +118,30 @@ export default function Home() {
         <AppHeader streakDays={streakDays} level={profile?.level ?? 1} showLogout onlineCount={onlineCount} onHistoryClick={() => setShowHistoryModal(true)} />
 
         <main className="px-3 pt-2 relative">
-          {/* Premium status banner */}
-          {isPremium && profile?.premium_expires_at && <div className="glass-card p-2 mb-3 flex items-center justify-between">
+          {/* Premium/Role status banner */}
+          {(isPremium || role) && <div className="glass-card p-2 mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
                   <Zap className="w-3 h-3 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-foreground">Premium Active</p>
-                  <p className="text-[10px] text-primary">
-                    {Math.ceil((new Date(profile.premium_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))}{" "}
-                    days left
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium text-foreground">{isPremium ? "Premium Active" : "Free Tier"}</p>
+                    {role && (
+                      <span className="inline-flex items-center gap-0.5 bg-primary/10 px-1.5 py-0.5 rounded-full">
+                        <BadgeCheck className="w-2.5 h-2.5 text-primary" />
+                        <span className="text-[9px] font-semibold text-primary capitalize">{role}</span>
+                      </span>
+                    )}
+                  </div>
+                  {isPremium && profile?.premium_expires_at && (
+                    <p className="text-[10px] text-primary">
+                      {(() => {
+                        const daysLeft = Math.ceil((new Date(profile.premium_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                        return daysLeft > 36000 ? "Lifetime Access" : `${daysLeft} days left`;
+                      })()}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>}

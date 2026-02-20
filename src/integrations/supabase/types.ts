@@ -749,6 +749,7 @@ export type Database = {
     }
     Functions: {
       check_reference_id: { Args: { ref_id: string }; Returns: boolean }
+      get_my_role: { Args: never; Returns: string }
       get_public_profile_columns: {
         Args: never
         Returns: {
@@ -779,9 +780,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      sync_test_role: { Args: never; Returns: Json }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role:
+        | "admin"
+        | "moderator"
+        | "user"
+        | "root"
+        | "master"
+        | "node"
+        | "test"
       gender_type: "male" | "female" | "unknown"
       plan_duration: "1_day" | "1_week" | "1_month" | "6_month" | "1_year"
       region_tier: "INDIA" | "GULF_RICH" | "WEST_TIER2" | "POOR_TIER4"
@@ -912,7 +921,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: [
+        "admin",
+        "moderator",
+        "user",
+        "root",
+        "master",
+        "node",
+        "test",
+      ],
       gender_type: ["male", "female", "unknown"],
       plan_duration: ["1_day", "1_week", "1_month", "6_month", "1_year"],
       region_tier: ["INDIA", "GULF_RICH", "WEST_TIER2", "POOR_TIER4"],
