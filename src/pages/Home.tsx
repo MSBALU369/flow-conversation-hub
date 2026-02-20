@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap, Users, BadgeCheck } from "lucide-react";
+import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap, Users, BadgeCheck, Coins } from "lucide-react";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
 import { LevelsModal } from "@/components/LevelsModal";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -125,7 +125,7 @@ export default function Home() {
                   <Zap className="w-3 h-3 text-primary" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-xs font-medium text-foreground">{isPremium ? "Premium Active" : "Free Tier"}</p>
                     {role && (
                       <span className="inline-flex items-center gap-0.5 bg-primary/10 px-1.5 py-0.5 rounded-full">
@@ -133,6 +133,10 @@ export default function Home() {
                         <span className="text-[9px] font-semibold text-primary capitalize">{role}</span>
                       </span>
                     )}
+                    <span className="inline-flex items-center gap-0.5 bg-accent/10 px-1.5 py-0.5 rounded-full">
+                      <Coins className="w-2.5 h-2.5 text-accent" />
+                      <span className="text-[9px] font-semibold text-accent">{profile?.coins ?? 0}</span>
+                    </span>
                   </div>
                   {isPremium && profile?.premium_expires_at && (
                     <p className="text-[10px] text-primary">
