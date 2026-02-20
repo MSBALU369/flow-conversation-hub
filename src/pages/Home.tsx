@@ -266,7 +266,7 @@ export default function Home() {
                   variant="outline"
                 >
                   <Users className="w-4 h-4" />
-                  Speak With (Filter by Level & Gender)
+                  Speak With (Filter by Level)
                 </Button>
               </div>
             </div>
