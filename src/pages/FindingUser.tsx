@@ -23,17 +23,6 @@ const STATUS_MESSAGES = [
   "Checking in New York...",
 ];
 
-// City marker positions (percentage-based on the map image)
-const CITIES = [
-  { name: "New York", left: "22%", top: "35%", delay: "0s" },
-  { name: "London", left: "46%", top: "24%", delay: "0.5s" },
-  { name: "New Delhi", left: "69%", top: "40%", delay: "1s" },
-  { name: "Sydney", left: "84%", top: "72%", delay: "1.5s" },
-  { name: "Tokyo", left: "86%", top: "34%", delay: "0.3s" },
-  { name: "Dubai", left: "62%", top: "40%", delay: "0.8s" },
-  { name: "São Paulo", left: "30%", top: "65%", delay: "1.2s" },
-  { name: "Singapore", left: "78%", top: "53%", delay: "1.4s" },
-];
 
 export default function FindingUser() {
   const navigate = useNavigate();
@@ -141,41 +130,61 @@ export default function FindingUser() {
         <div className="relative w-full max-w-sm mb-6">
           <img src={worldMapImg} alt="World map" className="w-full h-auto opacity-80" />
 
-          {/* City markers with blinking animation */}
-          {CITIES.map((city) => (
-            <div
-              key={city.name}
-              className="absolute"
-              style={{ left: city.left, top: city.top, transform: "translate(-50%, -50%)" }}
-            >
-              {/* Pulse wave 1 */}
-              <span
-                className="absolute rounded-full border-2 border-blue-500/50"
-                style={{
-                  width: 24, height: 24, marginLeft: -12, marginTop: -12,
-                  animation: `city-pulse 2s ease-out infinite`,
-                  animationDelay: city.delay,
-                }}
-              />
-              {/* Pulse wave 2 */}
-              <span
-                className="absolute rounded-full border border-blue-400/30"
-                style={{
-                  width: 24, height: 24, marginLeft: -12, marginTop: -12,
-                  animation: `city-pulse 2s ease-out infinite`,
-                  animationDelay: `calc(${city.delay} + 0.6s)`,
-                }}
-              />
-              {/* Dot */}
-              <span
-                className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]"
-                style={{
-                  animation: `city-blink 1.5s ease-in-out infinite`,
-                  animationDelay: city.delay,
-                }}
-              />
-            </div>
-          ))}
+          {/* === New York === */}
+          <div className="absolute" style={{ left: "22%", top: "35%", transform: "translate(-50%, -50%)" }}>
+            <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "0s" }} />
+            <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "0.6s" }} />
+            <span className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]" style={{ animation: "city-blink 1.5s ease-in-out infinite", animationDelay: "0s" }} />
+          </div>
+
+          {/* === London === */}
+          <div className="absolute" style={{ left: "46%", top: "24%", transform: "translate(-50%, -50%)" }}>
+            <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "0.5s" }} />
+            <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "1.1s" }} />
+            <span className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]" style={{ animation: "city-blink 1.5s ease-in-out infinite", animationDelay: "0.5s" }} />
+          </div>
+
+          {/* === New Delhi === */}
+          <div className="absolute" style={{ left: "69%", top: "40%", transform: "translate(-50%, -50%)" }}>
+            <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "1s" }} />
+            <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "1.6s" }} />
+            <span className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]" style={{ animation: "city-blink 1.5s ease-in-out infinite", animationDelay: "1s" }} />
+          </div>
+
+          {/* === Sydney === */}
+          <div className="absolute" style={{ left: "84%", top: "72%", transform: "translate(-50%, -50%)" }}>
+            <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "1.5s" }} />
+            <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "2.1s" }} />
+            <span className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]" style={{ animation: "city-blink 1.5s ease-in-out infinite", animationDelay: "1.5s" }} />
+          </div>
+
+          {/* === Tokyo === */}
+          <div className="absolute" style={{ left: "86%", top: "34%", transform: "translate(-50%, -50%)" }}>
+            <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "0.3s" }} />
+            <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "0.9s" }} />
+            <span className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]" style={{ animation: "city-blink 1.5s ease-in-out infinite", animationDelay: "0.3s" }} />
+          </div>
+
+          {/* === Dubai === */}
+          <div className="absolute" style={{ left: "62%", top: "40%", transform: "translate(-50%, -50%)" }}>
+            <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "0.8s" }} />
+            <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "1.4s" }} />
+            <span className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]" style={{ animation: "city-blink 1.5s ease-in-out infinite", animationDelay: "0.8s" }} />
+          </div>
+
+          {/* === São Paulo === */}
+          <div className="absolute" style={{ left: "30%", top: "65%", transform: "translate(-50%, -50%)" }}>
+            <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "1.2s" }} />
+            <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "1.8s" }} />
+            <span className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]" style={{ animation: "city-blink 1.5s ease-in-out infinite", animationDelay: "1.2s" }} />
+          </div>
+
+          {/* === Singapore === */}
+          <div className="absolute" style={{ left: "78%", top: "53%", transform: "translate(-50%, -50%)" }}>
+            <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "1.4s" }} />
+            <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "2s" }} />
+            <span className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]" style={{ animation: "city-blink 1.5s ease-in-out infinite", animationDelay: "1.4s" }} />
+          </div>
 
           {/* Magnifying glass panning across */}
           <div
