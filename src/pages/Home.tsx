@@ -110,7 +110,7 @@ export default function Home() {
   // isPremium already declared above
   const streakDays = profile?.streak_count || 1;
   const batteryBars = profile?.energy_bars ?? streakDays;
-  return <div className="min-h-screen bg-background pb-16 overflow-y-auto">
+  return <div className="min-h-screen bg-background pb-20">
       {/* Animated gradient mesh background */}
       <div className="fixed inset-0 gradient-mesh pointer-events-none" />
       
@@ -119,7 +119,7 @@ export default function Home() {
 
         <main className="px-3 pt-2 relative">
           {/* Premium/Role status banner */}
-          {(isPremium || role) && <div className="glass-card p-2 mb-2 flex items-center justify-between">
+          {(isPremium || role) && <div className="glass-card p-2 mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
                   <Zap className="w-3 h-3 text-primary" />
@@ -154,7 +154,7 @@ export default function Home() {
           <div className={cn("glass-card-glow p-4 animate-fade-in relative", isPremium ? "mt-0" : "mt-2")}>
             {/* Battery - Positioned on top-right of card (hidden for premium) */}
             {!isPremium && (
-              <div className="absolute -top-5 -right-1 scale-[0.7] flex items-center gap-1.5">
+              <div className="absolute -top-6 -right-1 scale-75 flex items-center gap-1.5">
                 <span className={`text-[10px] font-medium ${
                   batteryBars === 7 ? 'text-primary' : 
                   batteryBars >= 5 ? 'text-accent' : 
@@ -169,51 +169,60 @@ export default function Home() {
             )}
             
             {/* Top Row: Online Count (left) + History */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                {/* Online Count */}
                 <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-full shadow-sm">
                   <div className="w-1.5 h-1.5 bg-[hsl(var(--ef-online))] rounded-full animate-pulse" />
                   <span className="text-xs font-bold text-[hsl(var(--ef-online))]">{onlineCount} Online</span>
                 </div>
               </div>
+              
+              {/* History Button */}
               <button onClick={() => setShowHistoryModal(true)} className="h-8 w-8 glass-button rounded-full flex items-center justify-center hover:bg-muted transition-all duration-200 group">
                 <Clock className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
               </button>
             </div>
 
-            {/* Center: Circular Icon */}
-            <div className="flex justify-center mb-2">
-              <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center glow-teal">
-                <Phone className="w-7 h-7 text-primary" />
+            {/* Center: Large Circular Icon Container */}
+            <div className="flex justify-center mb-3">
+              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center glow-teal">
+                <Phone className="w-8 h-8 text-primary" />
               </div>
             </div>
 
             {/* Headline */}
-            <h1 className="text-2xl font-bold text-foreground tracking-wide-custom text-center mb-0.5">
+            <h1 className="text-2xl font-bold text-foreground tracking-wide-custom text-center mb-1">
               Talk & Practice
             </h1>
             
-            <p className="text-muted-foreground text-center text-sm mb-2">
+            {/* Subtext */}
+            <p className="text-muted-foreground text-center text-sm mb-3">
               Speak with 100% real people.
             </p>
 
             {/* Trust Badge */}
-            <div className="flex items-center justify-center gap-1.5 mb-2">
+            <div className="flex items-center justify-center gap-1.5 mb-3">
               <ShieldCheck className="w-3.5 h-3.5 text-primary" />
               <span className="text-sm font-semibold text-primary">Your identity is safe & private</span>
             </div>
 
-            <p className="text-xs text-muted-foreground text-center mb-2">Just Focus on Practicing</p>
+            <p className="text-xs text-muted-foreground text-center mb-3">Just Focus on Practicing</p>
 
             {/* Filter Row */}
-            <div className="mb-3">
+            <div className="mb-4">
               <div className="flex gap-2">
+                {/* Random - Always available */}
                 <button onClick={() => handleGenderFilter("random")} className={cn("flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200", selectedFilter === "random" ? "bg-primary text-primary-foreground glow-teal" : "glass-button text-foreground hover:bg-muted")}>
                   Random
                 </button>
+
+                {/* Female - Locked for non-premium */}
                 <button onClick={() => handleGenderFilter("female")} className={cn("flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 relative", selectedFilter === "female" && isPremium ? "bg-primary text-primary-foreground glow-teal" : "glass-button text-foreground/70 filter-locked")}>
                   Female
                 </button>
+
+                {/* Male - Locked for non-premium */}
                 <button onClick={() => handleGenderFilter("male")} className={cn("flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 relative", selectedFilter === "male" && isPremium ? "bg-primary text-primary-foreground glow-teal" : "glass-button text-foreground/70 filter-locked")}>
                   Male
                 </button>
@@ -221,15 +230,15 @@ export default function Home() {
             </div>
 
             {/* Start Call Button */}
-            <Button onClick={handleStartCall} className="w-full py-5 text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 pulse-glow rounded-xl">
-              <Phone className="w-5 h-5 mr-2" />
+            <Button onClick={handleStartCall} className="w-full py-6 text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 pulse-glow rounded-xl">
+              <Phone className="w-6 h-6 mr-2" />
               Start Speaking
             </Button>
 
             {/* Speaking Level Indicator */}
             <button
               onClick={() => setShowLevelsModal(true)}
-              className="w-full text-center text-sm text-muted-foreground mt-2 hover:opacity-80 transition-opacity"
+              className="w-full text-center text-sm text-muted-foreground mt-3 hover:opacity-80 transition-opacity"
             >
               You are a <span className="text-primary font-semibold underline underline-offset-2 decoration-primary/40">Level {profile?.level ?? 1}</span> speaker
               <Info className="inline w-3 h-3 ml-1 text-primary/60" />
@@ -238,23 +247,28 @@ export default function Home() {
 
           {/* Recommended Books & Courses Button (premium) / Ad Area (free) */}
           {isPremium ? (
-            <div className="mt-2 flex gap-2">
+            <div className="mt-4 space-y-3">
+              <div className="flex justify-center">
                 <Button
                   variant="outline"
                   onClick={() => setShowBooksModal(true)}
-                  className="flex-1 gap-1.5 text-sm px-3 py-3 h-auto border-primary/30 text-primary hover:bg-primary/10 font-medium"
+                  className="gap-2 text-sm px-5 py-2.5 h-auto border-primary/30 text-primary hover:bg-primary/10"
                 >
                   <BookOpen className="w-4 h-4" />
-                  Books & Courses
+                  Recommended Books & Courses
                 </Button>
+              </div>
+              {/* Speak With - Premium only on Home */}
+              <div className="flex justify-center">
                 <Button
                   onClick={() => setShowSpeakWith(true)}
-                  className="flex-1 gap-1.5 text-sm px-3 py-3 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 font-medium"
+                  className="gap-2 text-sm px-5 py-2.5 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
                   variant="outline"
                 >
                   <Users className="w-4 h-4" />
-                  Speak With
+                  Speak With (Filter by Level)
                 </Button>
+              </div>
             </div>
           ) : (
             <div className="mt-4 glass-card p-4">
