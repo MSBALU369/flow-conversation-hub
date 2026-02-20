@@ -74,15 +74,15 @@ export default function FindingUser() {
   }, [filtersActive]);
 
   // Auto-navigate to call (only if no filter timeout)
-  // useEffect(() => {
-  //   if (filterTimeout) return;
-  //
-  //   const connectTimer = setTimeout(() => {
-  //     navigate("/call", { replace: true });
-  //   }, 3500);
-  //
-  //   return () => clearTimeout(connectTimer);
-  // }, [navigate, filterTimeout]);
+  useEffect(() => {
+    if (filterTimeout) return;
+
+    const connectTimer = setTimeout(() => {
+      navigate("/call", { replace: true });
+    }, 3500);
+
+    return () => clearTimeout(connectTimer);
+  }, [navigate, filterTimeout]);
 
   const handleCancel = () => navigate(-1);
 
