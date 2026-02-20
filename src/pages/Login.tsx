@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Phone, Shield, Gift, ArrowLeft } from "lucide-react";
+import { Phone, Shield, Gift, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -17,6 +17,9 @@ export default function Login() {
   const [otpStep, setOtpStep] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [referenceId, setReferenceId] = useState("");
+  const [referenceIdError, setReferenceIdError] = useState("");
+  const [referenceIdValid, setReferenceIdValid] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -30,6 +33,26 @@ export default function Login() {
     const t = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
     return () => clearTimeout(t);
   }, [resendCooldown]);
+
+  const validateReferenceId = async (value: string) => {
+    if (!value.trim()) {
+      setReferenceIdError("");
+      setReferenceIdValid(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("unique_id")
+      .eq("unique_id", value.trim())
+      .maybeSingle();
+    if (data) {
+      setReferenceIdValid(true);
+      setReferenceIdError("");
+    } else {
+      setReferenceIdValid(false);
+      setReferenceIdError("Wrong referenceID");
+    }
+  };
 
   const handleTestAccount = async () => {
     let { error } = await signIn(TEST_EMAIL, TEST_PASS);
@@ -63,6 +86,10 @@ export default function Login() {
       }
 
       if (isSignUp) {
+        if (referenceId.trim() && !referenceIdValid) {
+          toast({ title: "Invalid Reference ID", description: "Please enter a valid reference ID or leave it blank.", variant: "destructive" });
+          return;
+        }
         const { error } = await signUp(email, password);
         if (error) throw error;
         setOtpStep(true);
@@ -86,6 +113,13 @@ export default function Login() {
     try {
       const { error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "signup" });
       if (error) throw error;
+      // Save referral if valid
+      if (referenceId.trim() && referenceIdValid) {
+        const { data: { user: u } } = await supabase.auth.getUser();
+        if (u) {
+          await supabase.from("profiles").update({ referred_by: referenceId.trim() }).eq("id", u.id);
+        }
+      }
       toast({ title: "Verified! ✅" });
       navigate("/");
     } catch (error: any) {
@@ -191,7 +225,33 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
           <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
-          <Button type="submit" disabled={loading} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6">
+          {isSignUp && (
+            <div>
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Reference ID (optional)"
+                  value={referenceId}
+                  onChange={(e) => {
+                    setReferenceId(e.target.value);
+                    if (!e.target.value.trim()) {
+                      setReferenceIdError("");
+                      setReferenceIdValid(false);
+                    }
+                  }}
+                  onBlur={() => validateReferenceId(referenceId)}
+                  className={`bg-muted border-border text-foreground placeholder:text-muted-foreground pr-10 ${referenceIdError ? "border-destructive" : referenceIdValid ? "border-green-500" : ""}`}
+                />
+                {referenceIdValid && (
+                  <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                )}
+              </div>
+              {referenceIdError && (
+                <p className="text-destructive text-xs mt-1">{referenceIdError}</p>
+              )}
+            </div>
+          )}
+          <Button type="submit" disabled={loading || (isSignUp && !!referenceId.trim() && !referenceIdValid)} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6">
             {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
           </Button>
         </form>
