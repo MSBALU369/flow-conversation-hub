@@ -8,17 +8,24 @@ import { useNavigate } from "react-router-dom";
 interface SpeakWithModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isPremium?: boolean;
+  onPremiumRequired?: () => void;
 }
 
 const levels = ["Any", "1-5", "6-10", "11-20", "21+"];
 const genders = ["Random", "Male", "Female"];
 
-export function SpeakWithModal({ open, onOpenChange }: SpeakWithModalProps) {
+export function SpeakWithModal({ open, onOpenChange, isPremium, onPremiumRequired }: SpeakWithModalProps) {
   const [selectedLevel, setSelectedLevel] = useState("Any");
   const [selectedGender, setSelectedGender] = useState("Random");
   const navigate = useNavigate();
 
   const handleStart = () => {
+    if (!isPremium) {
+      onOpenChange(false);
+      onPremiumRequired?.();
+      return;
+    }
     onOpenChange(false);
     navigate("/finding", { state: { levelFilter: selectedLevel, genderFilter: selectedGender } });
   };

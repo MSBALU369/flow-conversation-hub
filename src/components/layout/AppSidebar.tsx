@@ -113,11 +113,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
 
   const handleSpeakWithClick = () => {
     setOpen(false);
-    if (profile?.is_premium) {
-      setSpeakWithOpen(true);
-    } else {
-      setPremiumModalOpen(true);
-    }
+    setSpeakWithOpen(true);
   };
 
   const menuItems = [
@@ -125,9 +121,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
     { icon: User, label: "Profile", path: "/profile" },
     { icon: Users, label: "Rooms", path: "/rooms" },
     // Non-premium: Show "Speak With" under Rooms, then Learn
-    ...(!profile?.is_premium ? [
-      { icon: Phone, label: "Speak With", action: handleSpeakWithClick, badge: "Premium" },
-    ] : []),
+    { icon: Phone, label: "Speak With", action: handleSpeakWithClick },
     { icon: BookOpen, label: "Learn", path: "/learn" },
     { icon: Trophy, label: "Levels", action: handleLevelsClick, badge: `Lv.${profile?.level ?? 1}` },
     { icon: Clock, label: "History", action: handleHistoryClick },
@@ -341,6 +335,8 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
       <SpeakWithModal
         open={speakWithOpen}
         onOpenChange={setSpeakWithOpen}
+        isPremium={!!profile?.is_premium}
+        onPremiumRequired={() => setPremiumModalOpen(true)}
       />
 
       <PremiumModal
