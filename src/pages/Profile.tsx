@@ -523,9 +523,15 @@ export default function Profile() {
             {/* Role & Premium Status */}
             {role && (
               <div className="mt-3 flex flex-col items-center gap-1.5">
-                <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1 rounded-full">
-                  <BadgeCheck className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs font-semibold text-primary capitalize">Role: {role}</span>
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                  <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1 rounded-full">
+                    <BadgeCheck className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-semibold text-primary capitalize">Role: {role}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-accent/10 px-3 py-1 rounded-full">
+                    <Coins className="w-3.5 h-3.5 text-accent" />
+                    <span className="text-xs font-semibold text-accent">{profile?.coins ?? 0} Coins</span>
+                  </div>
                 </div>
                 {profile?.is_premium ? (
                   <div className="flex items-center gap-1.5 bg-[hsl(45,80%,90%)] dark:bg-[hsl(45,60%,20%)] px-3 py-1 rounded-full">
