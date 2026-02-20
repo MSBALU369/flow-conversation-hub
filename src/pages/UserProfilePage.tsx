@@ -267,7 +267,7 @@ export default function UserProfilePage() {
       {/* Banner with back button and 3-dot menu */}
       <div className="h-32 bg-gradient-to-r from-primary/30 to-accent/30 relative">
         <button
-          onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate('/'); } }}
+          onClick={() => navigate(-1)}
           className="absolute top-4 left-4 p-2 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors safe-top"
         >
           <ArrowLeft className="w-5 h-5 text-foreground" />
