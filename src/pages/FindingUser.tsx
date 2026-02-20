@@ -29,6 +29,14 @@ const CITIES = [
   { name: "London", left: "45%", top: "25%", delay: "0.5s" },
   { name: "New Delhi", left: "68%", top: "42%", delay: "1s" },
   { name: "Sydney", left: "83%", top: "75%", delay: "1.5s" },
+  { name: "Tokyo", left: "85%", top: "35%", delay: "0.3s" },
+  { name: "Dubai", left: "62%", top: "42%", delay: "0.8s" },
+  { name: "São Paulo", left: "30%", top: "68%", delay: "1.2s" },
+  { name: "Lagos", left: "46%", top: "55%", delay: "1.8s" },
+  { name: "Moscow", left: "58%", top: "22%", delay: "0.6s" },
+  { name: "Singapore", left: "77%", top: "55%", delay: "1.4s" },
+  { name: "Los Angeles", left: "14%", top: "38%", delay: "0.2s" },
+  { name: "Cairo", left: "55%", top: "40%", delay: "1.6s" },
 ];
 
 export default function FindingUser() {
