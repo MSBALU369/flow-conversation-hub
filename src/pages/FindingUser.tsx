@@ -26,17 +26,13 @@ const STATUS_MESSAGES = [
 // City marker positions (percentage-based on the map image)
 const CITIES = [
   { name: "New York", left: "22%", top: "35%", delay: "0s" },
-  { name: "London", left: "45%", top: "25%", delay: "0.5s" },
-  { name: "New Delhi", left: "68%", top: "42%", delay: "1s" },
-  { name: "Sydney", left: "83%", top: "75%", delay: "1.5s" },
-  { name: "Tokyo", left: "85%", top: "35%", delay: "0.3s" },
-  { name: "Dubai", left: "62%", top: "42%", delay: "0.8s" },
-  { name: "São Paulo", left: "30%", top: "68%", delay: "1.2s" },
-  { name: "Lagos", left: "46%", top: "55%", delay: "1.8s" },
-  { name: "Moscow", left: "58%", top: "22%", delay: "0.6s" },
-  { name: "Singapore", left: "77%", top: "55%", delay: "1.4s" },
-  { name: "Los Angeles", left: "14%", top: "38%", delay: "0.2s" },
-  { name: "Cairo", left: "55%", top: "40%", delay: "1.6s" },
+  { name: "London", left: "46%", top: "24%", delay: "0.5s" },
+  { name: "New Delhi", left: "69%", top: "40%", delay: "1s" },
+  { name: "Sydney", left: "84%", top: "72%", delay: "1.5s" },
+  { name: "Tokyo", left: "86%", top: "34%", delay: "0.3s" },
+  { name: "Dubai", left: "62%", top: "40%", delay: "0.8s" },
+  { name: "São Paulo", left: "30%", top: "65%", delay: "1.2s" },
+  { name: "Singapore", left: "78%", top: "53%", delay: "1.4s" },
 ];
 
 export default function FindingUser() {
@@ -152,18 +148,27 @@ export default function FindingUser() {
               className="absolute"
               style={{ left: city.left, top: city.top, transform: "translate(-50%, -50%)" }}
             >
-              {/* Pulse ring */}
+              {/* Pulse wave 1 */}
               <span
-                className="absolute inset-0 rounded-full border border-primary/40"
+                className="absolute rounded-full border-2 border-blue-500/50"
                 style={{
-                  width: 20, height: 20, marginLeft: -10, marginTop: -10,
+                  width: 24, height: 24, marginLeft: -12, marginTop: -12,
                   animation: `city-pulse 2s ease-out infinite`,
                   animationDelay: city.delay,
                 }}
               />
+              {/* Pulse wave 2 */}
+              <span
+                className="absolute rounded-full border border-blue-400/30"
+                style={{
+                  width: 24, height: 24, marginLeft: -12, marginTop: -12,
+                  animation: `city-pulse 2s ease-out infinite`,
+                  animationDelay: `calc(${city.delay} + 0.6s)`,
+                }}
+              />
               {/* Dot */}
               <span
-                className="block w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.6)]"
+                className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]"
                 style={{
                   animation: `city-blink 1.5s ease-in-out infinite`,
                   animationDelay: city.delay,
