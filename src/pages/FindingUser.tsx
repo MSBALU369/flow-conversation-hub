@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import worldMapImg from "@/assets/world-map.png";
 import {
   Dialog,
   DialogContent,
@@ -22,15 +23,12 @@ const STATUS_MESSAGES = [
   "Checking in New York...",
 ];
 
-// Simplified inline SVG world map paths (lightweight)
-const MAP_PATH = "M30,45 Q35,30 50,28 Q55,25 65,27 Q72,25 78,30 Q82,28 88,32 Q92,30 95,35 L95,38 Q90,42 85,40 Q80,44 75,42 Q70,46 65,44 Q58,48 50,46 Q42,50 35,48 Q32,50 30,48 Z M55,55 Q58,52 62,54 Q65,52 68,55 Q70,58 67,60 Q63,62 58,60 Q55,58 55,55 Z M78,50 Q82,48 86,50 Q90,52 88,56 Q84,58 80,56 Q77,54 78,50 Z M20,35 Q25,30 30,32 Q28,38 22,40 Q18,38 20,35 Z";
-
-// City marker positions (relative % on the map viewBox)
+// City marker positions (percentage-based on the map image)
 const CITIES = [
-  { name: "New York", cx: 28, cy: 38, delay: "0s" },
-  { name: "London", cx: 48, cy: 30, delay: "0.5s" },
-  { name: "New Delhi", cx: 68, cy: 42, delay: "1s" },
-  { name: "Sydney", cx: 85, cy: 58, delay: "1.5s" },
+  { name: "New York", left: "22%", top: "35%", delay: "0s" },
+  { name: "London", left: "45%", top: "25%", delay: "0.5s" },
+  { name: "New Delhi", left: "68%", top: "42%", delay: "1s" },
+  { name: "Sydney", left: "83%", top: "75%", delay: "1.5s" },
 ];
 
 export default function FindingUser() {
@@ -135,68 +133,60 @@ export default function FindingUser() {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 -mt-8">
-        {/* SVG World Map with animations */}
-        <div className="relative w-full max-w-xs aspect-[16/10] mb-6">
-          <svg viewBox="0 0 110 70" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            {/* Map background */}
-            <path
-              d={MAP_PATH}
-              className="fill-muted/50 stroke-primary/20"
-              strokeWidth="0.5"
-            />
+        {/* World Map Image with animated markers */}
+        <div className="relative w-full max-w-sm mb-6">
+          <img src={worldMapImg} alt="World map" className="w-full h-auto opacity-80" />
 
-            {/* City markers with blinking animation */}
-            {CITIES.map((city) => (
-              <g key={city.name}>
-                {/* Pulse ring */}
-                <circle
-                  cx={city.cx}
-                  cy={city.cy}
-                  r="3"
-                  className="fill-none stroke-primary/40"
-                  strokeWidth="0.5"
-                  style={{
-                    animation: `pulse-ring 2s ease-out infinite`,
-                    animationDelay: city.delay,
-                  }}
-                />
-                {/* Dot */}
-                <circle
-                  cx={city.cx}
-                  cy={city.cy}
-                  r="1.2"
-                  className="fill-primary"
-                  style={{
-                    animation: `blink-dot 1.5s ease-in-out infinite`,
-                    animationDelay: city.delay,
-                  }}
-                />
-              </g>
-            ))}
+          {/* City markers with blinking animation */}
+          {CITIES.map((city) => (
+            <div
+              key={city.name}
+              className="absolute"
+              style={{ left: city.left, top: city.top, transform: "translate(-50%, -50%)" }}
+            >
+              {/* Pulse ring */}
+              <span
+                className="absolute inset-0 rounded-full border border-primary/40"
+                style={{
+                  width: 20, height: 20, marginLeft: -10, marginTop: -10,
+                  animation: `city-pulse 2s ease-out infinite`,
+                  animationDelay: city.delay,
+                }}
+              />
+              {/* Dot */}
+              <span
+                className="block w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.6)]"
+                style={{
+                  animation: `city-blink 1.5s ease-in-out infinite`,
+                  animationDelay: city.delay,
+                }}
+              />
+            </div>
+          ))}
 
-            {/* Magnifying glass panning across */}
-            <g style={{ animation: "pan-search 6s ease-in-out infinite" }}>
-              <circle cx="0" cy="0" r="5" className="fill-none stroke-primary/30" strokeWidth="0.6" />
-              <line x1="3.5" y1="3.5" x2="6" y2="6" className="stroke-primary/30" strokeWidth="0.6" strokeLinecap="round" />
-            </g>
-          </svg>
+          {/* Magnifying glass panning across */}
+          <div
+            className="absolute w-8 h-8 pointer-events-none"
+            style={{ animation: "map-pan 6s ease-in-out infinite" }}
+          >
+            <Search className="w-full h-full text-primary/40" />
+          </div>
 
-          {/* CSS Keyframes */}
           <style>{`
-            @keyframes blink-dot {
-              0%, 100% { opacity: 1; r: 1.2; }
-              50% { opacity: 0.3; r: 0.8; }
+            @keyframes city-blink {
+              0%, 100% { opacity: 1; transform: scale(1); }
+              50% { opacity: 0.3; transform: scale(0.7); }
             }
-            @keyframes pulse-ring {
-              0% { r: 1.5; opacity: 0.6; }
-              100% { r: 5; opacity: 0; }
+            @keyframes city-pulse {
+              0% { transform: scale(0.5); opacity: 0.6; }
+              100% { transform: scale(2.5); opacity: 0; }
             }
-            @keyframes pan-search {
-              0% { transform: translate(25px, 35px); }
-              25% { transform: translate(50px, 28px); }
-              50% { transform: translate(70px, 42px); }
-              75% { transform: translate(85px, 55px); }
-              100% { transform: translate(25px, 35px); }
+            @keyframes map-pan {
+              0% { left: 20%; top: 30%; }
+              25% { left: 45%; top: 22%; }
+              50% { left: 68%; top: 40%; }
+              75% { left: 82%; top: 72%; }
+              100% { left: 20%; top: 30%; }
             }
           `}</style>
         </div>
