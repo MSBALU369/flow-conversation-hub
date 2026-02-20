@@ -36,8 +36,15 @@ export default function ContactUs() {
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-muted p-4 text-center">
             <Mail className="w-6 h-6 text-primary mx-auto mb-2" />
-            <p className="text-xs font-medium text-foreground">Email</p>
-            <p className="text-[10px] text-muted-foreground mt-1">support@ef-app.com</p>
+            <p className="text-xs font-medium text-foreground">Support</p>
+            <p className="text-[10px] text-primary font-medium mt-1">help@englishflow.in</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5">For user queries and help</p>
+          </div>
+          <div className="rounded-xl bg-muted p-4 text-center">
+            <Globe className="w-6 h-6 text-primary mx-auto mb-2" />
+            <p className="text-xs font-medium text-foreground">Partnerships</p>
+            <p className="text-[10px] text-primary font-medium mt-1">collaborate@englishflow.in</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5">For companies and brands</p>
           </div>
           <div className="rounded-xl bg-muted p-4 text-center">
             <Clock className="w-6 h-6 text-primary mx-auto mb-2" />
@@ -46,11 +53,6 @@ export default function ContactUs() {
           </div>
           <div className="rounded-xl bg-muted p-4 text-center">
             <MessageCircle className="w-6 h-6 text-primary mx-auto mb-2" />
-            <p className="text-xs font-medium text-foreground">Live Chat</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Coming Soon</p>
-          </div>
-          <div className="rounded-xl bg-muted p-4 text-center">
-            <Globe className="w-6 h-6 text-primary mx-auto mb-2" />
             <p className="text-xs font-medium text-foreground">Languages</p>
             <p className="text-[10px] text-muted-foreground mt-1">English, Hindi, Arabic</p>
           </div>

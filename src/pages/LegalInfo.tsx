@@ -15,6 +15,20 @@ export default function LegalInfo() {
       </header>
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-6">
+        <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <h2 className="text-sm font-semibold text-primary mb-2">🔊 Voice Communication</h2>
+          <p className="text-xs text-foreground leading-relaxed">
+            Voice calls made through English Flow are <strong>100% private</strong>. We do not record, store, or monitor any voice conversations. All voice data is transmitted in real-time and is never saved on our servers or any third-party infrastructure.
+          </p>
+        </section>
+
+        <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <h2 className="text-sm font-semibold text-primary mb-2">🛡️ User Data Protection</h2>
+          <p className="text-xs text-foreground leading-relaxed">
+            All user data is <strong>highly secured</strong> and protected using advanced encryption standards (AES-256). We implement strict access controls, Row Level Security policies, and regular security audits to ensure your personal information remains safe and confidential.
+          </p>
+        </section>
+
         <section>
           <h2 className="text-sm font-semibold text-foreground mb-2">Terms of Service</h2>
           <p className="text-xs text-muted-foreground leading-relaxed">
