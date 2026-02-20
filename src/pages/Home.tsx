@@ -110,7 +110,7 @@ export default function Home() {
   // isPremium already declared above
   const streakDays = profile?.streak_count || 1;
   const batteryBars = profile?.energy_bars ?? streakDays;
-  return <div className="min-h-screen bg-background pb-20">
+  return <div className="min-h-screen bg-background pb-20 overflow-y-auto">
       {/* Animated gradient mesh background */}
       <div className="fixed inset-0 gradient-mesh pointer-events-none" />
       
