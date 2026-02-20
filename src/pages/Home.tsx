@@ -247,7 +247,7 @@ export default function Home() {
 
           {/* Recommended Books & Courses Button (premium) / Ad Area (free) */}
           {isPremium ? (
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 mb-6 space-y-2">
                 <Button
                   variant="outline"
                   onClick={() => setShowBooksModal(true)}
