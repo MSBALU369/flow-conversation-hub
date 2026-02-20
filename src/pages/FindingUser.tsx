@@ -166,10 +166,10 @@ export default function FindingUser() {
 
           {/* Magnifying glass panning across */}
           <div
-            className="absolute w-10 h-10 pointer-events-none"
+            className="absolute w-8 h-8 pointer-events-none"
             style={{ animation: "map-pan 6s ease-in-out infinite" }}
           >
-            <Search className="w-full h-full text-foreground" strokeWidth={3} />
+            <Search className="w-full h-full text-foreground" />
           </div>
 
           <style>{`
