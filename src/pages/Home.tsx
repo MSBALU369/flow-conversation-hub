@@ -172,9 +172,9 @@ export default function Home() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 {/* Online Count */}
-                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-full shadow-sm">
+                <div className="flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full shadow-sm">
                   <div className="w-1.5 h-1.5 bg-[hsl(var(--ef-online))] rounded-full animate-pulse" />
-                  <span className="text-xs font-bold text-[hsl(var(--ef-online))]">{onlineCount} Online</span>
+                  <span className="text-xs font-bold text-primary">{onlineCount} Online</span>
                 </div>
               </div>
               
