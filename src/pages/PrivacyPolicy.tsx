@@ -15,6 +15,20 @@ export default function PrivacyPolicy() {
       </header>
 
       <main className="px-4 py-6 max-w-lg mx-auto space-y-6">
+        <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <h2 className="text-sm font-semibold text-primary mb-2">🔒 Voice Call Privacy</h2>
+          <p className="text-xs text-foreground leading-relaxed">
+            All voice calls on English Flow are <strong>100% private, not recorded, and not saved</strong>. We do not have access to any audio content from your conversations. Your voice communications are completely ephemeral and exist only during the live call session.
+          </p>
+        </section>
+
+        <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <h2 className="text-sm font-semibold text-primary mb-2">🛡️ Data Security</h2>
+          <p className="text-xs text-foreground leading-relaxed">
+            User data is <strong>highly secured</strong> using industry-standard encryption and access controls. All data is encrypted in transit (TLS) and at rest. We employ Row Level Security (RLS) policies to ensure users can only access their own data. Our infrastructure uses advanced encryption standards to protect your information at every level.
+          </p>
+        </section>
+
         <section>
           <h2 className="text-sm font-semibold text-foreground mb-2">1. Information We Collect</h2>
           <p className="text-xs text-muted-foreground leading-relaxed">

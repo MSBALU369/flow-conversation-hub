@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import { EFLogo } from "@/components/ui/EFLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LocationSelector } from "@/components/LocationSelector";
-import { SkipForward } from "lucide-react";
+import { SkipForward, Check, Loader2 } from "lucide-react";
 
 const genderOptions = [
   { value: "male" as const, label: "Male", icon: "👨" },
@@ -29,14 +30,46 @@ export default function Onboarding() {
   const [selectedCity, setSelectedCity] = useState("");
   const [loading, setLoading] = useState(false);
   const [skipping, setSkipping] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const { updateProfile } = useProfile();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const debouncedUsername = useDebounce(username, 500);
+
+  // Check username availability
+  useEffect(() => {
+    if (!debouncedUsername || debouncedUsername.length < 3) {
+      setUsernameStatus("idle");
+      return;
+    }
+
+    let cancelled = false;
+    setUsernameStatus("checking");
+
+    const checkUsername = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", debouncedUsername)
+        .maybeSingle();
+
+      if (!cancelled) {
+        setUsernameStatus(data ? "taken" : "available");
+      }
+    };
+
+    checkUsername();
+    return () => { cancelled = true; };
+  }, [debouncedUsername]);
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
+    setUsername(val);
+  };
+
   const processReferral = async (code: string) => {
     try {
-      // Only set referred_by — the database trigger handles
-      // referral record creation and coin rewards atomically
       await updateProfile({ referred_by: code });
     } catch {
       // Referral processing failed silently
@@ -55,11 +88,7 @@ export default function Onboarding() {
       if (error) throw error;
       navigate("/", { replace: true });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setSkipping(false);
     }
@@ -67,6 +96,7 @@ export default function Onboarding() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (usernameStatus === "taken") return;
 
     setLoading(true);
     try {
@@ -83,7 +113,6 @@ export default function Onboarding() {
       const { error } = await updateProfile(updates);
       if (error) throw error;
 
-      // Process referral code (from field or from signup localStorage)
       const codeToProcess = referralId.trim() || localStorage.getItem("ef_referral_code") || "";
       if (codeToProcess) {
         localStorage.removeItem("ef_referral_code");
@@ -92,15 +121,13 @@ export default function Onboarding() {
 
       navigate("/", { replace: true });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
+
+  const isSubmitDisabled = loading || usernameStatus === "taken" || usernameStatus === "checking";
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
@@ -130,13 +157,24 @@ export default function Onboarding() {
             <label className="text-xs font-medium text-foreground">
               Username <span className="text-muted-foreground">(optional)</span>
             </label>
-            <Input
-              placeholder="Choose a username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              maxLength={30}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-xs"
-            />
+            <div className="relative">
+              <Input
+                placeholder="Choose a username (alphanumeric only)"
+                value={username}
+                onChange={handleUsernameChange}
+                maxLength={30}
+                className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-xs pr-8"
+              />
+              {usernameStatus === "checking" && (
+                <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+              )}
+              {usernameStatus === "available" && (
+                <Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(142,70%,45%)]" />
+              )}
+            </div>
+            {usernameStatus === "taken" && (
+              <p className="text-[10px] text-destructive font-medium">Username already taken or not available</p>
+            )}
           </div>
 
           {/* Gender */}
@@ -179,7 +217,6 @@ export default function Onboarding() {
             />
           </div>
 
-
           {/* Description / Bio */}
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground">
@@ -198,7 +235,7 @@ export default function Onboarding() {
 
           <Button
             type="submit"
-            disabled={loading}
+            disabled={isSubmitDisabled}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-4 text-sm"
           >
             {loading ? "Saving..." : "Get Started"}
