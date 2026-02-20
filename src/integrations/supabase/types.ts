@@ -748,6 +748,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_reference_id: { Args: { ref_id: string }; Returns: boolean }
       get_public_profile_columns: {
         Args: never
         Returns: {
