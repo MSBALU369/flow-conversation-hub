@@ -269,7 +269,7 @@ export default function Home() {
                   Speak With (Filter by Level)
                 </Button>
               </div>
-              <div className="h-12" />
+              <div className="h-24" />
             </div>
           ) : (
             <div className="mt-4 glass-card p-4">
