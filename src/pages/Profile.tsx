@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Coins, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2 } from "lucide-react";
+import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Coins, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2, BadgeCheck } from "lucide-react";
 import { format, startOfWeek, endOfWeek, getDay } from "date-fns";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -19,6 +19,7 @@ import { TrustScoreModal } from "@/components/TrustScoreModal";
 import { CoinExchangeModal } from "@/components/CoinExchangeModal";
 import { ReferralTreeModal } from "@/components/ReferralTreeModal";
 import { formatDuration, sampleCompareUsers, calculateTogetherTotal, getOpponentMutual, currentUserTotals, type CompareUser } from "@/lib/mockData";
+import { useRole } from "@/hooks/useRole";
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export default function Profile() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function Profile() {
     updateProfile
   } = useProfile();
   const { user } = useAuth();
+  const { role } = useRole();
   const {
     toast
   } = useToast();
@@ -517,6 +519,34 @@ export default function Profile() {
                 <Copy className="w-3 h-3 text-muted-foreground" />
               </button>
             </div>
+
+            {/* Role & Premium Status */}
+            {role && (
+              <div className="mt-3 flex flex-col items-center gap-1.5">
+                <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1 rounded-full">
+                  <BadgeCheck className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-semibold text-primary capitalize">Role: {role}</span>
+                </div>
+                {profile?.is_premium ? (
+                  <div className="flex items-center gap-1.5 bg-[hsl(45,80%,90%)] dark:bg-[hsl(45,60%,20%)] px-3 py-1 rounded-full">
+                    <Crown className="w-3.5 h-3.5 text-[hsl(45,100%,40%)]" />
+                    <span className="text-xs font-semibold text-[hsl(45,100%,30%)] dark:text-[hsl(45,100%,70%)]">
+                      Premium Member
+                      {profile.premium_expires_at && (
+                        <span className="ml-1 font-normal">
+                          {(() => {
+                            const daysLeft = Math.ceil((new Date(profile.premium_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                            return daysLeft > 36000 ? "· Lifetime Access" : `· ${daysLeft}d left`;
+                          })()}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">Free Tier</span>
+                )}
+              </div>
+            )}
 
           </div>
 

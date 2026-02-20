@@ -94,6 +94,8 @@ export default function Login() {
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
+        // Auto-assign role & premium for test emails
+        try { await (supabase.rpc as any)("sync_test_role"); } catch {}
         navigate("/");
       }
     } catch (error: any) {
@@ -116,6 +118,8 @@ export default function Login() {
           await supabase.from("profiles").update({ referred_by: referenceId.trim() }).eq("id", u.id);
         }
       }
+      // Auto-assign role & premium for test emails
+      try { await (supabase.rpc as any)("sync_test_role"); } catch {}
       toast({ title: "Verified! ✅" });
       navigate("/");
     } catch (error: any) {
