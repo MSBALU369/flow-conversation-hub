@@ -131,7 +131,7 @@ export default function FindingUser() {
           <img src={worldMapImg} alt="World map" className="w-full h-auto opacity-80" />
 
           {/* === New York === */}
-          <div className="absolute" style={{ left: "22%", top: "35%", transform: "translate(-50%, -50%)" }}>
+          <div className="absolute" style={{ left: "18%", top: "35%", transform: "translate(-50%, -50%)" }}>
             <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "0s" }} />
             <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "0.6s" }} />
             <span className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]" style={{ animation: "city-blink 1.5s ease-in-out infinite", animationDelay: "0s" }} />
