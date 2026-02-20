@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -6,13 +6,17 @@ import { EFLogo } from "@/components/ui/EFLogo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { Phone, Shield, Gift } from "lucide-react";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Phone, Shield, Gift, ArrowLeft } from "lucide-react";
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -21,18 +25,20 @@ export default function Login() {
   const TEST_RAW = "324324324";
   const TEST_PASS = "123456";
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
   const handleTestAccount = async () => {
-    // Try sign in first
     let { error } = await signIn(TEST_EMAIL, TEST_PASS);
     if (error) {
-      // If user doesn't exist, sign up
       const res = await signUp(TEST_EMAIL, TEST_PASS);
       if (res.error) throw res.error;
-      // Try signing in again after signup
       const res2 = await signIn(TEST_EMAIL, TEST_PASS);
       if (res2.error) throw res2.error;
     }
-    // Grant premium + 10000 coins
     const { data: { user: u } } = await supabase.auth.getUser();
     if (u) {
       const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
@@ -51,7 +57,6 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Test account bypass
       if (email === TEST_RAW && password === TEST_PASS) {
         await handleTestAccount();
         return;
@@ -60,45 +65,112 @@ export default function Login() {
       if (isSignUp) {
         const { error } = await signUp(email, password);
         if (error) throw error;
-        toast({
-          title: "Check your email ✉️",
-          description: "We've sent you a verification link.",
-        });
+        setOtpStep(true);
+        setResendCooldown(60);
+        toast({ title: "OTP Sent ✉️", description: "Check your email for a 6-digit code." });
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
         navigate("/");
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
+
+  const handleVerifyOtp = async () => {
+    if (otpCode.length !== 6) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "signup" });
+      if (error) throw error;
+      toast({ title: "Verified! ✅" });
+      navigate("/");
+    } catch (error: any) {
+      toast({ title: "Invalid OTP", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({ type: "signup", email });
+      if (error) throw error;
+      setResendCooldown(60);
+      toast({ title: "OTP Resent ✉️", description: "Check your email again." });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // OTP verification screen
+  if (otpStep) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 bg-background">
+        <div className="fixed inset-0 gradient-mesh pointer-events-none" />
+        <div className="relative z-10 w-full max-w-sm glass-card p-6 animate-scale-in">
+          <button onClick={() => { setOtpStep(false); setOtpCode(""); }} className="flex items-center gap-1 text-muted-foreground text-sm mb-4 hover:text-foreground">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <div className="flex flex-col items-center mb-6">
+            <EFLogo size="lg" className="mb-3" />
+            <h1 className="text-xl font-bold text-foreground">Verify Your Email</h1>
+            <p className="text-xs text-muted-foreground mt-1 text-center">
+              Enter the 6-digit code sent to <span className="font-semibold text-foreground">{email}</span>
+            </p>
+          </div>
+
+          <div className="flex justify-center mb-6">
+            <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+
+          <Button onClick={handleVerifyOtp} disabled={loading || otpCode.length !== 6} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6">
+            {loading ? "Verifying..." : "Verify"}
+          </Button>
+
+          <button onClick={handleResendOtp} disabled={resendCooldown > 0 || loading} className="w-full mt-4 text-primary text-sm font-medium hover:underline disabled:text-muted-foreground disabled:no-underline">
+            {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : "Resend OTP"}
+          </button>
+
+          <p className="text-center text-[9px] text-muted-foreground mt-4">
+            Your identity is always safe & private 🔒
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="fixed inset-0 gradient-mesh pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-sm glass-card p-6 animate-scale-in">
-        {/* Logo & Branding */}
         <div className="flex flex-col items-center mb-6">
           <EFLogo size="lg" className="mb-3" />
           <h1 className="text-xl font-bold text-foreground">
             {isSignUp ? "Join English Flow" : "Welcome Back"}
           </h1>
           <p className="text-xs text-muted-foreground mt-1 text-center">
-            {isSignUp
-              ? "Practice English with real people worldwide 🌍"
-              : "Continue your speaking journey 🚀"}
+            {isSignUp ? "Practice English with real people worldwide 🌍" : "Continue your speaking journey 🚀"}
           </p>
         </div>
 
-        {/* Feature highlights on signup */}
         {isSignUp && (
           <div className="flex items-center justify-center gap-4 mb-5">
             <div className="flex items-center gap-1">
@@ -117,44 +189,17 @@ export default function Login() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
-          />
-
-
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6"
-          >
+          <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
+          <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
+          <Button type="submit" disabled={loading} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6">
             {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
           </Button>
         </form>
 
-        <button
-          onClick={() => setIsSignUp(!isSignUp)}
-          className="w-full mt-4 text-primary text-sm font-medium hover:underline"
-        >
-          {isSignUp
-            ? "Already have an account? Sign In"
-            : "New here? Create Account"}
+        <button onClick={() => setIsSignUp(!isSignUp)} className="w-full mt-4 text-primary text-sm font-medium hover:underline">
+          {isSignUp ? "Already have an account? Sign In" : "New here? Create Account"}
         </button>
 
-        {/* Trust footer */}
         <p className="text-center text-[9px] text-muted-foreground mt-4">
           Your identity is always safe & private 🔒
         </p>
