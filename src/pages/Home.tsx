@@ -247,28 +247,23 @@ export default function Home() {
 
           {/* Recommended Books & Courses Button (premium) / Ad Area (free) */}
           {isPremium ? (
-            <div className="mt-4 space-y-3">
-              <div className="flex justify-center">
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setShowBooksModal(true)}
-                  className="gap-2 text-sm px-5 py-2.5 h-auto border-primary/30 text-primary hover:bg-primary/10"
+                  className="gap-1.5 text-xs px-3 py-1.5 h-auto border-primary/30 text-primary hover:bg-primary/10"
                 >
-                  <BookOpen className="w-4 h-4" />
-                  Recommended Books & Courses
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Books & Courses
                 </Button>
-              </div>
-              {/* Speak With - Premium only on Home */}
-              <div className="flex justify-center">
                 <Button
                   onClick={() => setShowSpeakWith(true)}
-                  className="gap-2 text-sm px-5 py-2.5 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                  className="gap-1.5 text-xs px-3 py-1.5 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
                   variant="outline"
                 >
-                  <Users className="w-4 h-4" />
-                  Speak With (Filter by Level)
+                  <Users className="w-3.5 h-3.5" />
+                  Speak With
                 </Button>
-              </div>
             </div>
           ) : (
             <div className="mt-4 glass-card p-4">
