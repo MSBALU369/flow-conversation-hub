@@ -81,7 +81,7 @@ export default function Home() {
     fetchContent();
   }, [showBooksModal]);
 
-  // Simulate ad playback
+  // Simulate ad playback — award coins via DB after completion
   useEffect(() => {
     if (!adPlaying) return;
     const interval = setInterval(() => {
@@ -90,6 +90,23 @@ export default function Home() {
           clearInterval(interval);
           setAdPlaying(false);
           setAdFinished(true);
+          // Award 5 coins — backend-first
+          if (profile?.id) {
+            (async () => {
+              const { data, error } = await supabase
+                .from("profiles")
+                .update({ coins: (profile.coins ?? 0) + 5 })
+                .eq("id", profile.id)
+                .select("coins")
+                .single();
+              if (!error && data) {
+                updateProfile({ coins: data.coins });
+                toast({ title: "+5 Coins!", description: "Coins awarded for watching the ad." });
+              } else {
+                toast({ title: "Failed to add coins", variant: "destructive" });
+              }
+            })();
+          }
           return 100;
         }
         return prev + 2;

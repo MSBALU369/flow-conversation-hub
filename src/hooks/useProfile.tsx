@@ -80,6 +80,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
     fetchProfile();
 
+    // Set user online
+    supabase.from("profiles").update({ is_online: true }).eq("id", user.id).then();
+
     // Subscribe to realtime changes on this user's profile
     const channel = supabase
       .channel(`profile-${user.id}`)
@@ -99,8 +102,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+    // Set user offline on tab close / unmount
+    const handleOffline = () => {
+      supabase.from("profiles").update({ is_online: false }).eq("id", user.id).then();
+    };
+    window.addEventListener("beforeunload", handleOffline);
+
     return () => {
       isMounted = false;
+      handleOffline();
+      window.removeEventListener("beforeunload", handleOffline);
       supabase.removeChannel(channel);
     };
   }, [user, authLoading]);
