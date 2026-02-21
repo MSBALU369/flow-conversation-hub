@@ -5,12 +5,14 @@ import { X, Trophy, Send, Clock, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameBet } from "@/hooks/useGameBet";
+import { useGameSync } from "@/hooks/useGameSync";
 
 interface WordChainGameProps {
   onClose: () => void;
   onMinimize?: () => void;
   betAmount?: number;
   partnerName: string;
+  room?: any;
 }
 
 const STARTER_WORDS = ["apple", "mountain", "elephant", "orange", "travel", "planet", "energy", "dolphin"];

@@ -4,12 +4,14 @@ import { X, Trophy, Target, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameBet } from "@/hooks/useGameBet";
+import { useGameSync } from "@/hooks/useGameSync";
 
 interface ArcheryGameProps {
   onClose: () => void;
   onMinimize?: () => void;
   betAmount?: number;
   partnerName: string;
+  room?: any;
 }
 
 const TOTAL_SHOTS = 5;
