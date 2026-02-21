@@ -52,9 +52,9 @@ export function useNetworkStrength(): NetworkState {
   const getSignalLevel = (): SignalLevel => {
     if (isOffline || latency === null) return 0;
 
-    // Use Network Information API if available
-    const connection = (navigator as any).connection;
-    if (connection) {
+    // Use Network Information API if available (with iOS/WebKit fallbacks)
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (connection?.effectiveType) {
       const effectiveType = connection.effectiveType;
       if (effectiveType === "slow-2g" || effectiveType === "2g") return 1;
       if (effectiveType === "3g") return 2;

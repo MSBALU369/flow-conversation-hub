@@ -168,6 +168,19 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 
   const callStartTime = useRef<number>(Date.now());
 
+  // Ghost call prevention: disconnect LiveKit + leave matchmaking on tab close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try { room?.disconnect(); } catch {}
+      if (profile?.id) {
+        // Use sendBeacon pattern for reliability during unload
+        supabase.rpc("leave_matchmaking", { p_user_id: profile.id }).then();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [room, profile?.id]);
+
   // LiveKit: toggle mute — only after room is connected
   useEffect(() => {
     if (localParticipant && room?.state === 'connected') {
@@ -404,12 +417,47 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   };
 
   const handleSubmitPostCall = async () => {
-    if (postCallRating === "dislike" && selectedReportReasons.length > 0) {
-      toast({ title: "Report Submitted", description: "Thank you for helping keep our community safe.", duration: 2000 });
-    } else if (postCallRating === "like") {
+    const effectivePartnerId = partnerId || stateMatchedUserId;
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (postCallRating === "like" && effectivePartnerId) {
+      // Increment partner's XP as a trust reward (+5 XP per like)
+      supabase.from("profiles")
+        .update({ xp: ((partnerProfile as any)?.xp ?? 0) + 5 })
+        .eq("id", effectivePartnerId)
+        .then();
+      // Insert notification for the liked user
+      if (user) {
+        supabase.from("notifications").insert({
+          user_id: effectivePartnerId,
+          type: "like",
+          title: "Someone liked you!",
+          message: selectedLikeReasons.length > 0
+            ? likeReasons.filter(r => selectedLikeReasons.includes(r.id)).map(r => r.label).join(", ")
+            : "You received a like after a call.",
+          from_user_id: user.id,
+        }).then();
+      }
       toast({ title: `👍 You liked ${partnerProfile?.username || "Anonymous"}`, duration: 2000 });
-    } else if (postCallRating === "dislike") {
-      toast({ title: `👎 You disliked ${partnerProfile?.username || "Anonymous"}`, duration: 2000 });
+    } else if (postCallRating === "dislike" && effectivePartnerId) {
+      // Insert report row
+      if (user) {
+        supabase.from("reports").insert({
+          reporter_id: user.id,
+          reported_user_id: effectivePartnerId,
+          reason: selectedReportReasons.length > 0
+            ? reportReasons.filter(r => selectedReportReasons.includes(r.id)).map(r => r.label).join(", ")
+            : "Disliked after call",
+          description: null,
+        }).then();
+        // Increment partner's reports_count
+        supabase.rpc("check_premium_expiration" as any, { p_user_id: effectivePartnerId }).then(); // reuse as a ping
+        supabase.from("profiles")
+          .update({ reports_count: ((partnerProfile as any)?.reports_count ?? 0) + 1 })
+          .eq("id", effectivePartnerId)
+          .then();
+      }
+      toast({ title: selectedReportReasons.length > 0 ? "Report Submitted" : `👎 You disliked ${partnerProfile?.username || "Anonymous"}`, description: selectedReportReasons.length > 0 ? "Thank you for helping keep our community safe." : undefined, duration: 2000 });
     }
     navigate("/");
   };
@@ -918,11 +966,12 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
         />
       )}
 
-      {activeGame === "wordchain" && !gameMinimized && <WordChainGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "wordchain" && !gameMinimized && <WordChainGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
       {activeGame === "wouldyourather" && !gameMinimized && <WouldYouRatherGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
       {activeGame === "truthordare" && !gameMinimized && <TruthOrDareGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "chess" && !gameMinimized && <ChessGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "ludo" && !gameMinimized && <LudoGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "chess" && !gameMinimized && <ChessGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+      {activeGame === "ludo" && !gameMinimized && <LudoGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+
       {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
       {activeGame === "archery" && !gameMinimized && <ArcheryGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
       {activeGame === "sudoku" && !gameMinimized && <SudokuGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
