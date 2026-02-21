@@ -47,6 +47,7 @@ interface CallStateContextType {
   stopSearching: () => void;
   initiateDirectCall: (receiverId: string, receiverName: string, receiverAvatar: string | null) => Promise<void>;
   cancelOutgoingCall: () => Promise<void>;
+  registerCurrentRoom: (room: any) => void;
 }
 
 const CallStateContext = createContext<CallStateContextType | undefined>(undefined);
@@ -86,6 +87,12 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMatchedRef = useRef(false);
   const isFetchingRef = useRef(false);
+  const currentRoomRef = useRef<any>(null);
+
+  const registerCurrentRoom = useCallback((room: any) => {
+    currentRoomRef.current = room;
+  }, []);
+
 
   // ─── Realtime: listen for INCOMING calls (receiver side) ───
   useEffect(() => {
@@ -381,6 +388,12 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     const current = incomingCall;
 
     if (current.callId) {
+      // Call Waiting: disconnect current LiveKit room if in a call
+      if (callState.isInCall && currentRoomRef.current) {
+        try { currentRoomRef.current.disconnect(); } catch {}
+        currentRoomRef.current = null;
+      }
+
       // Update call status to accepted — this triggers Realtime for the caller
       await supabase
         .from("calls")
@@ -447,7 +460,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
       startCall, endCall, updateCallSeconds,
       triggerIncomingCall, acceptIncomingCall, declineIncomingCall,
       startSearching, stopSearching,
-      initiateDirectCall, cancelOutgoingCall,
+      initiateDirectCall, cancelOutgoingCall, registerCurrentRoom,
     }}>
       {children}
     </CallStateContext.Provider>

@@ -109,6 +109,14 @@ function LiveKitBridge({ children }: { children: (lk: { room: any; participants:
   const room = useRoomContext();
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
+  const { registerCurrentRoom } = useCallState();
+
+  // Register room globally for call-waiting disconnect
+  useEffect(() => {
+    registerCurrentRoom(room);
+    return () => registerCurrentRoom(null);
+  }, [room, registerCurrentRoom]);
+
   return <>{children({ room, participants, localParticipant })}</>;
 }
 
