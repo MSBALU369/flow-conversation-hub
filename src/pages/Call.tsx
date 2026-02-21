@@ -112,6 +112,15 @@ function LiveKitBridge({ children }: { children: (lk: { room: any; participants:
   return <>{children({ room, participants, localParticipant })}</>;
 }
 
+/** Safe AudioConference that only renders inside LiveKitRoom */
+function SafeAudioConference() {
+  return (
+    <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+      <AudioConference />
+    </div>
+  );
+}
+
 interface LiveKitState {
   room: any | null;
   participants: any[];
@@ -496,12 +505,6 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 
   return (
     <div className="min-h-screen flex flex-col call-immersive-bg">
-      {/* AudioConference handles all audio routing — visually hidden but must render */}
-      {room && (
-        <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
-          <AudioConference />
-        </div>
-      )}
 
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-4 safe-top">
@@ -1204,6 +1207,7 @@ export default function Call() {
       video={false}
       style={{ height: "100%" }}
     >
+      <SafeAudioConference />
       <LiveKitBridge>
         {(lk) => <CallRoomUI lk={lk} />}
       </LiveKitBridge>
