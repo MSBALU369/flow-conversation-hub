@@ -497,9 +497,11 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   return (
     <div className="min-h-screen flex flex-col call-immersive-bg">
       {/* AudioConference handles all audio routing — visually hidden but must render */}
-      <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
-        <AudioConference />
-      </div>
+      {room && (
+        <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+          <AudioConference />
+        </div>
+      )}
 
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-4 safe-top">
