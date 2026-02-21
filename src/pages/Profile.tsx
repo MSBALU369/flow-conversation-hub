@@ -12,6 +12,7 @@ import { LevelBadge } from "@/components/ui/LevelBadge";
 import { ProfileSettingsModal } from "@/components/ProfileSettingsModal";
 import { supabase } from "@/integrations/supabase/client";
 import { LocationSelector } from "@/components/LocationSelector";
+import { getRegionForCountry } from "@/lib/countryRegions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -502,6 +503,7 @@ export default function Profile() {
             await updateProfile({
               country,
               location_city: city,
+              region: getRegionForCountry(country),
               last_location_change: new Date().toISOString()
             } as any);
             toast({
