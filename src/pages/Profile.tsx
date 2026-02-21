@@ -304,26 +304,53 @@ export default function Profile() {
   const [compareUsers, setCompareUsers] = useState<CompareUser[]>([]);
   const sampleCompareData = selectedCompareUser?.data || [];
 
-  // Fetch real compare users from call_history
+  // Fetch compare users: ONLY mutual friends with call history
   const fetchCompareUsers = useCallback(async () => {
     if (!profile?.id) return;
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
 
-    // Get unique partners from call history
+    // Step 1: Get mutual friends (both directions accepted)
+    const { data: iFollow } = await supabase
+      .from("friendships")
+      .select("friend_id")
+      .eq("user_id", profile.id)
+      .eq("status", "accepted");
+    const { data: followMe } = await supabase
+      .from("friendships")
+      .select("user_id")
+      .eq("friend_id", profile.id)
+      .eq("status", "accepted");
+
+    const iFollowSet = new Set((iFollow || []).map(f => f.friend_id));
+    const mutualFriendIds = (followMe || []).map(f => f.user_id).filter(id => iFollowSet.has(id));
+
+    if (mutualFriendIds.length === 0) { setCompareUsers([]); return; }
+
+    // Step 2: Get mutual friends' profiles
+    const { data: friendProfiles } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url")
+      .in("id", mutualFriendIds);
+
+    const friendProfileMap = new Map((friendProfiles || []).map(p => [p.username, p]));
+    const friendUsernameSet = new Set((friendProfiles || []).map(p => p.username).filter(Boolean));
+
+    // Step 3: Get call history and filter to only mutual friends
     const { data: calls } = await supabase
       .from("call_history")
       .select("partner_name, duration, created_at")
       .eq("user_id", profile.id)
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(500);
 
     if (!calls || calls.length === 0) { setCompareUsers([]); return; }
 
-    // Group by partner name
+    // Group by partner name, only if they are a mutual friend
     const partnerMap = new Map<string, { totalMin: number; weeklyBuckets: number[] }>();
     calls.forEach(c => {
       const name = c.partner_name || "Anonymous";
+      if (!friendUsernameSet.has(name)) return; // STRICT: skip non-friends
       if (!partnerMap.has(name)) partnerMap.set(name, { totalMin: 0, weeklyBuckets: new Array(7).fill(0) });
       const entry = partnerMap.get(name)!;
       entry.totalMin += (c.duration || 0) / 60;
@@ -335,21 +362,18 @@ export default function Profile() {
       }
     });
 
-    // Lookup profiles by username
-    const uniqueNames = [...partnerMap.keys()].filter(n => n !== "Anonymous");
-    let profileMap = new Map<string, { avatar_url: string | null; id: string }>();
-    if (uniqueNames.length > 0) {
-      const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_url").in("username", uniqueNames);
-      (profiles || []).forEach(p => { if (p.username) profileMap.set(p.username, { avatar_url: p.avatar_url, id: p.id }); });
-    }
+    if (partnerMap.size === 0) { setCompareUsers([]); return; }
 
-    const users: CompareUser[] = [...partnerMap.entries()].map(([name, d]) => ({
-      id: profileMap.get(name)?.id || name,
-      name,
-      avatar: profileMap.get(name)?.avatar_url || null,
-      allTimeMinutes: Math.round(d.totalMin),
-      data: dayLabels.map((day, i) => ({ day, minutes: Math.round(d.weeklyBuckets[i]) })),
-    }));
+    const users: CompareUser[] = [...partnerMap.entries()].map(([name, d]) => {
+      const fp = friendProfileMap.get(name);
+      return {
+        id: fp?.id || name,
+        name,
+        avatar: fp?.avatar_url || null,
+        allTimeMinutes: Math.round(d.totalMin),
+        data: dayLabels.map((day, i) => ({ day, minutes: Math.round(d.weeklyBuckets[i]) })),
+      };
+    });
 
     setCompareUsers(users);
   }, [profile?.id]);
