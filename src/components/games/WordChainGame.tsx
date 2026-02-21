@@ -57,8 +57,10 @@ function findWord(startLetter: string, usedWords: Set<string>): string | null {
   return matches.length > 0 ? matches[Math.floor(Math.random() * matches.length)] : null;
 }
 
-export function WordChainGame({ onClose, onMinimize, betAmount = 0, partnerName }: WordChainGameProps) {
+export function WordChainGame({ onClose, onMinimize, betAmount = 0, partnerName, room }: WordChainGameProps & { room?: any }) {
   const { settleBet } = useGameBet(betAmount);
+  const { sendMove, lastReceivedMove } = useGameSync<{ word: string }>(room || null, "wordchain");
+  const isMultiplayer = !!room;
   const starter = STARTER_WORDS[Math.floor(Math.random() * STARTER_WORDS.length)];
   const [words, setWords] = useState<{ word: string; player: string }[]>([{ word: starter, player: "system" }]);
   const [input, setInput] = useState("");
@@ -117,6 +119,22 @@ export function WordChainGame({ onClose, onMinimize, betAmount = 0, partnerName 
     setIsMyTurn(false);
   }, [words, lastWord, round, usedWords]);
 
+  // Handle incoming moves from remote player
+  useEffect(() => {
+    if (!lastReceivedMove || !isMultiplayer) return;
+    const { word } = lastReceivedMove;
+    usedWords.add(word);
+    setWords(prev => [...prev, { word, player: "partner" }]);
+    setPartnerScore(s => s + 1);
+    const nextRound = round + 1;
+    if (nextRound > MAX_ROUNDS) {
+      setGameOver(true);
+    } else {
+      setRound(nextRound);
+      setIsMyTurn(true);
+    }
+  }, [lastReceivedMove, isMultiplayer]);
+
   const handleSubmit = () => {
     const word = input.trim().toLowerCase();
     setError("");
@@ -137,7 +155,12 @@ export function WordChainGame({ onClose, onMinimize, betAmount = 0, partnerName 
     setWords(prev => [...prev, { word, player: "you" }]);
     setMyScore(s => s + 1);
     setInput("");
-    doPartnerTurn();
+    if (isMultiplayer) {
+      sendMove({ word });
+      setIsMyTurn(false);
+    } else {
+      doPartnerTurn();
+    }
   };
 
   if (gameOver) {

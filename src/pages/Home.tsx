@@ -115,14 +115,14 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [adPlaying]);
 
-  // Check and update streak on new day
+  // Check and update streak on new day — also runs a background midnight interval
   useEffect(() => {
+    if (!profile?.id) return;
+
     const checkStreak = async () => {
-      if (!profile?.id) return;
       const today = new Date().toISOString().split('T')[0];
       const lastActive = profile.last_refill_time ? new Date(profile.last_refill_time).toISOString().split('T')[0] : null;
 
-      // If new day, increment streak
       if (lastActive !== today) {
         const newStreak = Math.min((profile.streak_count || 0) + 1, 7);
         await updateProfile({
@@ -135,7 +135,15 @@ export default function Home() {
         });
       }
     };
+
     checkStreak();
+
+    // Background interval: check every 60s if midnight has passed
+    const midnightInterval = setInterval(() => {
+      checkStreak();
+    }, 60_000);
+
+    return () => clearInterval(midnightInterval);
   }, [profile?.id]);
   const handleStartCall = () => {
     navigate("/finding", {
