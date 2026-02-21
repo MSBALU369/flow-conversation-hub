@@ -210,6 +210,41 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     };
   }, [room, participants]);
 
+  // LiveKit: detect when partner disconnects or room closes — force end call for both users
+  const hasHandledDisconnectRef = useRef(false);
+  useEffect(() => {
+    if (!room) return;
+    hasHandledDisconnectRef.current = false;
+
+    const forceEnd = () => {
+      if (hasHandledDisconnectRef.current) return;
+      hasHandledDisconnectRef.current = true;
+      toast({ title: "Call Ended", description: "The other user has left the call." });
+      room.disconnect();
+      endCall();
+      navigate("/");
+    };
+
+    // When the remote participant leaves
+    const handleParticipantDisconnected = (participant: any) => {
+      if (!participant.isLocal) {
+        forceEnd();
+      }
+    };
+
+    // When we ourselves get disconnected (server-side room close, network drop, etc.)
+    const handleRoomDisconnected = () => {
+      forceEnd();
+    };
+
+    room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
+    room.on(RoomEvent.Disconnected, handleRoomDisconnected);
+    return () => {
+      room.off(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
+      room.off(RoomEvent.Disconnected, handleRoomDisconnected);
+    };
+  }, [room, endCall, navigate, toast]);
+
   // Fetch partner profile from real data
   useEffect(() => {
     const effectivePartnerId = partnerId || stateMatchedUserId;
