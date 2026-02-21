@@ -66,6 +66,7 @@ export default function Profile() {
   const [showCoinExchange, setShowCoinExchange] = useState(false);
   const [showReferralTree, setShowReferralTree] = useState(false);
   const [watchingAd, setWatchingAd] = useState(false);
+  const [followActionLoading, setFollowActionLoading] = useState<string | null>(null);
   const [adProgress, setAdProgress] = useState(0);
 
   // Ad watching effect for coins
@@ -199,7 +200,8 @@ export default function Profile() {
   }, [showUsersList, profile?.id]);
 
   const handleUnfollow = async (targetUserId: string) => {
-    if (!profile?.id) return;
+    if (!profile?.id || followActionLoading) return;
+    setFollowActionLoading(targetUserId);
     // Optimistic UI update
     setFollowingCount(prev => Math.max(0, prev - 1));
     setListUsers(prev => prev.filter(u => u.id !== targetUserId));
@@ -212,17 +214,17 @@ export default function Profile() {
       .eq("status", "accepted");
     
     if (error) {
-      // Revert on failure
       fetchCounts();
       toast({ title: "Failed to unfollow", variant: "destructive" });
     } else {
       toast({ title: "Unfollowed", description: "User removed from your following list." });
     }
+    setFollowActionLoading(null);
   };
 
   const handleRemoveFollower = async (targetUserId: string) => {
-    if (!profile?.id) return;
-    // Optimistic UI update
+    if (!profile?.id || followActionLoading) return;
+    setFollowActionLoading(targetUserId);
     setFollowersCount(prev => Math.max(0, prev - 1));
     setListUsers(prev => prev.filter(u => u.id !== targetUserId));
     
@@ -239,20 +241,24 @@ export default function Profile() {
     } else {
       toast({ title: "Removed", description: "Follower removed." });
     }
+    setFollowActionLoading(null);
   };
 
   const handleFollowBack = async (targetUserId: string) => {
-    if (!profile?.id) return;
+    if (!profile?.id || followActionLoading) return;
+    setFollowActionLoading(targetUserId);
     await supabase
       .from("friendships")
       .insert({ user_id: profile.id, friend_id: targetUserId, status: "accepted" });
     setFollowedBackIds(prev => new Set(prev).add(targetUserId));
     fetchCounts();
     toast({ title: "Followed", description: "You are now following this user." });
+    setFollowActionLoading(null);
   };
 
   const handleUnfollowBack = async (targetUserId: string) => {
-    if (!profile?.id) return;
+    if (!profile?.id || followActionLoading) return;
+    setFollowActionLoading(targetUserId);
     await supabase
       .from("friendships")
       .delete()
@@ -265,6 +271,7 @@ export default function Profile() {
     });
     fetchCounts();
     toast({ title: "Unfollowed", description: "You have unfollowed this user." });
+    setFollowActionLoading(null);
   };
 
   // Fetch referrals when coins modal opens
