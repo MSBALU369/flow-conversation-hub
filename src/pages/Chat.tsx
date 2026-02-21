@@ -119,6 +119,21 @@ export default function Chat() {
   const [compareMyData, setCompareMyData] = useState(dayLabels.map(d => ({ day: d, minutes: 0 })));
   const [compareFriendData, setCompareFriendData] = useState(dayLabels.map(d => ({ day: d, minutes: 0 })));
   const [mutedUsers, setMutedUsers] = useState<Set<string>>(new Set());
+
+  // Load muted users from Supabase on mount
+  useEffect(() => {
+    if (!profile?.id) return;
+    const loadMutedUsers = async () => {
+      const { data } = await supabase
+        .from("muted_users")
+        .select("muted_user_id")
+        .eq("user_id", profile.id);
+      if (data) {
+        setMutedUsers(new Set(data.map(d => d.muted_user_id)));
+      }
+    };
+    loadMutedUsers();
+  }, [profile?.id]);
   const [showGallery, setShowGallery] = useState(false);
   const [showClearChat, setShowClearChat] = useState(false);
   const [clearChatOption, setClearChatOption] = useState<string | null>(null);
@@ -203,16 +218,25 @@ export default function Chat() {
     fetchMutualFollowers();
   }, [profile?.id]);
 
-  const handleRemoveChat = useCallback((friend: Friend) => {
+  const handleRemoveChat = useCallback(async (friend: Friend) => {
     setChatFriends(prev => prev.filter(f => f.id !== friend.id));
     setSwipeOffsets(prev => { const n = { ...prev }; delete n[friend.id]; return n; });
 
     // Clear any existing undo timer
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
 
+    // Real DELETE from Supabase - delete messages sent by current user in this conversation
+    if (profile?.id) {
+      await supabase
+        .from("chat_messages")
+        .delete()
+        .eq("sender_id", profile.id)
+        .eq("receiver_id", friend.id);
+    }
+
     toast({
       title: `Chat with ${friend.name} removed`,
-      description: "Tap Undo to restore",
+      description: "Messages deleted from your side",
       action: (
         <Button
           variant="outline"
@@ -228,7 +252,7 @@ export default function Chat() {
       ),
       duration: 5000,
     });
-  }, [toast]);
+  }, [toast, profile?.id]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent, friendId: string) => {
     touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, id: friendId };
@@ -556,19 +580,20 @@ export default function Chat() {
                 <Trash2 className="w-4 h-4 mr-2" />
                 Clear Chat
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                if (!selectedFriend) return;
-                setMutedUsers(prev => {
-                  const next = new Set(prev);
-                  if (next.has(selectedFriend.id)) {
-                    next.delete(selectedFriend.id);
-                    toast({ title: `Unmuted ${selectedFriend.name}` });
-                  } else {
-                    next.add(selectedFriend.id);
-                    toast({ title: `Muted ${selectedFriend.name}`, description: "You won't receive notifications from this user." });
-                  }
-                  return next;
-                });
+              <DropdownMenuItem onClick={async () => {
+                if (!selectedFriend || !profile?.id) return;
+                const isMuted = mutedUsers.has(selectedFriend.id);
+                if (isMuted) {
+                  // Unmute: delete from DB
+                  await supabase.from("muted_users").delete().eq("user_id", profile.id).eq("muted_user_id", selectedFriend.id);
+                  setMutedUsers(prev => { const next = new Set(prev); next.delete(selectedFriend.id); return next; });
+                  toast({ title: `Unmuted ${selectedFriend.name}` });
+                } else {
+                  // Mute: insert to DB
+                  await supabase.from("muted_users").insert({ user_id: profile.id, muted_user_id: selectedFriend.id });
+                  setMutedUsers(prev => new Set(prev).add(selectedFriend.id));
+                  toast({ title: `Muted ${selectedFriend.name}`, description: "You won't receive notifications from this user." });
+                }
               }}>
                 {selectedFriend && mutedUsers.has(selectedFriend.id) ? (
                   <><VolumeX className="w-4 h-4 mr-2" />Unmute User</>

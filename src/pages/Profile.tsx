@@ -76,14 +76,23 @@ export default function Profile() {
         if (prev >= 100) {
           clearInterval(interval);
           setWatchingAd(false);
-          // Award 5 coins — backend-first
+          // Award 5 coins — strict backend-first
           if (profile) {
-            const newCoins = (profile.coins ?? 0) + 5;
-            supabase.from("profiles").update({ coins: newCoins }).eq("id", profile.id).then(({ error }) => {
-              if (error) updateProfile({ coins: newCoins }); // fallback
-            });
+            (async () => {
+              const { data, error } = await supabase
+                .from("profiles")
+                .update({ coins: (profile.coins ?? 0) + 5 })
+                .eq("id", profile.id)
+                .select("coins")
+                .single();
+              if (!error && data) {
+                updateProfile({ coins: data.coins });
+                toast({ title: "+5 Coins!", description: "Coins added for watching the ad." });
+              } else {
+                toast({ title: "Failed to add coins", variant: "destructive" });
+              }
+            })();
           }
-          toast({ title: "+5 Coins!", description: "Coins added for watching the ad." });
           return 100;
         }
         return prev + (100 / 30); // 30 seconds
@@ -191,28 +200,45 @@ export default function Profile() {
 
   const handleUnfollow = async (targetUserId: string) => {
     if (!profile?.id) return;
-    await supabase
+    // Optimistic UI update
+    setFollowingCount(prev => Math.max(0, prev - 1));
+    setListUsers(prev => prev.filter(u => u.id !== targetUserId));
+    
+    const { error } = await supabase
       .from("friendships")
       .delete()
       .eq("user_id", profile.id)
       .eq("friend_id", targetUserId)
       .eq("status", "accepted");
-    setListUsers(prev => prev.filter(u => u.id !== targetUserId));
-    fetchCounts();
-    toast({ title: "Unfollowed", description: "User removed from your following list." });
+    
+    if (error) {
+      // Revert on failure
+      fetchCounts();
+      toast({ title: "Failed to unfollow", variant: "destructive" });
+    } else {
+      toast({ title: "Unfollowed", description: "User removed from your following list." });
+    }
   };
 
   const handleRemoveFollower = async (targetUserId: string) => {
     if (!profile?.id) return;
-    await supabase
+    // Optimistic UI update
+    setFollowersCount(prev => Math.max(0, prev - 1));
+    setListUsers(prev => prev.filter(u => u.id !== targetUserId));
+    
+    const { error } = await supabase
       .from("friendships")
       .delete()
       .eq("user_id", targetUserId)
       .eq("friend_id", profile.id)
       .eq("status", "accepted");
-    setListUsers(prev => prev.filter(u => u.id !== targetUserId));
-    fetchCounts();
-    toast({ title: "Removed", description: "Follower removed." });
+    
+    if (error) {
+      fetchCounts();
+      toast({ title: "Failed to remove follower", variant: "destructive" });
+    } else {
+      toast({ title: "Removed", description: "Follower removed." });
+    }
   };
 
   const handleFollowBack = async (targetUserId: string) => {
@@ -1241,28 +1267,64 @@ export default function Profile() {
 
               {/* Mystery Vaults */}
               <div className="space-y-1.5">
-                <div className="rounded-lg p-2.5 border border-muted-foreground/20 bg-muted/40">
+                <button
+                  onClick={async () => {
+                    if (!profile) return;
+                    if ((profile.coins ?? 0) < 2000) {
+                      toast({ title: "Not enough coins!", description: "You need 2,000 coins to unlock the Silver Vault.", variant: "destructive" });
+                      return;
+                    }
+                    const newCoins = (profile.coins ?? 0) - 2000;
+                    const newXp = (profile.xp ?? 0) + 500;
+                    const { error } = await supabase.from("profiles").update({ coins: newCoins, xp: newXp }).eq("id", profile.id);
+                    if (!error) {
+                      updateProfile({ coins: newCoins, xp: newXp });
+                      toast({ title: "🎁 Silver Vault Unlocked!", description: "+500 XP awarded! Keep grinding!" });
+                    } else {
+                      toast({ title: "Failed to unlock vault", variant: "destructive" });
+                    }
+                  }}
+                  className="rounded-lg p-2.5 border border-muted-foreground/20 bg-muted/40 w-full text-left hover:bg-muted/60 transition-colors cursor-pointer"
+                >
                   <div className="flex items-center gap-2">
-                    <span className="text-base">🔒</span>
+                    <span className="text-base">{(profile?.coins ?? 0) >= 2000 ? "🔓" : "🔒"}</span>
                     <div>
                       <p className="text-xs font-bold text-foreground">
                         <span className="text-muted-foreground">Silver Vault</span> — 2,000 Coins
                       </p>
-                      <p className="text-[9px] text-muted-foreground">Keep earning to reveal the mystery gift! 🎁</p>
+                      <p className="text-[9px] text-muted-foreground">Unlock for +500 XP reward! 🎁</p>
                     </div>
                   </div>
-                </div>
-                <div className="rounded-lg p-2.5 border border-[hsl(45,100%,50%)]/30 bg-gradient-to-r from-[hsl(280,80%,60%)]/10 to-[hsl(45,100%,50%)]/10">
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!profile) return;
+                    if ((profile.coins ?? 0) < 5000) {
+                      toast({ title: "Not enough coins!", description: "You need 5,000 coins to unlock the Gold Vault.", variant: "destructive" });
+                      return;
+                    }
+                    const newCoins = (profile.coins ?? 0) - 5000;
+                    const newXp = (profile.xp ?? 0) + 2000;
+                    const { error } = await supabase.from("profiles").update({ coins: newCoins, xp: newXp }).eq("id", profile.id);
+                    if (!error) {
+                      updateProfile({ coins: newCoins, xp: newXp });
+                      toast({ title: "🏆 Super Gold Vault Unlocked!", description: "+2000 XP awarded! You are a legend!" });
+                    } else {
+                      toast({ title: "Failed to unlock vault", variant: "destructive" });
+                    }
+                  }}
+                  className="rounded-lg p-2.5 border border-[hsl(45,100%,50%)]/30 bg-gradient-to-r from-[hsl(280,80%,60%)]/10 to-[hsl(45,100%,50%)]/10 w-full text-left hover:from-[hsl(280,80%,60%)]/20 hover:to-[hsl(45,100%,50%)]/20 transition-colors cursor-pointer"
+                >
                   <div className="flex items-center gap-2">
-                    <span className="text-base">💎</span>
+                    <span className="text-base">{(profile?.coins ?? 0) >= 5000 ? "🔓" : "💎"}</span>
                     <div>
                       <p className="text-xs font-bold text-foreground">
                         <span className="text-[hsl(45,100%,50%)]">Super Gold Vault</span> — 5,000 Coins
                       </p>
-                      <p className="text-[9px] text-muted-foreground">The ultimate surprise awaits the legend! 🏆</p>
+                      <p className="text-[9px] text-muted-foreground">Unlock for +2000 XP ultimate reward! 🏆</p>
                     </div>
                   </div>
-                </div>
+                </button>
               </div>
             </div>
           </DialogContent>

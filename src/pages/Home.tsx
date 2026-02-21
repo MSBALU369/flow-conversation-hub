@@ -16,19 +16,14 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
 type GenderFilter = "random" | "female" | "male";
-const sampleBooks = [
-  { title: "Think and Grow Rich", author: "Napoleon Hill", category: "Motivational", url: "https://www.amazon.com/dp/0449214923" },
-  { title: "Atomic Habits", author: "James Clear", category: "Self-Help", url: "https://www.amazon.com/dp/0735211299" },
-  { title: "The Power of Now", author: "Eckhart Tolle", category: "Motivational", url: "https://www.amazon.com/dp/1577314808" },
-  { title: "English Grammar in Use", author: "Raymond Murphy", category: "English", url: "https://www.amazon.com/dp/1108457657" },
-];
-
-const sampleCourses = [
-  { title: "English Speaking Masterclass", author: "Udemy", category: "English", url: "https://www.udemy.com" },
-  { title: "IELTS Preparation", author: "Coursera", category: "English", url: "https://www.coursera.org" },
-  { title: "Public Speaking Skills", author: "Skillshare", category: "Communication", url: "https://www.skillshare.com" },
-  { title: "Business English", author: "LinkedIn Learning", category: "Professional", url: "https://www.linkedin.com/learning" },
-];
+interface PremiumContentItem {
+  id: string;
+  title: string;
+  author: string;
+  category: string;
+  url: string;
+  type: string;
+}
 
 export default function Home() {
   const {
@@ -68,6 +63,23 @@ export default function Home() {
   const [booksTab, setBooksTab] = useState<"books" | "courses">("books");
   const isPremium = profile?.is_premium ?? false;
   const [showSpeakWith, setShowSpeakWith] = useState(false);
+  const [premiumContent, setPremiumContent] = useState<PremiumContentItem[]>([]);
+  const [contentLoading, setContentLoading] = useState(false);
+
+  // Fetch premium content from Supabase
+  useEffect(() => {
+    if (!showBooksModal) return;
+    const fetchContent = async () => {
+      setContentLoading(true);
+      const { data } = await supabase
+        .from("premium_content")
+        .select("*")
+        .order("created_at", { ascending: true });
+      setPremiumContent((data as PremiumContentItem[]) || []);
+      setContentLoading(false);
+    };
+    fetchContent();
+  }, [showBooksModal]);
 
   // Simulate ad playback
   useEffect(() => {
@@ -393,7 +405,19 @@ export default function Home() {
 
           {/* Content */}
           <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-            {(booksTab === "books" ? sampleBooks : sampleCourses).map((item, i) => (
+            {contentLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <p className="text-sm text-muted-foreground">Loading...</p>
+              </div>
+            ) : (() => {
+              const filtered = premiumContent.filter(c => booksTab === "books" ? c.type === "book" : c.type === "course");
+              if (filtered.length === 0) return (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <BookOpen className="w-10 h-10 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">No {booksTab} available yet</p>
+                </div>
+              );
+              return filtered.map((item, i) => (
               <a
                 key={i}
                 href={item.url}
@@ -414,7 +438,8 @@ export default function Home() {
                 </div>
                 <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
               </a>
-            ))}
+            ));
+            })()}
           </div>
         </DialogContent>
       </Dialog>
