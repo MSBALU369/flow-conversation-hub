@@ -1032,15 +1032,14 @@ export default function Chat() {
                           id: follower.id,
                           name: follower.name,
                           avatar: follower.avatar,
-                          lastMessage: "Start a conversation!",
-                          time: "now",
+                          lastMessage: "",
+                          time: "",
                           unread: 0,
                           isOnline: follower.isOnline,
                         };
                         setChatFriends(prev => [newFriend, ...prev]);
                         setAddFriendOpen(false);
                         setSelectedFriend(newFriend);
-                        toast({ title: `Chat started with ${follower.name}` });
                       }}
                       className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                     >

@@ -129,12 +129,13 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     setIsSearching(true);
   }, []);
 
-  const stopSearching = useCallback(() => {
+  const stopSearching = useCallback(async () => {
     setIsSearching(false);
     isMatchedRef.current = false;
     if (pollRef.current) clearInterval(pollRef.current);
     if (user?.id) {
-      supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+      // Strict await — ensure user is fully purged from queue before returning
+      await supabase.rpc("leave_matchmaking", { p_user_id: user.id });
     }
   }, [user?.id]);
 
