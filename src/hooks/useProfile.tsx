@@ -80,8 +80,28 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
     fetchProfile();
 
+    // Subscribe to realtime changes on this user's profile
+    const channel = supabase
+      .channel(`profile-${user.id}`)
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          if (isMounted && payload.new) {
+            setProfile(payload.new);
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       isMounted = false;
+      supabase.removeChannel(channel);
     };
   }, [user, authLoading]);
 
