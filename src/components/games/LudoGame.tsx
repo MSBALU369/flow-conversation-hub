@@ -1,22 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Trophy, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameBet } from "@/hooks/useGameBet";
+import { useGameSync } from "@/hooks/useGameSync";
 
 interface LudoGameProps {
   onClose: () => void;
   onMinimize?: () => void;
   betAmount?: number;
   partnerName: string;
+  room?: any;
 }
 
 const TRACK_LENGTH = 30;
 const DICE_ICONS = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
 
-export function LudoGame({ onClose, onMinimize, betAmount = 0, partnerName }: LudoGameProps) {
+export function LudoGame({ onClose, onMinimize, betAmount = 0, partnerName, room }: LudoGameProps) {
   const { settleBet } = useGameBet(betAmount);
+  const { sendMove, lastReceivedMove } = useGameSync<{ dice: number; newPos: number }>(room || null, "ludo");
+  const isMultiplayer = !!room;
   const [myPos, setMyPos] = useState(0);
   const [partnerPos, setPartnerPos] = useState(0);
   const [isMyTurn, setIsMyTurn] = useState(true);
@@ -25,6 +29,16 @@ export function LudoGame({ onClose, onMinimize, betAmount = 0, partnerName }: Lu
   const [gameOver, setGameOver] = useState<string | null>(null);
   const [settled, setSettled] = useState(false);
   const [lastPartnerDice, setLastPartnerDice] = useState<number | null>(null);
+
+  // Handle incoming moves from remote player
+  useEffect(() => {
+    if (!lastReceivedMove || !isMultiplayer) return;
+    const { dice, newPos } = lastReceivedMove;
+    setLastPartnerDice(dice);
+    setPartnerPos(newPos);
+    if (newPos >= TRACK_LENGTH) { setGameOver("You Win!"); return; }
+    setIsMyTurn(true);
+  }, [lastReceivedMove, isMultiplayer]);
 
   const rollDice = () => {
     if (rolling || gameOver) return;

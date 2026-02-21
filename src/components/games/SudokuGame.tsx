@@ -4,12 +4,14 @@ import { X, Trophy, Eraser, Lightbulb, RotateCcw, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameBet } from "@/hooks/useGameBet";
+import { useGameSync } from "@/hooks/useGameSync";
 
 interface SudokuGameProps {
   onClose: () => void;
   onMinimize?: () => void;
   betAmount?: number;
   partnerName: string;
+  room?: any;
 }
 
 type Difficulty = "easy" | "medium" | "hard";

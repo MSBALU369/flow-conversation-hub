@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Trophy, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameBet } from "@/hooks/useGameBet";
+import { useGameSync } from "@/hooks/useGameSync";
 
 interface SnakeLadderGameProps {
   onClose: () => void;
   onMinimize?: () => void;
   betAmount?: number;
   partnerName: string;
+  room?: any;
 }
 
 const BOARD_SIZE = 100;
@@ -50,8 +52,10 @@ function getBoardNumber(row: number, col: number): number {
   }
 }
 
-export function SnakeLadderGame({ onClose, onMinimize, betAmount = 0, partnerName }: SnakeLadderGameProps) {
+export function SnakeLadderGame({ onClose, onMinimize, betAmount = 0, partnerName, room }: SnakeLadderGameProps) {
   const { settleBet } = useGameBet(betAmount);
+  const { sendMove, lastReceivedMove } = useGameSync<{ dice: number; newPos: number }>(room || null, "snakeladder");
+  const isMultiplayer = !!room;
   const [myPos, setMyPos] = useState(0);
   const [partnerPos, setPartnerPos] = useState(0);
   const [isMyTurn, setIsMyTurn] = useState(true);

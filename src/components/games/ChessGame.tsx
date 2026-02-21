@@ -1,15 +1,17 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Trophy, RotateCcw, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCallBubble } from "./GameCallBubble";
 import { useGameBet } from "@/hooks/useGameBet";
+import { useGameSync } from "@/hooks/useGameSync";
 
 interface ChessGameProps {
   onClose: () => void;
   onMinimize?: () => void;
   betAmount?: number;
   partnerName: string;
+  room?: any;
 }
 
 type Piece = { type: string; color: "w" | "b" } | null;
@@ -68,14 +70,32 @@ function isPathClear(board: Piece[][], fr: number, fc: number, tr: number, tc: n
   return true;
 }
 
-export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName }: ChessGameProps) {
+export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, room }: ChessGameProps) {
   const { settleBet } = useGameBet(betAmount);
+  const { sendMove, lastReceivedMove } = useGameSync<{ fr: number; fc: number; tr: number; tc: number }>(room || null, "chess");
+  const isMultiplayer = !!room;
   const [board, setBoard] = useState<Piece[][]>(createInitialBoard);
   const [selected, setSelected] = useState<[number, number] | null>(null);
   const [turn, setTurn] = useState<"w" | "b">("w");
   const [gameOver, setGameOver] = useState<string | null>(null);
   const [settled, setSettled] = useState(false);
   const [captures, setCaptures] = useState<{ w: string[]; b: string[] }>({ w: [], b: [] });
+
+  // Handle incoming moves from remote player
+  useEffect(() => {
+    if (!lastReceivedMove || !isMultiplayer) return;
+    const { fr, fc, tr, tc } = lastReceivedMove;
+    setBoard(prev => {
+      const newBoard = prev.map(r => [...r]);
+      const captured = newBoard[tr][tc];
+      if (captured?.type === "K") setGameOver("You Win!");
+      if (captured) setCaptures(p => ({ ...p, w: [...p.w, PIECE_ICONS.b[captured.type]] }));
+      newBoard[tr][tc] = newBoard[fr][fc];
+      newBoard[fr][fc] = null;
+      return newBoard;
+    });
+    setTurn("w");
+  }, [lastReceivedMove, isMultiplayer]);
 
   const makeAIMove = useCallback((currentBoard: Piece[][]) => {
     setTimeout(() => {
@@ -90,7 +110,6 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName }: C
         }
       }
       if (moves.length === 0) { setGameOver("You Win!"); return; }
-      // Prefer captures
       const captureMoves = moves.filter(m => m.capture);
       const move = captureMoves.length > 0 && Math.random() > 0.3
         ? captureMoves[Math.floor(Math.random() * captureMoves.length)]
@@ -121,14 +140,18 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName }: C
         const captured = newBoard[r][c];
         if (captured?.type === "K") { setGameOver("You Win!"); }
         if (captured) setCaptures(prev => ({ ...prev, w: [...prev.w, PIECE_ICONS.b[captured.type]] }));
-        // Pawn promotion
         if (selPiece.type === "P" && r === 0) newBoard[r][c] = { type: "Q", color: "w" };
         else newBoard[r][c] = selPiece;
         newBoard[sr][sc] = null;
         setBoard(newBoard);
         setSelected(null);
         setTurn("b");
-        if (!gameOver) makeAIMove(newBoard);
+        // Send move to remote player or use AI
+        if (isMultiplayer) {
+          sendMove({ fr: sr, fc: sc, tr: r, tc: c });
+        } else {
+          if (!gameOver) makeAIMove(newBoard);
+        }
       } else {
         setSelected(null);
       }

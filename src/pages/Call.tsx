@@ -382,6 +382,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 
     if (callDuration >= 1200) batteryChange = 7 - currentBars;
 
+    // Backend-first: update Supabase directly, then local state syncs via realtime
     const updates: any = { early_end_count: newEarlyEndCount };
     if (batteryChange !== 0) {
       updates.energy_bars = Math.max(0, Math.min(7, currentBars + batteryChange));
@@ -389,7 +390,17 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     if (coinDeduction > 0) {
       updates.coins = Math.max(0, currentCoins - coinDeduction);
     }
-    updateProfile(updates);
+    if (user) {
+      const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
+      if (error) {
+        console.error("Failed to update profile penalties:", error);
+        // Fallback to context update
+        updateProfile(updates);
+      }
+      // Realtime subscription in useProfile will auto-sync the UI
+    } else {
+      updateProfile(updates);
+    }
   };
 
   const handleSubmitPostCall = async () => {

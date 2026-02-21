@@ -266,7 +266,7 @@ export default function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-  // Fetch real messages when a friend is selected
+  // Fetch real messages when a friend is selected + Realtime subscription
   useEffect(() => {
     if (!selectedFriend || !profile?.id) {
       setMessages([]);
@@ -291,6 +291,51 @@ export default function Chat() {
       setMessages(mapped);
     };
     fetchMessages();
+
+    // Realtime subscription for new messages in this conversation
+    const channel = supabase
+      .channel(`chat-${[profile.id, selectedFriend.id].sort().join("-")}`)
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_messages",
+        },
+        (payload: any) => {
+          const msg = payload.new;
+          if (!msg) return;
+          // Only add messages that belong to this conversation
+          const isRelevant =
+            (msg.sender_id === profile.id && msg.receiver_id === selectedFriend.id) ||
+            (msg.sender_id === selectedFriend.id && msg.receiver_id === profile.id);
+          if (!isRelevant) return;
+
+          const newMsg: Message = {
+            id: msg.id,
+            content: msg.content || "📷 Media",
+            senderId: msg.sender_id === profile.id ? "me" : msg.sender_id,
+            timestamp: new Date(msg.created_at),
+            status: msg.is_read ? "read" as const : "delivered" as const,
+            type: msg.media_url ? "image" as const : "text" as const,
+          };
+          // Avoid duplicates (from optimistic update)
+          setMessages(prev => {
+            if (prev.some(m => m.id === msg.id)) return prev;
+            // Remove optimistic message if this is our own message
+            if (msg.sender_id === profile.id) {
+              const withoutOptimistic = prev.filter(m => !(m.senderId === "me" && m.content === msg.content && m.id.match(/^\d+$/)));
+              return [...withoutOptimistic, newMsg];
+            }
+            return [...prev, newMsg];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedFriend?.id, profile?.id]);
 
 
@@ -318,20 +363,33 @@ export default function Chat() {
     };
   }, [isRecording]);
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !profile?.id || !selectedFriend) return;
 
+    // Optimistic local update
+    const tempId = Date.now().toString();
     const message: Message = {
-      id: Date.now().toString(),
+      id: tempId,
       content: newMessage,
       senderId: "me",
       timestamp: new Date(),
       status: "sent",
       type: "text",
     };
-
-    setMessages([...messages, message]);
+    setMessages(prev => [...prev, message]);
+    const msgContent = newMessage;
     setNewMessage("");
+
+    // Persist to Supabase
+    const { error } = await supabase.from("chat_messages").insert({
+      sender_id: profile.id,
+      receiver_id: selectedFriend.id,
+      content: msgContent,
+    });
+    if (error) {
+      console.error("Failed to send message:", error);
+      toast({ title: "Message failed", description: "Could not send message.", variant: "destructive" });
+    }
   };
 
   const startRecording = () => {

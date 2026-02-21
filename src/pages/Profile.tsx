@@ -76,9 +76,12 @@ export default function Profile() {
         if (prev >= 100) {
           clearInterval(interval);
           setWatchingAd(false);
-          // Award 5 coins
+          // Award 5 coins — backend-first
           if (profile) {
-            updateProfile({ coins: (profile.coins ?? 0) + 5 });
+            const newCoins = (profile.coins ?? 0) + 5;
+            supabase.from("profiles").update({ coins: newCoins }).eq("id", profile.id).then(({ error }) => {
+              if (error) updateProfile({ coins: newCoins }); // fallback
+            });
           }
           toast({ title: "+5 Coins!", description: "Coins added for watching the ad." });
           return 100;
@@ -265,8 +268,61 @@ export default function Profile() {
     fetchReferrals();
   }, [showCoinsModal, profile?.id]);
 
-  const sampleUsers: CompareUser[] = []; // Real compare users fetched from call history
+  const [compareUsers, setCompareUsers] = useState<CompareUser[]>([]);
   const sampleCompareData = selectedCompareUser?.data || [];
+
+  // Fetch real compare users from call_history
+  const fetchCompareUsers = useCallback(async () => {
+    if (!profile?.id) return;
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+
+    // Get unique partners from call history
+    const { data: calls } = await supabase
+      .from("call_history")
+      .select("partner_name, duration, created_at")
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (!calls || calls.length === 0) { setCompareUsers([]); return; }
+
+    // Group by partner name
+    const partnerMap = new Map<string, { totalMin: number; weeklyBuckets: number[] }>();
+    calls.forEach(c => {
+      const name = c.partner_name || "Anonymous";
+      if (!partnerMap.has(name)) partnerMap.set(name, { totalMin: 0, weeklyBuckets: new Array(7).fill(0) });
+      const entry = partnerMap.get(name)!;
+      entry.totalMin += (c.duration || 0) / 60;
+      const d = new Date(c.created_at);
+      if (d >= weekStart) {
+        const jsDay = getDay(d);
+        const idx = jsDay === 0 ? 6 : jsDay - 1;
+        entry.weeklyBuckets[idx] += (c.duration || 0) / 60;
+      }
+    });
+
+    // Lookup profiles by username
+    const uniqueNames = [...partnerMap.keys()].filter(n => n !== "Anonymous");
+    let profileMap = new Map<string, { avatar_url: string | null; id: string }>();
+    if (uniqueNames.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_url").in("username", uniqueNames);
+      (profiles || []).forEach(p => { if (p.username) profileMap.set(p.username, { avatar_url: p.avatar_url, id: p.id }); });
+    }
+
+    const users: CompareUser[] = [...partnerMap.entries()].map(([name, d]) => ({
+      id: profileMap.get(name)?.id || name,
+      name,
+      avatar: profileMap.get(name)?.avatar_url || null,
+      allTimeMinutes: Math.round(d.totalMin),
+      data: dayLabels.map((day, i) => ({ day, minutes: Math.round(d.weeklyBuckets[i]) })),
+    }));
+
+    setCompareUsers(users);
+  }, [profile?.id]);
+
+  useEffect(() => { fetchCompareUsers(); }, [fetchCompareUsers]);
+
   const fetchCallStats = useCallback(async () => {
     const {
       data: {
@@ -879,16 +935,20 @@ export default function Profile() {
               <DialogTitle className="text-foreground text-sm">Compare with</DialogTitle>
             </DialogHeader>
             <div className="space-y-1 max-h-64 overflow-y-auto">
-              {sampleUsers.map(user => <button key={user.name} onClick={() => {
+              {compareUsers.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm py-8">No call partners yet. Start speaking to compare!</p>
+              ) : compareUsers.map(user => <button key={user.id} onClick={() => {
               setSelectedCompareUser(user);
               setShowCompare(true);
               setShowCompareList(false);
             }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors text-left">
-                  <span className="text-xl">{user.avatar}</span>
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                    {user.avatar ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" /> : <span className="text-sm font-bold">{user.name[0]?.toUpperCase()}</span>}
+                  </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">{user.name}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {formatDuration(user.data.reduce((s, d) => s + d.minutes, 0))} this week
+                      {formatDuration(user.data.reduce((s, d) => s + d.minutes, 0))} this week · {formatDuration(user.allTimeMinutes)} total
                     </p>
                   </div>
                 </button>)}
