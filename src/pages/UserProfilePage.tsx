@@ -100,14 +100,47 @@ interface UserState {
 
 export default function UserProfilePage() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [stableId] = useState(() => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     return "EF" + Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
   });
-  const location = useLocation();
-  const user = location.state as UserState | null;
+  const locationHook = useLocation();
+  const stateUser = locationHook.state as UserState | null;
+  const [user, setUser] = useState<UserState | null>(stateUser);
+  const [profileLoading, setProfileLoading] = useState(!stateUser);
   const { toast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
+
+  // Fetch profile from DB if no state was passed
+  useEffect(() => {
+    if (stateUser || !id) return;
+    setProfileLoading(true);
+    const fetchProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, username, avatar_url, level, is_online, unique_id, created_at, followers_count, following_count, country, region, location_city, description")
+        .eq("id", id)
+        .maybeSingle();
+      if (data) {
+        setUser({
+          id: data.id,
+          name: data.username || "Unknown",
+          avatar: data.avatar_url,
+          level: data.level ?? 1,
+          isOnline: data.is_online ?? false,
+          uniqueId: data.unique_id ?? undefined,
+          createdAt: data.created_at,
+          followersCount: data.followers_count ?? 0,
+          followingCount: data.following_count ?? 0,
+          location: [data.location_city, data.region, data.country].filter(Boolean).join(", ") || undefined,
+        });
+        setUserBio(data.description || null);
+      }
+      setProfileLoading(false);
+    };
+    fetchProfile();
+  }, [id, stateUser]);
   const [showTalentsModal, setShowTalentsModal] = useState(false);
   const [talents, setTalents] = useState<{ id: string; title: string | null; language: string; likes_count: number; plays_count: number; duration_sec: number | null; created_at: string }[]>([]);
   const [loadingTalents, setLoadingTalents] = useState(false);
@@ -250,6 +283,14 @@ export default function UserProfilePage() {
     navigator.clipboard.writeText(id);
     toast({ title: "Copied!", description: "User ID copied to clipboard" });
   };
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
