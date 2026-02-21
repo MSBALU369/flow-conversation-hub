@@ -93,7 +93,11 @@ export default function Home() {
     checkStreak();
   }, [profile?.id]);
   const handleStartCall = () => {
-    navigate("/finding");
+    navigate("/finding", {
+      state: {
+        genderFilter: selectedFilter !== "random" ? selectedFilter : null,
+      },
+    });
   };
   const handleGenderFilter = (filter: GenderFilter) => {
     if (filter === "random") {

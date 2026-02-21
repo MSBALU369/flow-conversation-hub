@@ -216,26 +216,34 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     if (!room) return;
     hasHandledDisconnectRef.current = false;
 
-    const forceEnd = () => {
+    const forceEnd = async () => {
       if (hasHandledDisconnectRef.current) return;
       hasHandledDisconnectRef.current = true;
       toast({ title: "Call Ended", description: "The other user has left the call." });
-      room.disconnect();
+      try { room.disconnect(); } catch {}
       endCall();
-      navigate("/");
-    };
 
-    // When the remote participant leaves
-    const handleParticipantDisconnected = (participant: any) => {
-      if (!participant.isLocal) {
-        forceEnd();
+      // Clean up matchmaking queue
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+      }
+
+      // Show post-call modal instead of navigating away (so user can rate)
+      if (!isFriendCall) {
+        setPostCallRating(null);
+        setSelectedReportReasons([]);
+        setSelectedLikeReasons([]);
+        setShowPostCallModal(true);
+      } else {
+        navigate("/");
       }
     };
 
-    // When we ourselves get disconnected (server-side room close, network drop, etc.)
-    const handleRoomDisconnected = () => {
-      forceEnd();
+    const handleParticipantDisconnected = (participant: any) => {
+      if (!participant.isLocal) forceEnd();
     };
+    const handleRoomDisconnected = () => forceEnd();
 
     room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
     room.on(RoomEvent.Disconnected, handleRoomDisconnected);
@@ -243,7 +251,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       room.off(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
       room.off(RoomEvent.Disconnected, handleRoomDisconnected);
     };
-  }, [room, endCall, navigate, toast]);
+  }, [room, endCall, navigate, toast, isFriendCall]);
 
   // Fetch partner profile from real data
   useEffect(() => {
@@ -323,7 +331,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     const callDuration = seconds;
 
     // Disconnect from LiveKit room
-    room?.disconnect();
+    hasHandledDisconnectRef.current = true; // prevent forceEnd from also firing
+    try { room?.disconnect(); } catch {}
     endCall();
 
     if (isFriendCall || skipPostCallModal) {
@@ -335,7 +344,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       setShowPostCallModal(true);
     }
 
-    // Background DB work
+    // Background DB work: save call history + clean matchmaking queue
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       supabase.from("call_history").insert({
@@ -344,6 +353,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
         partner_name: partnerProfile?.username || "Partner",
         status: "outgoing",
       }).then(() => {});
+      supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
     }
 
     // Penalty logic
