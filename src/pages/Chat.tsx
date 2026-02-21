@@ -319,6 +319,7 @@ export default function Chat() {
         timestamp: new Date(msg.created_at),
         status: msg.is_read ? "read" as const : "delivered" as const,
         type: msg.media_url ? "image" as const : "text" as const,
+        viewOnce: (msg.content || "").startsWith("📸 View once"),
       }));
       setMessages(mapped);
     };
@@ -771,8 +772,45 @@ export default function Chat() {
                     message.type === "voice" && "flex items-center gap-2"
                   )}>
                     {message.type === "voice" && <Mic className="w-4 h-4" />}
-                    {message.type === "image" && message.viewOnce && <Eye className="w-4 h-4 inline mr-1" />}
-                    {message.content}
+                    {message.type === "image" && message.viewOnce && !isMe && (
+                      <button
+                        className="inline-flex items-center gap-1 underline"
+                        onClick={async () => {
+                          // Show content briefly, then destroy from storage + DB
+                          toast({ title: "📸 View Once", description: "This image will be deleted after viewing." });
+                          // Extract storage path from media_url if available
+                          const msgRow = await supabase
+                            .from("chat_messages")
+                            .select("media_url")
+                            .eq("id", message.id)
+                            .single();
+                          const mediaUrl = msgRow.data?.media_url;
+                          if (mediaUrl) {
+                            // Extract file path from public URL
+                            const pathMatch = mediaUrl.match(/chat_media\/(.+)$/);
+                            if (pathMatch?.[1]) {
+                              await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
+                            }
+                          }
+                          // Delete the message row
+                          await supabase
+                            .from("chat_messages")
+                            .delete()
+                            .eq("id", message.id);
+                          // Remove from local state
+                          setMessages(prev => prev.filter(m => m.id !== message.id));
+                          toast({ title: "View Once media destroyed", description: "File permanently deleted." });
+                        }}
+                      >
+                        <Eye className="w-4 h-4" /> Tap to view
+                      </button>
+                    )}
+                    {message.type === "image" && message.viewOnce && isMe && (
+                      <span className="inline-flex items-center gap-1">
+                        <Eye className="w-4 h-4" /> {message.content}
+                      </span>
+                    )}
+                    {!(message.type === "image" && message.viewOnce) && message.content}
                   </p>
                   <div className={cn(
                     "flex items-center gap-1 mt-1",

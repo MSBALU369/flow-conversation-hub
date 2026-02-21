@@ -79,6 +79,41 @@ export default function RoomDiscussion() {
     fetchMembers();
   }, [room]);
 
+  // Clean up room membership on tab close / unmount (prevent ghost members)
+  useEffect(() => {
+    if (!room || !user) return;
+
+    const cleanupMembership = () => {
+      // Use sendBeacon for reliable tab-close cleanup
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/room_members?room_id=eq.${room.id}&user_id=eq.${user.id}`;
+      const headers = {
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${(supabase as any).auth.session?.()?.access_token || ""}`,
+      };
+      // Fallback: fire-and-forget delete
+      fetch(url, { method: "DELETE", headers, keepalive: true }).catch(() => {});
+    };
+
+    const handleBeforeUnload = () => {
+      cleanupMembership();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      // Component unmount cleanup (navigation away)
+      if (room && user) {
+        supabase
+          .from("room_members")
+          .delete()
+          .eq("room_id", room.id)
+          .eq("user_id", user.id)
+          .then();
+      }
+    };
+  }, [room, user]);
+
   // Fetch messages and subscribe to realtime
   useEffect(() => {
     if (!room) return;

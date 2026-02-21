@@ -163,11 +163,21 @@ export default function Talent() {
   const [uploadCategory, setUploadCategory] = useState("");
   const [uploadVisibility, setUploadVisibility] = useState<"public" | "private">("public");
   const [myTalentVisibility, setMyTalentVisibility] = useState<"all" | "public" | "private">("all");
-  const togglePlay = (id: string) => {
+  const [playedIds, setPlayedIds] = useState<Set<string>>(new Set());
+  const togglePlay = async (id: string) => {
     if (playingId === id) {
       setPlayingId(null);
     } else {
       setPlayingId(id);
+      // Increment plays_count in DB on first play per session
+      if (!playedIds.has(id)) {
+        setPlayedIds(prev => new Set(prev).add(id));
+        setPosts(prev => prev.map(p => p.id === id ? { ...p, plays: p.plays + 1 } : p));
+        await supabase
+          .from("talent_uploads")
+          .update({ plays_count: posts.find(p => p.id === id)!.plays + 1 })
+          .eq("id", id);
+      }
     }
   };
   const toggleLike = (id: string) => {

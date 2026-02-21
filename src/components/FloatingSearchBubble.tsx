@@ -20,7 +20,9 @@ export default function FloatingSearchBubble() {
         <span className="text-xs font-medium">Finding...</span>
       </button>
       <button
-        onClick={stopSearching}
+        onClick={async () => {
+          await stopSearching();
+        }}
         className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors"
       >
         <X className="w-4 h-4 text-destructive" />
