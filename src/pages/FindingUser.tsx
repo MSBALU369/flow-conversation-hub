@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, X, Search } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useCallState } from "@/hooks/useCallState";
 import worldMapImg from "@/assets/world-map.png";
 import {
@@ -26,6 +28,7 @@ const STATUS_MESSAGES = [
 export default function FindingUser() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const { isSearching, startSearching, stopSearching } = useCallState();
   const [countdown, setCountdown] = useState(SEARCH_TIMEOUT);
   const [statusIndex, setStatusIndex] = useState(0);
@@ -82,13 +85,21 @@ export default function FindingUser() {
     navigate(-1);
   };
 
-  // Cancel button: stop searching and go back
-  const handleCancel = () => {
-    stopSearching();
+  // Cancel button: stop searching, ensure queue purge, then go back
+  const handleCancel = async () => {
+    await stopSearching();
     navigate(-1);
   };
 
-  const handleExpandSearch = () => {
+  const handleExpandSearch = async () => {
+    // Remove filters from matchmaking queue row in Supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from("matchmaking_queue")
+        .update({ status: "searching", updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+    }
     setFiltersActive(false);
     setFilterTimeout(false);
     setShowNoMatchModal(false);
