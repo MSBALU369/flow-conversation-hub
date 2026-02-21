@@ -16,6 +16,7 @@ const WEST_TIER2_COUNTRIES = [
   "Netherlands", "Switzerland", "Sweden", "Norway", "Denmark",
   "Finland", "Belgium", "Austria", "Ireland", "New Zealand",
   "Singapore", "Israel", "Luxembourg", "Iceland", "Portugal",
+  "Russia",
 ];
 
 // Build a lookup map
