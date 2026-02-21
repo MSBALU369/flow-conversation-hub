@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { startOfWeek, getDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, Phone, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -53,15 +54,7 @@ interface Message {
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function CompareGraph({ userName, friendName }: { userName: string; friendName: string }) {
-  const myData = [
-    { day: "Mon", minutes: 15 }, { day: "Tue", minutes: 22 }, { day: "Wed", minutes: 8 },
-    { day: "Thu", minutes: 30 }, { day: "Fri", minutes: 12 }, { day: "Sat", minutes: 45 }, { day: "Sun", minutes: 20 },
-  ];
-  const friendData = [
-    { day: "Mon", minutes: 10 }, { day: "Tue", minutes: 35 }, { day: "Wed", minutes: 18 },
-    { day: "Thu", minutes: 25 }, { day: "Fri", minutes: 40 }, { day: "Sat", minutes: 15 }, { day: "Sun", minutes: 30 },
-  ];
+function CompareGraph({ userName, friendName, myData, friendData }: { userName: string; friendName: string; myData: { day: string; minutes: number }[]; friendData: { day: string; minutes: number }[] }) {
   const maxMin = Math.max(...myData.map(d => d.minutes), ...friendData.map(d => d.minutes), 1);
   const cW = 280, cH = 140, pL = 40, pR = 10, pT = 10, pB = 10;
   const plotW = cW - pL - pR, plotH = cH - pT - pB;
@@ -123,6 +116,8 @@ export default function Chat() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [showCompareGraph, setShowCompareGraph] = useState(false);
+  const [compareMyData, setCompareMyData] = useState(dayLabels.map(d => ({ day: d, minutes: 0 })));
+  const [compareFriendData, setCompareFriendData] = useState(dayLabels.map(d => ({ day: d, minutes: 0 })));
   const [mutedUsers, setMutedUsers] = useState<Set<string>>(new Set());
   const [showGallery, setShowGallery] = useState(false);
   const [showClearChat, setShowClearChat] = useState(false);
@@ -362,6 +357,42 @@ export default function Chat() {
       }
     };
   }, [isRecording]);
+
+  // Fetch real compare graph data when dialog opens
+  useEffect(() => {
+    if (!showCompareGraph || !profile?.id || !selectedFriend) return;
+    const fetchCompareData = async () => {
+      const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+      // My call history this week
+      const { data: myCalls } = await supabase
+        .from("call_history")
+        .select("duration, created_at")
+        .eq("user_id", profile.id)
+        .gte("created_at", weekStart.toISOString());
+      const myBuckets = new Array(7).fill(0);
+      (myCalls || []).forEach(c => {
+        const jsDay = getDay(new Date(c.created_at));
+        const idx = jsDay === 0 ? 6 : jsDay - 1;
+        myBuckets[idx] += Math.round((c.duration || 0) / 60);
+      });
+      setCompareMyData(dayLabels.map((day, i) => ({ day, minutes: myBuckets[i] })));
+
+      // Friend's call history this week
+      const { data: friendCalls } = await supabase
+        .from("call_history")
+        .select("duration, created_at")
+        .eq("user_id", selectedFriend.id)
+        .gte("created_at", weekStart.toISOString());
+      const friendBuckets = new Array(7).fill(0);
+      (friendCalls || []).forEach(c => {
+        const jsDay = getDay(new Date(c.created_at));
+        const idx = jsDay === 0 ? 6 : jsDay - 1;
+        friendBuckets[idx] += Math.round((c.duration || 0) / 60);
+      });
+      setCompareFriendData(dayLabels.map((day, i) => ({ day, minutes: friendBuckets[i] })));
+    };
+    fetchCompareData();
+  }, [showCompareGraph, profile?.id, selectedFriend?.id]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !profile?.id || !selectedFriend) return;
@@ -691,7 +722,7 @@ export default function Chat() {
                 Speaking Time with {selectedFriend?.name}
               </DialogTitle>
             </DialogHeader>
-            <CompareGraph userName={profile?.username || "You"} friendName={selectedFriend?.name || "User"} />
+            <CompareGraph userName={profile?.username || "You"} friendName={selectedFriend?.name || "User"} myData={compareMyData} friendData={compareFriendData} />
           </DialogContent>
         </Dialog>
 
@@ -772,7 +803,7 @@ export default function Chat() {
                 variant="destructive"
                 className="flex-1"
                 disabled={!clearChatOption}
-                onClick={() => {
+                onClick={async () => {
                   const now = new Date();
                   let cutoff: Date;
                   switch (clearChatOption) {
@@ -781,8 +812,43 @@ export default function Chat() {
                     case "1m": cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
                     default: cutoff = new Date(0);
                   }
-                  setMessages(prev => prev.filter(m => m.timestamp < cutoff));
-                  toast({ title: "Chat cleared", description: `Messages from ${clearChatOption === "all" ? "all time" : `last ${clearChatOption === "1h" ? "1 hour" : clearChatOption === "1d" ? "1 day" : "1 month"}`} have been removed.` });
+                  // Real Supabase DELETE
+                  if (profile?.id && selectedFriend) {
+                    const deleteQuery = supabase
+                      .from("chat_messages")
+                      .delete()
+                      .eq("sender_id", profile.id)
+                      .or(`receiver_id.eq.${selectedFriend.id}`)
+                      .gte("created_at", cutoff.toISOString());
+
+                    // For "all time", don't filter by date
+                    const query = clearChatOption === "all"
+                      ? supabase
+                          .from("chat_messages")
+                          .delete()
+                          .eq("sender_id", profile.id)
+                          .eq("receiver_id", selectedFriend.id)
+                      : supabase
+                          .from("chat_messages")
+                          .delete()
+                          .eq("sender_id", profile.id)
+                          .eq("receiver_id", selectedFriend.id)
+                          .gte("created_at", cutoff.toISOString());
+
+                    const { error } = await query;
+                    if (error) {
+                      console.error("Failed to clear chat:", error);
+                      toast({ title: "Failed to clear chat", variant: "destructive" });
+                    } else {
+                      // Update local state to reflect deletion
+                      setMessages(prev => prev.filter(m => {
+                        if (m.senderId !== "me") return true; // keep partner messages (they own those)
+                        if (clearChatOption === "all") return false;
+                        return m.timestamp < cutoff;
+                      }));
+                      toast({ title: "Chat cleared", description: `Your messages from ${clearChatOption === "all" ? "all time" : `last ${clearChatOption === "1h" ? "1 hour" : clearChatOption === "1d" ? "1 day" : "1 month"}`} have been removed.` });
+                    }
+                  }
                   setShowClearChat(false);
                   setClearChatOption(null);
                 }}

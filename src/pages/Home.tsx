@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap, Users, BadgeCheck, Coins } from "lucide-react";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
@@ -43,7 +44,22 @@ export default function Home() {
     toast
   } = useToast();
   const { role } = useRole();
-  const [onlineCount] = useState(() => Math.floor(Math.random() * 200 + 500));
+  const [onlineCount, setOnlineCount] = useState(0);
+
+  // Fetch real online count from profiles
+  useEffect(() => {
+    const fetchOnlineCount = async () => {
+      const { count } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("is_online", true);
+      setOnlineCount(count || 0);
+    };
+    fetchOnlineCount();
+    // Re-fetch every 30 seconds
+    const interval = setInterval(fetchOnlineCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
   const [adPlaying, setAdPlaying] = useState(false);
   const [adProgress, setAdProgress] = useState(0);
   const [adFinished, setAdFinished] = useState(false);
