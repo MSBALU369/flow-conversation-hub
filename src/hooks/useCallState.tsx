@@ -24,9 +24,18 @@ interface IncomingCall {
   callerId: string | null;
 }
 
+interface OutgoingCall {
+  active: boolean;
+  callId: string | null;
+  receiverName: string | null;
+  receiverAvatar: string | null;
+  receiverId: string | null;
+}
+
 interface CallStateContextType {
   callState: CallState;
   incomingCall: IncomingCall;
+  outgoingCall: OutgoingCall;
   isSearching: boolean;
   startCall: (partnerName: string | null, partnerAvatar: string | null) => void;
   endCall: () => void;
@@ -36,6 +45,8 @@ interface CallStateContextType {
   declineIncomingCall: () => void;
   startSearching: () => void;
   stopSearching: () => void;
+  initiateDirectCall: (receiverId: string, receiverName: string, receiverAvatar: string | null) => Promise<void>;
+  cancelOutgoingCall: () => Promise<void>;
 }
 
 const CallStateContext = createContext<CallStateContextType | undefined>(undefined);
@@ -63,12 +74,20 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     callerId: null,
   });
 
+  const [outgoingCall, setOutgoingCall] = useState<OutgoingCall>({
+    active: false,
+    callId: null,
+    receiverName: null,
+    receiverAvatar: null,
+    receiverId: null,
+  });
+
   const [isSearching, setIsSearching] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMatchedRef = useRef(false);
   const isFetchingRef = useRef(false);
 
-  // ─── Realtime: listen for incoming direct calls ───
+  // ─── Realtime: listen for INCOMING calls (receiver side) ───
   useEffect(() => {
     if (!user?.id) return;
 
@@ -84,7 +103,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         },
         async (payload: any) => {
           const row = payload.new;
-          if (!row || row.status !== "pending") return;
+          if (!row || row.status !== "ringing") return;
 
           // Fetch caller profile
           const { data: callerProfile } = await supabase
@@ -98,14 +117,22 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
             callerName: callerProfile?.username || "Unknown",
             callerAvatar: callerProfile?.avatar_url || null,
             callId: row.id,
-            roomId: row.id, // use call id as room id
+            roomId: `direct_${row.id}`,
             callerId: row.caller_id,
           });
         }
       )
       .subscribe();
 
-    // Also listen for call status updates (declined by receiver triggers toast on caller)
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  // ─── Realtime: listen for STATUS UPDATES on calls where I am caller (accepted/declined) ───
+  useEffect(() => {
+    if (!user?.id) return;
+
     const statusChannel = supabase
       .channel(`call-status-${user.id}`)
       .on(
@@ -116,24 +143,147 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
           table: "calls",
           filter: `caller_id=eq.${user.id}`,
         },
-        (payload: any) => {
+        async (payload: any) => {
           const row = payload.new;
-          if (row?.status === "declined") {
+          if (!row) return;
+
+          if (row.status === "declined") {
+            // Receiver declined — hide outgoing banner, show toast
+            setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
             toast({
               title: "Call Declined",
-              description: `${row.receiver_id ? "User" : "The user"} declined your call.`,
+              description: "The user declined your call.",
               variant: "destructive",
             });
+          } else if (row.status === "accepted") {
+            // Receiver accepted — BOTH sides now join the room
+            const roomId = `direct_${row.id}`;
+            const participantName = profile?.username || "User";
+
+            try {
+              const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
+                body: { room_id: roomId, participant_name: participantName },
+              });
+
+              if (error || !data?.token) {
+                toast({ title: "Connection Error", description: "Could not establish call.", variant: "destructive" });
+                setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
+                return;
+              }
+
+              const currentOutgoing = outgoingCall;
+              setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
+
+              setCallState({
+                isInCall: true,
+                isConnected: true,
+                partnerName: currentOutgoing.receiverName,
+                partnerAvatar: currentOutgoing.receiverAvatar,
+                callSeconds: 0,
+              });
+
+              navigate("/call", {
+                replace: true,
+                state: {
+                  roomId,
+                  livekitToken: data.token,
+                  matchedUserId: currentOutgoing.receiverId,
+                  partnerName: currentOutgoing.receiverName,
+                  partnerAvatar: currentOutgoing.receiverAvatar,
+                  directCallId: row.id,
+                },
+              });
+            } catch {
+              toast({ title: "Connection Error", description: "Could not establish call.", variant: "destructive" });
+              setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
+            }
           }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
       supabase.removeChannel(statusChannel);
     };
-  }, [user?.id, toast]);
+  }, [user?.id, profile?.username, navigate, toast, outgoingCall]);
+
+  // ─── Realtime: listen for STATUS UPDATES on calls where I am receiver (caller cancelled = 'missed') ───
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const receiverStatusChannel = supabase
+      .channel(`call-receiver-status-${user.id}`)
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "calls",
+          filter: `receiver_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          const row = payload.new;
+          if (!row) return;
+
+          if (row.status === "missed" || row.status === "cancelled") {
+            // Caller cancelled — hide incoming banner
+            if (incomingCall.callId === row.id) {
+              setIncomingCall({ active: false, callerName: null, callerAvatar: null, callId: null, roomId: null, callerId: null });
+              toast({ title: "Call Cancelled", description: "The caller cancelled the call." });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(receiverStatusChannel);
+    };
+  }, [user?.id, incomingCall.callId, toast]);
+
+  // ─── Initiate a direct call (caller side) ───
+  const initiateDirectCall = useCallback(async (receiverId: string, receiverName: string, receiverAvatar: string | null) => {
+    if (!profile?.id) return;
+
+    try {
+      const { data: callRow, error: callErr } = await supabase
+        .from("calls")
+        .insert({
+          caller_id: profile.id,
+          receiver_id: receiverId,
+          status: "ringing",
+        })
+        .select()
+        .single();
+
+      if (callErr || !callRow) {
+        toast({ title: "Call Error", description: "Could not initiate call.", variant: "destructive" });
+        return;
+      }
+
+      // Show outgoing call banner — do NOT navigate to /call yet
+      setOutgoingCall({
+        active: true,
+        callId: callRow.id,
+        receiverName,
+        receiverAvatar,
+        receiverId,
+      });
+    } catch {
+      toast({ title: "Call Error", description: "Something went wrong.", variant: "destructive" });
+    }
+  }, [profile?.id, toast]);
+
+  // ─── Cancel outgoing call (caller side) ───
+  const cancelOutgoingCall = useCallback(async () => {
+    if (outgoingCall.callId) {
+      await supabase
+        .from("calls")
+        .update({ status: "missed" })
+        .eq("id", outgoingCall.callId);
+    }
+    setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
+  }, [outgoingCall.callId]);
 
   const fetchTokenAndNavigate = useCallback(async (roomId: string, matchedUserId?: string) => {
     if (isFetchingRef.current) return;
@@ -229,13 +379,12 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
 
   const acceptIncomingCall = useCallback(async () => {
     const current = incomingCall;
-    
-    // If this is a real DB-backed call (has callId), update status + get token
+
     if (current.callId) {
-      // Update call status to answered
+      // Update call status to accepted — this triggers Realtime for the caller
       await supabase
         .from("calls")
-        .update({ status: "answered" })
+        .update({ status: "accepted" })
         .eq("id", current.callId);
 
       const participantName = profile?.username || "User";
@@ -271,7 +420,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         },
       });
     } else {
-      // Legacy/demo call — just update local state
+      // Legacy/demo call
       setIncomingCall(prev => {
         setCallState({ isInCall: true, isConnected: true, partnerName: prev.callerName, partnerAvatar: prev.callerAvatar, callSeconds: 0 });
         return { active: false, callerName: null, callerAvatar: null, callId: null, roomId: null, callerId: null };
@@ -281,8 +430,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
 
   const declineIncomingCall = useCallback(async () => {
     const current = incomingCall;
-    
-    // If real DB call, update status to declined
+
     if (current.callId) {
       await supabase
         .from("calls")
@@ -295,10 +443,11 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
 
   return (
     <CallStateContext.Provider value={{
-      callState, incomingCall, isSearching,
+      callState, incomingCall, outgoingCall, isSearching,
       startCall, endCall, updateCallSeconds,
       triggerIncomingCall, acceptIncomingCall, declineIncomingCall,
       startSearching, stopSearching,
+      initiateDirectCall, cancelOutgoingCall,
     }}>
       {children}
     </CallStateContext.Provider>
