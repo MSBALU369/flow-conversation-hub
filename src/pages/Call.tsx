@@ -26,6 +26,7 @@ import {
   RefreshCcw,
   MapPin,
   Flag,
+  UserPlus,
 } from "lucide-react";
 import {
   Dialog,
@@ -165,6 +166,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const [pulseIntensity, setPulseIntensity] = useState(0);
   const [isPartnerMuted, setIsPartnerMuted] = useState(false);
   const [showEndCallWarning, setShowEndCallWarning] = useState(false);
+  const [hasFollowedPartner, setHasFollowedPartner] = useState(false);
 
   const callStartTime = useRef<number>(Date.now());
 
@@ -357,7 +359,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       setShowPostCallModal(true);
     }
 
-    // Background DB work: save call history + clean matchmaking queue
+    // Background DB work: save call history + clean matchmaking queue + log call in chat
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       supabase.from("call_history").insert({
@@ -367,6 +369,20 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
         status: "outgoing",
       }).then(() => {});
       supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+
+      // Instagram-style: log call as system message in chat_messages for friend calls
+      const effectivePartnerId = partnerId || stateMatchedUserId;
+      if (isFriendCall && effectivePartnerId) {
+        const mins = Math.floor(callDuration / 60);
+        const secs = callDuration % 60;
+        const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
+        const callLabel = callDuration < 5 ? "📞 Missed Call" : `📞 Outgoing Call - ${durationStr}`;
+        supabase.from("chat_messages").insert({
+          sender_id: user.id,
+          receiver_id: effectivePartnerId,
+          content: callLabel,
+        }).then(() => {});
+      }
     }
 
     // Penalty logic
@@ -1078,6 +1094,27 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Follow User Button */}
+            {(partnerId || stateMatchedUserId) && !hasFollowedPartner && (
+              <button
+                onClick={async () => {
+                  const effectivePartnerId = partnerId || stateMatchedUserId;
+                  const { data: { user: authUser } } = await supabase.auth.getUser();
+                  if (!authUser || !effectivePartnerId) return;
+                  await supabase.from("friendships").insert({ user_id: authUser.id, friend_id: effectivePartnerId, status: "accepted" });
+                  setHasFollowedPartner(true);
+                  toast({ title: `Followed ${partnerProfile?.username || "User"}!`, duration: 2000 });
+                }}
+                className="w-full py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
+              >
+                <UserPlus className="w-4 h-4" />
+                Follow {partnerProfile?.username || "User"}
+              </button>
+            )}
+            {hasFollowedPartner && (
+              <p className="text-center text-xs text-primary font-medium">✓ Following {partnerProfile?.username || "User"}</p>
             )}
 
             <DialogFooter className="flex flex-col gap-2 sm:flex-col pt-1">
