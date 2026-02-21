@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
-import { formatSpeakTime, sampleTalents as centralSampleTalents, defaultMyWeeklyData, defaultFriendWeeklyData, defaultMutualWeekMinutes, calculateTogetherTotal } from "@/lib/mockData";
+import { formatSpeakTime, calculateTogetherTotal } from "@/lib/mockData";
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -230,7 +230,7 @@ export default function UserProfilePage() {
     }
   };
 
-  const sampleTalents = centralSampleTalents;
+  // No more mock talents - fetch real data only
 
   useEffect(() => {
     if (!showTalentsModal || !user) return;
@@ -241,7 +241,7 @@ export default function UserProfilePage() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
-        setTalents(data && data.length > 0 ? data : sampleTalents);
+        setTalents(data && data.length > 0 ? data : []);
         setLoadingTalents(false);
       });
   }, [showTalentsModal, user]);
@@ -259,8 +259,10 @@ export default function UserProfilePage() {
     );
   }
 
-  const defaultMyData = user.myWeeklyData || defaultMyWeeklyData;
-  const defaultFriendData = user.weeklyData || defaultFriendWeeklyData;
+  const dayLabelsArr = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const emptyWeekData = dayLabelsArr.map(day => ({ day, minutes: 0 }));
+  const defaultMyData = user.myWeeklyData || emptyWeekData;
+  const defaultFriendData = user.weeklyData || emptyWeekData;
 
   return (
     <div className="min-h-screen bg-background">
@@ -399,7 +401,7 @@ export default function UserProfilePage() {
           {(() => {
             const myTotal = (user.myWeeklyData || defaultMyData).reduce((s, d) => s + d.minutes, 0);
             const partnerTotal = defaultFriendData.reduce((s, d) => s + d.minutes, 0);
-            const safeMutual = Math.min(defaultMutualWeekMinutes, myTotal, partnerTotal);
+            const safeMutual = 0;
             return (
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="bg-[hsl(0,0%,90%)]/60 dark:bg-[hsl(0,0%,25%)]/40 rounded-lg px-2 py-1 text-center">

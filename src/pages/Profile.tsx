@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { TrustScoreModal } from "@/components/TrustScoreModal";
 import { CoinExchangeModal } from "@/components/CoinExchangeModal";
 import { ReferralTreeModal } from "@/components/ReferralTreeModal";
-import { formatDuration, sampleCompareUsers, calculateTogetherTotal, getOpponentMutual, currentUserTotals, type CompareUser } from "@/lib/mockData";
+import { formatDuration, calculateTogetherTotal, type CompareUser } from "@/lib/mockData";
 import { useRole } from "@/hooks/useRole";
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export default function Profile() {
@@ -265,7 +265,7 @@ export default function Profile() {
     fetchReferrals();
   }, [showCoinsModal, profile?.id]);
 
-  const sampleUsers = sampleCompareUsers;
+  const sampleUsers: CompareUser[] = []; // Real compare users fetched from call history
   const sampleCompareData = selectedCompareUser?.data || [];
   const fetchCallStats = useCallback(async () => {
     const {
@@ -622,8 +622,7 @@ export default function Profile() {
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">This Week</p>
               {(() => {
-                      const rawMutual = getOpponentMutual(selectedCompareUser.name).mutualThisWeek;
-                      const safeMutual = Math.min(rawMutual, totalWeekMinutes, compareTotal);
+                      const safeMutual = 0;
                       return (
                     <div className="grid grid-cols-2 gap-2">
                     <div className="bg-[hsl(0,0%,90%)]/60 dark:bg-[hsl(0,0%,25%)]/40 rounded-lg px-2 py-1 text-center">
@@ -650,8 +649,7 @@ export default function Profile() {
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">All Time</p>
               {(() => {
-                      const rawMutual = getOpponentMutual(selectedCompareUser.name).mutualAllTime;
-                      const safeMutual = Math.min(rawMutual, totalAllTimeMinutes, selectedCompareUser.allTimeMinutes);
+                      const safeMutual = 0;
                       return (
                     <div className="grid grid-cols-2 gap-2">
                     <div className="bg-[hsl(0,0%,90%)]/60 dark:bg-[hsl(0,0%,25%)]/40 rounded-lg px-2 py-1 text-center">

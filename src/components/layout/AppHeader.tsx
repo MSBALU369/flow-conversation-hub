@@ -21,14 +21,8 @@ interface AppHeaderProps {
   onHistoryClick?: () => void;
 }
 
-// Dummy notifications
-const dummyNotifications = [
-  { id: 1, text: "Sarah liked your talent post", time: "2m ago", unread: true },
-  { id: 2, text: "New friend request from John", time: "15m ago", unread: true },
-  { id: 3, text: "You reached Level 2! 🎉", time: "1h ago", unread: true },
-  { id: 4, text: "Mike started following you", time: "3h ago", unread: false },
-  { id: 5, text: "Your streak is now 5 days!", time: "1d ago", unread: false },
-];
+// Notifications will come from real data in future
+const notifications: { id: number; text: string; time: string; unread: boolean }[] = [];
 
 interface SearchResult {
   type: "user" | "talent";
@@ -56,7 +50,7 @@ export function AppHeader({
   const navigate = useNavigate();
 
   const userLevel = profile?.level ?? level;
-  const unreadCount = dummyNotifications.filter(n => n.unread).length;
+  const unreadCount = notifications.filter(n => n.unread).length;
 
   const handleAvatarClick = () => {
     navigate("/profile");
@@ -247,7 +241,12 @@ export function AppHeader({
               <h3 className="font-semibold text-foreground text-sm">Notifications</h3>
             </div>
             <div className="max-h-64 overflow-y-auto">
-              {dummyNotifications.map((notification) => (
+              {notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <span className="text-2xl mb-2">🔔</span>
+                  <p className="text-sm text-muted-foreground">No notifications yet</p>
+                </div>
+              ) : notifications.map((notification) => (
                 <div
                   key={notification.id}
                   className={`p-3 border-b border-border hover:bg-muted cursor-pointer transition-colors ${

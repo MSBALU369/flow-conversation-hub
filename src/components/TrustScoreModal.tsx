@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { trustScoreLikeCategories, trustScoreFlagCategories } from "@/lib/mockData";
+import type { LikeCategory, FlagCategory } from "@/lib/mockData";
 
 interface TrustScoreModalProps {
   open: boolean;
@@ -22,8 +22,15 @@ const healthConfig: Record<HealthLevel, { color: string; label: string; emoji: s
   1: { color: "hsl(0,72%,51%)", label: "At Risk", emoji: "🔴", percent: 15 },
 };
 
-const likeCategories = trustScoreLikeCategories;
-const flagCategories = trustScoreFlagCategories;
+// Fixed flag categories (labels only - counts come from real data in future)
+const flagLabels = [
+  "No signal / Not speaking",
+  "Noise Disturbance",
+  "Wrong Gender",
+  "Rude Behavior",
+  "Abusive Language",
+  "Spam/Advertising",
+];
 
 type ActiveTab = "likes" | "flags";
 
@@ -32,12 +39,17 @@ export function TrustScoreModal({ open, onOpenChange }: TrustScoreModalProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("likes");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const navigate = useNavigate();
-  // Default mock: Level 4 (Excellent)
-  const healthLevel: HealthLevel = 4;
-  const health = healthConfig[healthLevel];
+
+  // TODO: Fetch real trust score data from Supabase when feedback tables are created
+  const likeCategories: LikeCategory[] = [];
+  const flagCategories: FlagCategory[] = flagLabels.map(label => ({ label, count: 0 }));
 
   const totalLikes = likeCategories.reduce((s, c) => s + c.count, 0);
   const totalFlags = flagCategories.reduce((s, c) => s + c.count, 0);
+
+  // Calculate health level based on flags (no flags = excellent)
+  const healthLevel: HealthLevel = totalFlags === 0 ? 4 : totalFlags <= 2 ? 3 : totalFlags <= 5 ? 2 : 1;
+  const health = healthConfig[healthLevel];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,8 +145,17 @@ export function TrustScoreModal({ open, onOpenChange }: TrustScoreModalProps) {
             {activeTab === "likes" ? "What Callers Like About You" : "Areas to Improve"}
           </p>
           <div className="space-y-1.5 max-h-[260px] overflow-y-auto">
-            {activeTab === "likes"
-              ? likeCategories.map((cat) => {
+            {activeTab === "likes" ? (
+              likeCategories.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <span className="text-3xl mb-2">💬</span>
+                  <p className="text-sm text-muted-foreground text-center">No feedback yet</p>
+                  <p className="text-xs text-muted-foreground text-center mt-1">
+                    Start calling to receive likes from other users!
+                  </p>
+                </div>
+              ) : (
+                likeCategories.map((cat) => {
                   const isExpanded = expandedCategory === cat.label;
                   return (
                     <div key={cat.label}>
@@ -168,19 +189,31 @@ export function TrustScoreModal({ open, onOpenChange }: TrustScoreModalProps) {
                     </div>
                   );
                 })
-              : flagCategories.map((cat) => (
-                    <div
-                      key={cat.label}
-                      className="flex items-center gap-2.5 p-2 rounded-xl bg-muted/40"
-                    >
-                      <Flag className="w-4 h-4 text-red-500 fill-red-500 flex-shrink-0" />
-                      <span className="text-sm text-foreground font-medium flex-1 text-left">{cat.label}</span>
-                      <span className="text-[10px] font-bold bg-destructive/15 text-destructive px-2 py-0.5 rounded-full">
-                        {cat.count}
-                      </span>
-                    </div>
-                  ))
-            }
+              )
+            ) : (
+              flagCategories.every(c => c.count === 0) ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <span className="text-3xl mb-2">✅</span>
+                  <p className="text-sm text-muted-foreground text-center">No red flags</p>
+                  <p className="text-xs text-muted-foreground text-center mt-1">
+                    Keep up the great behavior!
+                  </p>
+                </div>
+              ) : (
+                flagCategories.map((cat) => (
+                  <div
+                    key={cat.label}
+                    className="flex items-center gap-2.5 p-2 rounded-xl bg-muted/40"
+                  >
+                    <Flag className="w-4 h-4 text-red-500 fill-red-500 flex-shrink-0" />
+                    <span className="text-sm text-foreground font-medium flex-1 text-left">{cat.label}</span>
+                    <span className="text-[10px] font-bold bg-destructive/15 text-destructive px-2 py-0.5 rounded-full">
+                      {cat.count}
+                    </span>
+                  </div>
+                ))
+              )
+            )}
           </div>
         </div>
       </DialogContent>

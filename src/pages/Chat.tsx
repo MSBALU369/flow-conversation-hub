@@ -6,6 +6,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useCallState } from "@/hooks/useCallState";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,52 +49,7 @@ interface Message {
   viewOnce?: boolean;
 }
 
-// Mock friends data (mutual follows only) - already in chat
-const mockFriends: Friend[] = [
-  {
-    id: "1",
-    name: "Sarah",
-    avatar: null,
-    lastMessage: "Hey! How's your English practice going?",
-    time: "now",
-    unread: 2,
-    isOnline: true,
-  },
-  {
-    id: "2",
-    name: "Raj",
-    avatar: null,
-    lastMessage: "That was a great call!",
-    time: "1h",
-    unread: 0,
-    isOnline: true,
-  },
-  {
-    id: "3",
-    name: "Maria",
-    avatar: null,
-    lastMessage: "See you tomorrow!",
-    time: "1d",
-    unread: 0,
-    isOnline: false,
-  },
-];
-
-// Mock mutual followers available to add to chat
-const mockMutualFollowers: { id: string; name: string; avatar: string | null; isOnline: boolean }[] = [
-  { id: "4", name: "Alex", avatar: null, isOnline: true },
-  { id: "5", name: "Priya", avatar: null, isOnline: false },
-  { id: "6", name: "James", avatar: null, isOnline: true },
-  { id: "7", name: "Aisha", avatar: null, isOnline: false },
-];
-
-// Mock messages
-const mockMessages: Message[] = [
-  { id: "1", content: "Hey! How's your English practice going?", senderId: "1", timestamp: new Date(Date.now() - 60000), status: "read", type: "text" },
-  { id: "2", content: "It's going great! I've been practicing every day.", senderId: "me", timestamp: new Date(Date.now() - 50000), status: "read", type: "text" },
-  { id: "3", content: "That's awesome! Want to do a call later?", senderId: "1", timestamp: new Date(Date.now() - 40000), status: "read", type: "text" },
-  { id: "4", content: "Sure! I'm free in an hour.", senderId: "me", timestamp: new Date(Date.now() - 30000), status: "delivered", type: "text" },
-];
+// No more mock data — friends and messages are fetched from Supabase
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -161,7 +117,7 @@ export default function Chat() {
   const navigate = useNavigate();
   const { startCall } = useCallState();
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -174,10 +130,83 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [addFriendOpen, setAddFriendOpen] = useState(false);
-  const [chatFriends, setChatFriends] = useState<Friend[]>(mockFriends);
+  const [chatFriends, setChatFriends] = useState<Friend[]>([]);
+  const [mutualFollowers, setMutualFollowers] = useState<{ id: string; name: string; avatar: string | null; isOnline: boolean }[]>([]);
   const [swipeOffsets, setSwipeOffsets] = useState<Record<string, number>>({});
   const touchStartRef = useRef<{ x: number; y: number; id: string } | null>(null);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch mutual followers (people who follow you AND you follow them)
+  useEffect(() => {
+    if (!profile?.id) return;
+    const fetchMutualFollowers = async () => {
+      // Get people I follow
+      const { data: iFollow } = await supabase
+        .from("friendships")
+        .select("friend_id")
+        .eq("user_id", profile.id)
+        .eq("status", "accepted");
+      // Get people who follow me
+      const { data: followMe } = await supabase
+        .from("friendships")
+        .select("user_id")
+        .eq("friend_id", profile.id)
+        .eq("status", "accepted");
+
+      const iFollowSet = new Set((iFollow || []).map(f => f.friend_id));
+      const followMeIds = (followMe || []).map(f => f.user_id);
+      const mutualIds = followMeIds.filter(id => iFollowSet.has(id));
+
+      if (mutualIds.length === 0) {
+        setMutualFollowers([]);
+        return;
+      }
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username, avatar_url, is_online")
+        .in("id", mutualIds);
+
+      const mutuals = (profiles || []).map(p => ({
+        id: p.id,
+        name: p.username || "User",
+        avatar: p.avatar_url,
+        isOnline: p.is_online ?? false,
+      }));
+      setMutualFollowers(mutuals);
+
+      // Also set up chat friends from those who have existing messages
+      const { data: recentMessages } = await supabase
+        .from("chat_messages")
+        .select("sender_id, receiver_id, content, created_at")
+        .or(`sender_id.eq.${profile.id},receiver_id.eq.${profile.id}`)
+        .order("created_at", { ascending: false });
+
+      // Build friends list from recent messages
+      const friendMap = new Map<string, Friend>();
+      (recentMessages || []).forEach(msg => {
+        const partnerId = msg.sender_id === profile.id ? msg.receiver_id : msg.sender_id;
+        if (!friendMap.has(partnerId)) {
+          const mutual = mutuals.find(m => m.id === partnerId);
+          if (mutual) {
+            const timeDiff = Date.now() - new Date(msg.created_at).getTime();
+            const timeStr = timeDiff < 60000 ? "now" : timeDiff < 3600000 ? `${Math.floor(timeDiff / 60000)}m` : timeDiff < 86400000 ? `${Math.floor(timeDiff / 3600000)}h` : `${Math.floor(timeDiff / 86400000)}d`;
+            friendMap.set(partnerId, {
+              id: partnerId,
+              name: mutual.name,
+              avatar: mutual.avatar,
+              lastMessage: msg.content || "📷 Media",
+              time: timeStr,
+              unread: 0,
+              isOnline: mutual.isOnline,
+            });
+          }
+        }
+      });
+      setChatFriends(Array.from(friendMap.values()));
+    };
+    fetchMutualFollowers();
+  }, [profile?.id]);
 
   const handleRemoveChat = useCallback((friend: Friend) => {
     setChatFriends(prev => prev.filter(f => f.id !== friend.id));
@@ -237,8 +266,34 @@ export default function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+  // Fetch real messages when a friend is selected
+  useEffect(() => {
+    if (!selectedFriend || !profile?.id) {
+      setMessages([]);
+      return;
+    }
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from("chat_messages")
+        .select("*")
+        .or(`and(sender_id.eq.${profile.id},receiver_id.eq.${selectedFriend.id}),and(sender_id.eq.${selectedFriend.id},receiver_id.eq.${profile.id})`)
+        .order("created_at", { ascending: true })
+        .limit(100);
 
-  // Recording timer
+      const mapped: Message[] = (data || []).map(msg => ({
+        id: msg.id,
+        content: msg.content || "📷 Media",
+        senderId: msg.sender_id === profile.id ? "me" : msg.sender_id,
+        timestamp: new Date(msg.created_at),
+        status: msg.is_read ? "read" as const : "delivered" as const,
+        type: msg.media_url ? "image" as const : "text" as const,
+      }));
+      setMessages(mapped);
+    };
+    fetchMessages();
+  }, [selectedFriend?.id, profile?.id]);
+
+
   useEffect(() => {
     if (isRecording) {
       recordingIntervalRef.current = setInterval(() => {
@@ -717,20 +772,20 @@ export default function Chat() {
           <PopoverTrigger asChild>
             <button className="relative w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
               <UserPlus className="w-5 h-5 text-primary" />
-              {mockMutualFollowers.filter(mf => !chatFriends.some(cf => cf.id === mf.id)).length > 0 && (
+              {mutualFollowers.filter(mf => !chatFriends.some(cf => cf.id === mf.id)).length > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
-                  {mockMutualFollowers.filter(mf => !chatFriends.some(cf => cf.id === mf.id)).length}
+                  {mutualFollowers.filter(mf => !chatFriends.some(cf => cf.id === mf.id)).length}
                 </span>
               )}
             </button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-64 p-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1.5">Mutual Followers</p>
-            {mockMutualFollowers.filter(mf => !chatFriends.some(cf => cf.id === mf.id)).length === 0 ? (
+            {mutualFollowers.filter(mf => !chatFriends.some(cf => cf.id === mf.id)).length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No new followers to add</p>
             ) : (
               <div className="space-y-1 max-h-60 overflow-y-auto">
-                {mockMutualFollowers
+                {mutualFollowers
                   .filter(mf => !chatFriends.some(cf => cf.id === mf.id))
                   .map((follower) => (
                     <button
