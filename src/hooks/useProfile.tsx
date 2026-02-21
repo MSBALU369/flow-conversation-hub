@@ -63,6 +63,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setProfileLoading(true);
 
     const fetchProfile = async () => {
+      // Check and expire premium status server-side before fetching
+      await supabase.rpc("check_premium_expiration" as any, { p_user_id: user.id });
+
       const { data, error } = await supabase
         .from("profiles")
         .select("*")

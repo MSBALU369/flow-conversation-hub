@@ -105,28 +105,22 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
       return;
     }
     setLoading(true);
-    // Deduct from sender
-    await updateProfile({ coins: (profile.coins ?? 0) - coins });
-    // Add to receiver
-    await supabase.from("profiles").update({ coins: coins }).eq("id", selectedFriend.id);
-    // Actually we need to increment, not set. Let's use RPC or raw update
-    const { data: receiverProfile } = await supabase
-      .from("profiles")
-      .select("coins")
-      .eq("id", selectedFriend.id)
-      .single();
-    if (receiverProfile) {
-      await supabase.from("profiles").update({ coins: (receiverProfile.coins ?? 0) + coins }).eq("id", selectedFriend.id);
+    try {
+      const { data, error } = await supabase.rpc("transfer_coins", {
+        p_sender_id: profile.id,
+        p_receiver_id: selectedFriend.id,
+        p_amount: coins,
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (result?.success) {
+        toast({ title: `Sent ${coins} coins to ${selectedFriend.username}!` });
+      } else {
+        toast({ title: result?.error || "Transfer failed", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Transfer failed", description: err.message, variant: "destructive" });
     }
-    // Record transaction
-    await supabase.from("coin_transactions").insert({
-      sender_id: profile.id,
-      receiver_id: selectedFriend.id,
-      amount: coins,
-      type: "send",
-      status: "completed",
-    });
-    toast({ title: `Sent ${coins} coins to ${selectedFriend.username}!` });
     setAmount("");
     setSelectedFriend(null);
     setLoading(false);

@@ -21,8 +21,15 @@ interface AppHeaderProps {
   onHistoryClick?: () => void;
 }
 
-// Notifications will come from real data in future
-const notifications: { id: number; text: string; time: string; unread: boolean }[] = [];
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string | null;
+  is_read: boolean;
+  created_at: string;
+  from_user_id: string | null;
+}
 
 interface SearchResult {
   type: "user" | "talent";
@@ -48,9 +55,56 @@ export function AppHeader({
   const [searching, setSearching] = useState(false);
   const { profile } = useProfile();
   const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const userLevel = profile?.level ?? level;
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  // Fetch real notifications
+  useEffect(() => {
+    if (!profile?.id) return;
+    const fetchNotifications = async () => {
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setNotifications((data as Notification[]) || []);
+    };
+    fetchNotifications();
+
+    // Subscribe to realtime notifications
+    const channel = supabase
+      .channel(`notifications-${profile.id}`)
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${profile.id}`,
+        },
+        (payload: any) => {
+          if (payload.new) {
+            setNotifications(prev => [payload.new as Notification, ...prev].slice(0, 20));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.id]);
+
+  const markAllRead = async () => {
+    if (!profile?.id) return;
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", profile.id)
+      .eq("is_read", false);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+  };
 
   const handleAvatarClick = () => {
     navigate("/profile");
@@ -250,17 +304,20 @@ export function AppHeader({
                 <div
                   key={notification.id}
                   className={`p-3 border-b border-border hover:bg-muted cursor-pointer transition-colors ${
-                    notification.unread ? 'bg-primary/5' : ''
+                    !notification.is_read ? 'bg-primary/5' : ''
                   }`}
                 >
-                  <p className="text-sm text-foreground">{notification.text}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">{notification.time}</p>
+                  <p className="text-sm text-foreground">{notification.title}</p>
+                  {notification.message && <p className="text-xs text-muted-foreground">{notification.message}</p>}
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {new Date(notification.created_at).toLocaleDateString()}
+                  </p>
                 </div>
               ))}
             </div>
             <div className="p-2 border-t border-border">
-              <button className="w-full text-center text-xs text-primary hover:underline">
-                View all notifications
+              <button onClick={markAllRead} className="w-full text-center text-xs text-primary hover:underline">
+                Mark all as read
               </button>
             </div>
           </PopoverContent>

@@ -322,6 +322,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          from_user_id: string | null
+          id: string
+          is_read: boolean
+          message: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           created_at: string
@@ -829,6 +862,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_premium_expiration: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       check_reference_id: { Args: { ref_id: string }; Returns: boolean }
       find_match: { Args: { p_user_id: string }; Returns: Json }
       get_my_role: { Args: never; Returns: string }
@@ -864,6 +901,10 @@ export type Database = {
       }
       leave_matchmaking: { Args: { p_user_id: string }; Returns: undefined }
       sync_test_role: { Args: never; Returns: Json }
+      transfer_coins: {
+        Args: { p_amount: number; p_receiver_id: string; p_sender_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role:

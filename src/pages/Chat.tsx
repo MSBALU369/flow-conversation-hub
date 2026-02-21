@@ -289,21 +289,30 @@ export default function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+  const MESSAGES_PER_PAGE = 40;
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
+
   // Fetch real messages when a friend is selected + Realtime subscription
   useEffect(() => {
     if (!selectedFriend || !profile?.id) {
       setMessages([]);
+      setHasMore(true);
       return;
     }
     const fetchMessages = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("chat_messages")
         .select("*")
         .or(`and(sender_id.eq.${profile.id},receiver_id.eq.${selectedFriend.id}),and(sender_id.eq.${selectedFriend.id},receiver_id.eq.${profile.id})`)
-        .order("created_at", { ascending: true })
-        .limit(100);
+        .order("created_at", { ascending: false })
+        .range(0, MESSAGES_PER_PAGE - 1);
 
-      const mapped: Message[] = (data || []).map(msg => ({
+      const rows = data || [];
+      setHasMore(rows.length === MESSAGES_PER_PAGE);
+
+      const mapped: Message[] = rows.reverse().map(msg => ({
         id: msg.id,
         content: msg.content || "📷 Media",
         senderId: msg.sender_id === profile.id ? "me" : msg.sender_id,
@@ -360,6 +369,47 @@ export default function Chat() {
       supabase.removeChannel(channel);
     };
   }, [selectedFriend?.id, profile?.id]);
+  // Infinite scroll: load older messages
+  const loadOlderMessages = useCallback(async () => {
+    if (!selectedFriend || !profile?.id || loadingOlder || !hasMore) return;
+    setLoadingOlder(true);
+    const oldestTimestamp = messages.length > 0 ? messages[0].timestamp.toISOString() : new Date().toISOString();
+    const { data } = await supabase
+      .from("chat_messages")
+      .select("*")
+      .or(`and(sender_id.eq.${profile.id},receiver_id.eq.${selectedFriend.id}),and(sender_id.eq.${selectedFriend.id},receiver_id.eq.${profile.id})`)
+      .lt("created_at", oldestTimestamp)
+      .order("created_at", { ascending: false })
+      .range(0, MESSAGES_PER_PAGE - 1);
+
+    const rows = data || [];
+    setHasMore(rows.length === MESSAGES_PER_PAGE);
+    const older: Message[] = rows.reverse().map(msg => ({
+      id: msg.id,
+      content: msg.content || "📷 Media",
+      senderId: msg.sender_id === profile.id ? "me" : msg.sender_id,
+      timestamp: new Date(msg.created_at),
+      status: msg.is_read ? "read" as const : "delivered" as const,
+      type: msg.media_url ? "image" as const : "text" as const,
+    }));
+    setMessages(prev => [...older, ...prev]);
+    setLoadingOlder(false);
+  }, [selectedFriend?.id, profile?.id, messages, loadingOlder, hasMore]);
+
+  // IntersectionObserver for top sentinel
+  useEffect(() => {
+    if (!topSentinelRef.current || !selectedFriend) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingOlder) {
+          loadOlderMessages();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(topSentinelRef.current);
+    return () => observer.disconnect();
+  }, [loadOlderMessages, hasMore, loadingOlder, selectedFriend]);
 
 
   useEffect(() => {
@@ -694,6 +744,13 @@ export default function Chat() {
 
         {/* Messages */}
         <main className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          {/* Top sentinel for infinite scroll */}
+          <div ref={topSentinelRef} className="h-1" />
+          {loadingOlder && (
+            <div className="text-center py-2">
+              <span className="text-xs text-muted-foreground animate-pulse">Loading older messages...</span>
+            </div>
+          )}
           {messages.map((message) => {
             const isMe = message.senderId === "me";
             return (
