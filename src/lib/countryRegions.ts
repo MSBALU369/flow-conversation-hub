@@ -7,7 +7,7 @@ export type RegionTier = "INDIA" | "GULF_RICH" | "WEST_TIER2" | "POOR_TIER4";
 const INDIA_COUNTRIES = ["India"];
 
 const GULF_RICH_COUNTRIES = [
-  "United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman",
+  "United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman", "Egypt",
 ];
 
 const WEST_TIER2_COUNTRIES = [
