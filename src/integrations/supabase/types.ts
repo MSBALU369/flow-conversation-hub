@@ -301,6 +301,27 @@ export type Database = {
         }
         Relationships: []
       }
+      muted_users: {
+        Row: {
+          created_at: string
+          id: string
+          muted_user_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          muted_user_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          muted_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           created_at: string
@@ -325,6 +346,36 @@ export type Database = {
           id?: string
           price?: number
           region?: Database["public"]["Enums"]["region_tier"]
+        }
+        Relationships: []
+      }
+      premium_content: {
+        Row: {
+          author: string
+          category: string
+          created_at: string
+          id: string
+          title: string
+          type: string
+          url: string
+        }
+        Insert: {
+          author: string
+          category?: string
+          created_at?: string
+          id?: string
+          title: string
+          type?: string
+          url: string
+        }
+        Update: {
+          author?: string
+          category?: string
+          created_at?: string
+          id?: string
+          title?: string
+          type?: string
+          url?: string
         }
         Relationships: []
       }
