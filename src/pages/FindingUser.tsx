@@ -12,21 +12,21 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  DialogDescription } from
+"@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 const SEARCH_TIMEOUT = 30;
 const POLL_INTERVAL = 2500; // Poll every 2.5 seconds
 
 const STATUS_MESSAGES = [
-  "Finding a perfect partner for you...",
-  "Searching in Europe...",
-  "Connecting to India...",
-  "Looking for the best match...",
-  "Scanning Australia...",
-  "Checking in New York...",
-];
+"Finding a perfect partner for you...",
+"Searching in Europe...",
+"Connecting to India...",
+"Looking for the best match...",
+"Scanning Australia...",
+"Checking in New York..."];
+
 
 export default function FindingUser() {
   const navigate = useNavigate();
@@ -105,7 +105,7 @@ export default function FindingUser() {
       const { data, error } = await supabase.rpc("find_match", { p_user_id: user.id });
       if (error || !mountedRef.current) return;
 
-      const result = data as { status: string; room_id?: string; matched_with?: string };
+      const result = data as {status: string;room_id?: string;matched_with?: string;};
 
       if (result?.status === "matched" && result?.room_id) {
         setIsMatched(true);
@@ -140,7 +140,7 @@ export default function FindingUser() {
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
-        body: { room_id: roomId, participant_name: participantName },
+        body: { room_id: roomId, participant_name: participantName }
       });
 
       if (error || !data?.token) {
@@ -148,7 +148,7 @@ export default function FindingUser() {
         toast({
           title: "Connection Error",
           description: "Could not establish call. Please try again.",
-          variant: "destructive",
+          variant: "destructive"
         });
         navigate(-1);
         return;
@@ -156,14 +156,14 @@ export default function FindingUser() {
 
       navigate("/call", {
         replace: true,
-        state: { roomId, livekitToken: data.token },
+        state: { roomId, livekitToken: data.token }
       });
     } catch (err) {
       console.error("Token fetch error:", err);
       toast({
         title: "Connection Error",
         description: "Could not establish call. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
       navigate(-1);
     }
@@ -191,8 +191,8 @@ export default function FindingUser() {
       <header className="flex items-center justify-between px-4 py-4 safe-top">
         <button
           onClick={handleCancel}
-          className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-muted transition-colors"
-        >
+          className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-muted transition-colors">
+
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
         <h1 className="text-sm font-semibold text-foreground">Finding Partner</h1>
@@ -200,20 +200,20 @@ export default function FindingUser() {
       </header>
 
       {/* Active filters badge */}
-      {filtersActive && (levelFilter || genderFilter) && (
-        <div className="flex justify-center gap-2 px-4 mb-2">
-          {levelFilter && (
-            <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
+      {filtersActive && (levelFilter || genderFilter) &&
+      <div className="flex justify-center gap-2 px-4 mb-2">
+          {levelFilter &&
+        <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
               Level: {levelFilter}
             </span>
-          )}
-          {genderFilter && (
-            <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
+        }
+          {genderFilter &&
+        <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
               Gender: {genderFilter}
             </span>
-          )}
+        }
         </div>
-      )}
+      }
 
       {/* Main content */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 -mt-8">
@@ -232,7 +232,7 @@ export default function FindingUser() {
           <div className="absolute" style={{ left: "46%", top: "24%", transform: "translate(-50%, -50%)" }}>
             <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "0.5s" }} />
             <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "1.1s" }} />
-            <span className="block w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.7)]" style={{ animation: "city-blink 1.5s ease-in-out infinite", animationDelay: "0.5s" }} />
+            
           </div>
 
           {/* === New Delhi === */}
@@ -280,8 +280,8 @@ export default function FindingUser() {
           {/* Magnifying glass panning across */}
           <div
             className="absolute w-8 h-8 pointer-events-none"
-            style={{ animation: "map-pan 6s ease-in-out infinite" }}
-          >
+            style={{ animation: "map-pan 6s ease-in-out infinite" }}>
+
             <Search className="w-full h-full text-foreground" />
           </div>
 
@@ -316,8 +316,8 @@ export default function FindingUser() {
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
-              style={{ transition: "stroke-dashoffset 1s linear" }}
-            />
+              style={{ transition: "stroke-dashoffset 1s linear" }} />
+
           </svg>
           <div className="flex flex-col items-center gap-1 z-10">
             <Search className="w-5 h-5 text-primary animate-pulse" />
@@ -334,8 +334,8 @@ export default function FindingUser() {
         {/* Cancel button */}
         <button
           onClick={handleCancel}
-          className="mt-10 w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors"
-        >
+          className="mt-10 w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors">
+
           <X className="w-6 h-6 text-destructive" />
         </button>
         <p className="text-xs text-muted-foreground mt-2">Cancel</p>
@@ -360,6 +360,6 @@ export default function FindingUser() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>);
+
 }
