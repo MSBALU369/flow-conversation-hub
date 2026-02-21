@@ -103,7 +103,22 @@ const talkPrompts = [
 ];
 
 /** Inner call UI — rendered inside <LiveKitRoom> so hooks work */
-function CallRoomUI() {
+/** Extracts LiveKit state and passes it down */
+function LiveKitBridge({ children }: { children: (lk: { room: any; participants: any[]; localParticipant: any }) => React.ReactNode }) {
+  const room = useRoomContext();
+  const participants = useParticipants();
+  const { localParticipant } = useLocalParticipant();
+  return <>{children({ room, participants, localParticipant })}</>;
+}
+
+interface LiveKitState {
+  room: any | null;
+  participants: any[];
+  localParticipant: any | null;
+}
+
+function CallRoomUI({ lk }: { lk: LiveKitState }) {
+  const { room, participants, localParticipant } = lk;
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -116,11 +131,6 @@ function CallRoomUI() {
   const { toast } = useToast();
   const localNetworkState = useNetworkStrength();
   const { startCall, endCall, updateCallSeconds } = useCallState();
-
-  // LiveKit hooks
-  const room = useRoomContext();
-  const participants = useParticipants();
-  const { localParticipant } = useLocalParticipant();
 
   const remoteNetworkStatus: { signalLevel: SignalLevel; isOffline: boolean } = {
     signalLevel: 2,
@@ -1033,11 +1043,12 @@ function CallRoomUI() {
 export default function Call() {
   const location = useLocation();
   const livekitToken = (location.state as any)?.livekitToken || null;
-  const roomId = (location.state as any)?.roomId || null;
+
+  const noLiveKit: LiveKitState = { room: null, participants: [], localParticipant: null };
 
   // If no token (e.g. direct navigation or friend call), render without LiveKit
   if (!livekitToken) {
-    return <CallRoomUI />;
+    return <CallRoomUI lk={noLiveKit} />;
   }
 
   return (
@@ -1049,7 +1060,9 @@ export default function Call() {
       video={false}
       style={{ height: "100%" }}
     >
-      <CallRoomUI />
+      <LiveKitBridge>
+        {(lk) => <CallRoomUI lk={lk} />}
+      </LiveKitBridge>
     </LiveKitRoom>
   );
 }
