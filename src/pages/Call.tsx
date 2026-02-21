@@ -63,18 +63,6 @@ const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL;
 const CALL_DURATION_LIMIT = 60;
 const WARNING_TIME = 30;
 
-const demoPartners = [
-  { username: "Sarah_K", avatar_url: "https://i.pravatar.cc/150?img=47", level: 5, location: "Istanbul, Turkey" },
-  { username: "Ahmed_R", avatar_url: "https://i.pravatar.cc/150?img=12", level: 3, location: "Dubai, UAE" },
-  { username: "Lina_M", avatar_url: "https://i.pravatar.cc/150?img=32", level: 7, location: "Berlin, Germany" },
-  { username: "Jake_W", avatar_url: "https://i.pravatar.cc/150?img=51", level: 2, location: "London, UK" },
-  { username: "Priya_S", avatar_url: "https://i.pravatar.cc/150?img=23", level: 4, location: "Mumbai, India" },
-  { username: "Carlos_D", avatar_url: "https://i.pravatar.cc/150?img=60", level: 6, location: "São Paulo, Brazil" },
-  { username: "Yuki_T", avatar_url: "https://i.pravatar.cc/150?img=9", level: 8, location: "Tokyo, Japan" },
-  { username: "Emma_L", avatar_url: "https://i.pravatar.cc/150?img=44", level: 1, location: "Paris, France" },
-  { username: "Omar_B", avatar_url: "https://i.pravatar.cc/150?img=53", level: 3, location: "Cairo, Egypt" },
-  { username: "Nadia_F", avatar_url: "https://i.pravatar.cc/150?img=29", level: 5, location: "Moscow, Russia" },
-];
 
 const reportReasons = [
   { id: "no_signal", label: "No signal / Not speaking" },
@@ -122,6 +110,7 @@ function CallRoomUI() {
   const partnerId = searchParams.get("partner");
   const statePartnerName = (location.state as any)?.partnerName || null;
   const statePartnerAvatar = (location.state as any)?.partnerAvatar || null;
+  const stateMatchedUserId = (location.state as any)?.matchedUserId || null;
   const isFriendCall = !!statePartnerName;
   const { profile, updateProfile } = useProfile();
   const { toast } = useToast();
@@ -200,16 +189,18 @@ function CallRoomUI() {
     return () => clearInterval(interval);
   }, [callStatus]);
 
-  // Fetch partner profile or use passed state / demo data
+  // Fetch partner profile from real data
   useEffect(() => {
-    if (partnerId) {
+    const effectivePartnerId = partnerId || stateMatchedUserId;
+    if (effectivePartnerId) {
       const fetchPartner = async () => {
         const { data } = await supabase
           .from("profiles")
           .select("username, avatar_url, level, location_city, country")
-          .eq("id", partnerId)
+          .eq("id", effectivePartnerId)
           .single();
         if (data) setPartnerProfile({ ...data, location: [data.location_city, data.country].filter(Boolean).join(", ") || null });
+        else setPartnerProfile({ username: "Anonymous", avatar_url: null, level: 1, location: null });
       };
       fetchPartner();
     } else if (statePartnerName) {
@@ -220,10 +211,9 @@ function CallRoomUI() {
         location: null,
       });
     } else {
-      const randomPartner = demoPartners[Math.floor(Math.random() * demoPartners.length)];
-      setPartnerProfile(randomPartner);
+      setPartnerProfile({ username: "Anonymous", avatar_url: null, level: 1, location: null });
     }
-  }, [partnerId, statePartnerName, statePartnerAvatar]);
+  }, [partnerId, stateMatchedUserId, statePartnerName, statePartnerAvatar]);
 
   // Start call state globally
   useEffect(() => {
@@ -296,7 +286,7 @@ function CallRoomUI() {
         user_id: user.id,
         duration: callDuration,
         partner_name: partnerProfile?.username || "Partner",
-        status: "completed",
+        status: "outgoing",
       }).then(() => {});
     }
 

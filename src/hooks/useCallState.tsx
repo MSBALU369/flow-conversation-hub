@@ -62,7 +62,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
   const isMatchedRef = useRef(false);
   const isFetchingRef = useRef(false);
 
-  const fetchTokenAndNavigate = useCallback(async (roomId: string) => {
+  const fetchTokenAndNavigate = useCallback(async (roomId: string, matchedUserId?: string) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     const participantName = profile?.username || "User";
@@ -80,7 +80,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
       }
 
       setIsSearching(false);
-      navigate("/call", { replace: true, state: { roomId, livekitToken: data.token } });
+      navigate("/call", { replace: true, state: { roomId, livekitToken: data.token, matchedUserId } });
     } catch {
       toast({ title: "Connection Error", description: "Could not establish call.", variant: "destructive" });
       setIsSearching(false);
@@ -101,7 +101,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
       if (result?.status === "matched" && result?.room_id) {
         isMatchedRef.current = true;
         if (pollRef.current) clearInterval(pollRef.current);
-        await fetchTokenAndNavigate(result.room_id);
+        await fetchTokenAndNavigate(result.room_id, result.matched_with);
       }
     } catch (err) {
       console.error("Matchmaking poll error:", err);
