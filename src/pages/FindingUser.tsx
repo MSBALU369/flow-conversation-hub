@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
+import { useToast } from "@/hooks/use-toast";
 import worldMapImg from "@/assets/world-map.png";
 import {
   Dialog,
@@ -23,13 +26,15 @@ const STATUS_MESSAGES = [
   "Checking in New York...",
 ];
 
-
 export default function FindingUser() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { profile } = useProfile();
+  const { toast } = useToast();
   const [countdown, setCountdown] = useState(SEARCH_TIMEOUT);
   const [statusIndex, setStatusIndex] = useState(0);
   const [showNoMatchModal, setShowNoMatchModal] = useState(false);
+  const [isFetchingToken, setIsFetchingToken] = useState(false);
 
   // Read premium filters from route state
   const levelFilter = (location.state as any)?.levelFilter || null;
@@ -75,14 +80,55 @@ export default function FindingUser() {
 
   // Auto-navigate to call (only if no filter timeout)
   useEffect(() => {
-    if (filterTimeout) return;
+    if (filterTimeout || isFetchingToken) return;
 
-    const connectTimer = setTimeout(() => {
-      navigate("/call", { replace: true });
+    const connectTimer = setTimeout(async () => {
+      await fetchTokenAndNavigate();
     }, 3500);
 
     return () => clearTimeout(connectTimer);
-  }, [navigate, filterTimeout]);
+  }, [navigate, filterTimeout, isFetchingToken]);
+
+  const fetchTokenAndNavigate = async () => {
+    setIsFetchingToken(true);
+    
+    // Generate a unique room ID for this call
+    const roomId = `room_${crypto.randomUUID()}`;
+    const participantName = profile?.username || "User";
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
+        body: { room_id: roomId, participant_name: participantName },
+      });
+
+      if (error || !data?.token) {
+        console.error("Failed to get LiveKit token:", error);
+        toast({
+          title: "Connection Error",
+          description: "Could not establish call. Please try again.",
+          variant: "destructive",
+        });
+        navigate(-1);
+        return;
+      }
+
+      navigate("/call", {
+        replace: true,
+        state: {
+          roomId,
+          livekitToken: data.token,
+        },
+      });
+    } catch (err) {
+      console.error("Token fetch error:", err);
+      toast({
+        title: "Connection Error",
+        description: "Could not establish call. Please try again.",
+        variant: "destructive",
+      });
+      navigate(-1);
+    }
+  };
 
   const handleCancel = () => navigate(-1);
 
@@ -91,7 +137,7 @@ export default function FindingUser() {
     setFilterTimeout(false);
     setShowNoMatchModal(false);
     setCountdown(SEARCH_TIMEOUT);
-    // Will auto-navigate after 3.5s via the effect above
+    setIsFetchingToken(false);
   };
 
   return (

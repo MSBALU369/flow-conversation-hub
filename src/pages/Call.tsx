@@ -2,6 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  LiveKitRoom,
+  AudioConference,
+  useRoomContext,
+  useParticipants,
+  useIsSpeaking,
+  useLocalParticipant,
+} from "@livekit/components-react";
+import { RoomEvent, Track } from "livekit-client";
+import "@livekit/components-styles";
+import {
   ArrowLeft,
   RefreshCw,
   Mic,
@@ -48,8 +58,10 @@ import { ArcheryGame } from "@/components/games/ArcheryGame";
 import { SudokuGame } from "@/components/games/SudokuGame";
 import { FloatingGameBubble } from "@/components/games/FloatingGameBubble";
 
-const CALL_DURATION_LIMIT = 60; // 1 minute loop bar
-const WARNING_TIME = 30; // Warning at 30 seconds
+const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL;
+
+const CALL_DURATION_LIMIT = 60;
+const WARNING_TIME = 30;
 
 const demoPartners = [
   { username: "Sarah_K", avatar_url: "https://i.pravatar.cc/150?img=47", level: 5, location: "Istanbul, Turkey" },
@@ -102,7 +114,8 @@ const talkPrompts = [
   "What does happiness mean to you?",
 ];
 
-export default function Call() {
+/** Inner call UI — rendered inside <LiveKitRoom> so hooks work */
+function CallRoomUI() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -115,12 +128,16 @@ export default function Call() {
   const localNetworkState = useNetworkStrength();
   const { startCall, endCall, updateCallSeconds } = useCallState();
 
-  // Remote user's network is independent — mock as "Fair" (2 bars)
+  // LiveKit hooks
+  const room = useRoomContext();
+  const participants = useParticipants();
+  const { localParticipant } = useLocalParticipant();
+
   const remoteNetworkStatus: { signalLevel: SignalLevel; isOffline: boolean } = {
     signalLevel: 2,
     isOffline: false,
   };
-  
+
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -135,13 +152,12 @@ export default function Call() {
   const [gameBetAmount, setGameBetAmount] = useState(0);
   const [gameMinimized, setGameMinimized] = useState(false);
   const [showPostCallModal, setShowPostCallModal] = useState(false);
-  
+
   const [selectedReportReasons, setSelectedReportReasons] = useState<string[]>([]);
   const [selectedLikeReasons, setSelectedLikeReasons] = useState<string[]>([]);
   const [postCallRating, setPostCallRating] = useState<"like" | "dislike" | null>(null);
   const [showWarning, setShowWarning] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
-  const [partnerDisconnected, setPartnerDisconnected] = useState(false);
   const [callStatus, setCallStatus] = useState<"connected" | "talking" | "unavailable">("connected");
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [partnerProfile, setPartnerProfile] = useState<{ username: string | null; avatar_url: string | null; level: number | null; location: string | null } | null>(null);
@@ -150,19 +166,24 @@ export default function Call() {
   const [pulseIntensity, setPulseIntensity] = useState(0);
   const [isPartnerMuted, setIsPartnerMuted] = useState(false);
   const [showEndCallWarning, setShowEndCallWarning] = useState(false);
-  
+
   const callStartTime = useRef<number>(Date.now());
 
-  // Simulate speech detection — continuous natural pulsing when talking
+  // LiveKit: toggle mute
+  useEffect(() => {
+    if (localParticipant) {
+      localParticipant.setMicrophoneEnabled(!isMuted);
+    }
+  }, [isMuted, localParticipant]);
+
+  // LiveKit: detect speaking via simple pulse simulation
   useEffect(() => {
     if (callStatus !== "talking") {
       setIsSpeaking(false);
       setPulseIntensity(0);
       return;
     }
-    // Always pulse when in talking state (both users speaking)
     const interval = setInterval(() => {
-      // Natural speech pattern: varies intensity continuously
       const intensity = 0.3 + Math.random() * 0.7;
       setIsSpeaking(true);
       setPulseIntensity(isMuted ? intensity * 0.3 : intensity);
@@ -170,7 +191,7 @@ export default function Call() {
     return () => clearInterval(interval);
   }, [callStatus, isMuted]);
 
-  // Simulate partner mute/unmute toggling randomly
+  // Simulate partner mute toggling
   useEffect(() => {
     if (callStatus !== "talking") return;
     const interval = setInterval(() => {
@@ -199,7 +220,6 @@ export default function Call() {
         location: null,
       });
     } else {
-      // Random demo partner for preview
       const randomPartner = demoPartners[Math.floor(Math.random() * demoPartners.length)];
       setPartnerProfile(randomPartner);
     }
@@ -208,27 +228,21 @@ export default function Call() {
   // Start call state globally
   useEffect(() => {
     startCall(partnerProfile?.username || null, partnerProfile?.avatar_url || null);
-    return () => {}; // don't end call on unmount - user may navigate away
+    return () => {};
   }, [partnerProfile]);
 
   useEffect(() => {
-    // Connected → Talking (immediate transition)
     const talkingTimer = setTimeout(() => {
       setCallStatus("talking");
     }, 1000);
-
-    return () => {
-      clearTimeout(talkingTimer);
-    };
+    return () => clearTimeout(talkingTimer);
   }, []);
 
-  // Start timer only once connected (and reset to 0 on connect)
+  // Timer
   useEffect(() => {
     if (!isConnected) return;
-
     setSeconds(0);
     setShowWarning(false);
-
     const interval = setInterval(() => {
       setSeconds((s) => {
         const next = s + 1;
@@ -236,15 +250,11 @@ export default function Call() {
         return next;
       });
     }, 1000);
-
     return () => clearInterval(interval);
   }, [isConnected]);
 
-  // Warning at 30 seconds
   useEffect(() => {
-    if (seconds === WARNING_TIME && !showWarning) {
-      setShowWarning(true);
-    }
+    if (seconds === WARNING_TIME && !showWarning) setShowWarning(true);
   }, [seconds, showWarning]);
 
   const formatTime = (totalSeconds: number) => {
@@ -256,9 +266,7 @@ export default function Call() {
   const progressPercent = (seconds % CALL_DURATION_LIMIT) / CALL_DURATION_LIMIT * 100;
 
   const handleAttemptEndCall = () => {
-    if (seconds < 30) {
-      setShowEndCallWarning(true);
-    } else if (seconds < 60) {
+    if (seconds < 60) {
       setShowEndCallWarning(true);
     } else {
       handleEndCall();
@@ -267,11 +275,11 @@ export default function Call() {
 
   const handleEndCall = async (skipPostCallModal = false) => {
     const callDuration = seconds;
-    
-    // End call state immediately
+
+    // Disconnect from LiveKit room
+    room?.disconnect();
     endCall();
-    
-    // Navigate immediately — don't wait for DB
+
     if (isFriendCall || skipPostCallModal) {
       if (!skipPostCallModal) navigate(-1);
     } else {
@@ -281,13 +289,13 @@ export default function Call() {
       setShowPostCallModal(true);
     }
 
-    // Background DB work (fire-and-forget)
+    // Background DB work
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       supabase.from("call_history").insert({
         user_id: user.id,
         duration: callDuration,
-        partner_name: "Partner",
+        partner_name: partnerProfile?.username || "Partner",
         status: "completed",
       }).then(() => {});
     }
@@ -301,22 +309,17 @@ export default function Call() {
     let newEarlyEndCount = currentEarlyEndCount;
 
     if (callDuration < 30) {
-      // <30s: lose 2 coins + 0.5 battery (tracked as count toward full bar drain)
       coinDeduction = currentCoins > 0 ? 2 : 0;
       newEarlyEndCount += 1;
-      // Every 2 early ends (<30s) = 1 full battery bar drain (0.5 each)
       if (newEarlyEndCount % 2 === 0) batteryChange -= 1;
     } else if (callDuration < 60) {
-      // 30s-59s: lose 1 coin
       coinDeduction = currentCoins > 0 ? 1 : 0;
       newEarlyEndCount += 1;
     } else {
-      // >=60s: reward battery
       batteryChange = 1;
-      newEarlyEndCount = 0; // reset early end counter
+      newEarlyEndCount = 0;
     }
 
-    // Every 3 early ends (<1 min total) = drain 1 extra battery bar
     if (callDuration < 60 && newEarlyEndCount > 0 && newEarlyEndCount % 3 === 0) {
       batteryChange -= 1;
     }
@@ -345,20 +348,16 @@ export default function Call() {
   };
 
   const handleReconnect = () => {
-    // Reset call status and simulate reconnecting with the same partner
     setIsConnected(false);
     setCallStatus("connected");
     setIsSpeaking(false);
     setPulseIntensity(0);
     setSeconds(0);
-    
     toast({ title: "Reconnecting...", description: "Reconnecting with the same user" });
-
     setTimeout(() => {
       setIsConnected(true);
       setCallStatus("connected");
     }, 2000);
-
     setTimeout(() => {
       setCallStatus("talking");
     }, 3000);
@@ -366,6 +365,11 @@ export default function Call() {
 
   return (
     <div className="min-h-screen flex flex-col call-immersive-bg">
+      {/* Hidden AudioConference handles all audio routing */}
+      <div className="hidden">
+        <AudioConference />
+      </div>
+
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-4 safe-top">
         <div className="flex items-center gap-2">
@@ -380,7 +384,6 @@ export default function Call() {
           </button>
         </div>
 
-        {/* Reconnect Button */}
         <button
           onClick={handleReconnect}
           className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-muted/50 transition-colors"
@@ -430,7 +433,6 @@ export default function Call() {
         </button>
       </header>
 
-      {/* Main Content - Voice Visualizer */}
       {/* Talk Prompt Banner */}
       <div className="w-full flex justify-center px-4">
         <div className="w-full max-w-[320px] mx-auto px-3 py-2 rounded-xl bg-[hsl(0,0%,15%)]">
@@ -460,7 +462,6 @@ export default function Call() {
 
       {/* Bottom section */}
       <div className="px-4 pb-3 safe-bottom mt-12">
-        {/* Partner Avatar */}
         {/* User Signal Strength - above avatar */}
         <div className="flex items-end gap-1.5 mb-8 justify-center -mt-12">
           <p className={cn(
@@ -493,8 +494,10 @@ export default function Call() {
             showNA={remoteNetworkStatus.isOffline}
           />
         </div>
+
+        {/* Partner Avatar with active speaker glow */}
         <div className="flex flex-col items-center mb-3">
-          <button 
+          <button
             className="relative mb-1"
             onClick={() => navigate(`/user/${partnerId || 'demo'}`, {
               state: {
@@ -512,20 +515,20 @@ export default function Call() {
               }
             })}
           >
-            {/* Speech pulse rings */}
+            {/* Active speaker glow rings */}
             {isSpeaking && callStatus === "talking" && (
               <>
-                <div 
+                <div
                   className="absolute inset-0 rounded-full border-2 border-green-400/60 z-0"
-                  style={{ 
+                  style={{
                     transform: `scale(${1 + pulseIntensity * 0.25})`,
                     opacity: pulseIntensity * 0.7,
                     transition: 'transform 0.15s ease-out, opacity 0.15s ease-out'
                   }}
                 />
-                <div 
+                <div
                   className="absolute inset-0 rounded-full border-2 border-green-400/30 z-0"
-                  style={{ 
+                  style={{
                     transform: `scale(${1 + pulseIntensity * 0.45})`,
                     opacity: pulseIntensity * 0.4,
                     transition: 'transform 0.2s ease-out, opacity 0.2s ease-out'
@@ -537,13 +540,11 @@ export default function Call() {
               <AvatarImage src={partnerProfile?.avatar_url || undefined} />
               <AvatarFallback className="text-4xl bg-muted">👤</AvatarFallback>
             </Avatar>
-            {/* Partner mute indicator */}
             {isPartnerMuted && (
               <div className="absolute top-0 right-0 z-30 w-7 h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
                 <MicOff className="w-3.5 h-3.5 text-white" />
               </div>
             )}
-            {/* Level Badge */}
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-20">
               <LevelBadge level={partnerProfile?.level || 1} size="md" />
             </div>
@@ -583,13 +584,10 @@ export default function Call() {
           )}
         </div>
 
-        {/* Progress Bar (Loop Bar) */}
+        {/* Progress Bar */}
         <div className="flex justify-center mb-3 mt-4">
           <div className="max-w-[200px] w-full">
-            <Progress 
-              value={progressPercent} 
-              className="h-1.5"
-            />
+            <Progress value={progressPercent} className="h-1.5" />
           </div>
         </div>
 
@@ -624,8 +622,8 @@ export default function Call() {
               <span className="text-[10px] mt-0.5">{isMuted ? 'Unmute' : 'Mute'}</span>
             </button>
 
-            <button 
-              onClick={handleAttemptEndCall} 
+            <button
+              onClick={handleAttemptEndCall}
               className="call-control-end-pill"
             >
               <Phone className="w-6 h-6 rotate-[135deg] text-white" />
@@ -641,10 +639,9 @@ export default function Call() {
             </button>
           </div>
         </div>
-
       </div>
 
-      {/* Ad Area - Bottom of page */}
+      {/* Ad Area */}
       <div className="px-4 pb-2 mt-auto pt-2">
         <div className="rounded-xl bg-muted/20 border border-border/30 flex items-center justify-center overflow-hidden" style={{ minHeight: 150 }}>
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -654,7 +651,7 @@ export default function Call() {
         </div>
       </div>
 
-      {/* End Call Warning + Rating Combined Modal (< 60s calls) */}
+      {/* End Call Warning + Rating Modal */}
       <Dialog open={showEndCallWarning} onOpenChange={setShowEndCallWarning}>
         <DialogContent className="glass-card border-border max-w-[320px]">
           <DialogHeader>
@@ -683,7 +680,6 @@ export default function Call() {
             </div>
           )}
 
-          {/* Inline rating for stranger calls */}
           {!isFriendCall && (
             <div className="space-y-3 pt-2">
               <p className="text-muted-foreground text-xs text-center">Rate your experience</p>
@@ -701,7 +697,7 @@ export default function Call() {
                     "w-10 h-10 rounded-full flex items-center justify-center transition-all",
                     postCallRating === "like" ? "bg-green-500/30" : "bg-green-500/20"
                   )}>
-                    {postCallRating === "like" 
+                    {postCallRating === "like"
                       ? <Flag className="w-5 h-5 text-green-400 fill-green-400" />
                       : <ThumbsUp className="w-5 h-5 text-green-400" />
                     }
@@ -730,7 +726,6 @@ export default function Call() {
                 </button>
               </div>
 
-              {/* Inline reasons when rating selected */}
               {postCallRating === "dislike" && (
                 <div className="space-y-1.5">
                   <p className="text-muted-foreground text-[10px]">Report a reason (optional):</p>
@@ -793,13 +788,13 @@ export default function Call() {
               } else if (postCallRating === "dislike") {
                 toast({ title: `👎 You disliked ${partnerProfile?.username || "Anonymous"}`, duration: 2000 });
               }
+              room?.disconnect();
               endCall();
               if (isFriendCall) {
                 navigate(-1);
               } else {
                 navigate("/");
               }
-              // Background DB work
               handleEndCall(true);
             }} className="flex-1">
               End Call
@@ -823,7 +818,6 @@ export default function Call() {
         }}
       />
 
-      {/* Quiz Bet Modal */}
       <QuizBetModal
         open={showQuizBet}
         onOpenChange={setShowQuizBet}
@@ -835,7 +829,6 @@ export default function Call() {
         }}
       />
 
-      {/* Generic Game Bet Modal */}
       <GameBetModal
         open={showGameBet}
         onOpenChange={setShowGameBet}
@@ -848,7 +841,6 @@ export default function Call() {
         }}
       />
 
-      {/* Quiz Game Overlay */}
       {quizActive && !gameMinimized && (
         <QuizGameOverlay
           category={quizCategory}
@@ -859,7 +851,6 @@ export default function Call() {
         />
       )}
 
-      {/* Other Game Overlays - hidden when minimized to preserve state */}
       {activeGame === "wordchain" && !gameMinimized && <WordChainGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
       {activeGame === "wouldyourather" && !gameMinimized && <WouldYouRatherGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
       {activeGame === "truthordare" && !gameMinimized && <TruthOrDareGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
@@ -869,7 +860,6 @@ export default function Call() {
       {activeGame === "archery" && !gameMinimized && <ArcheryGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
       {activeGame === "sudoku" && !gameMinimized && <SudokuGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
 
-      {/* Floating Game Bubble - shown on call screen when game is minimized */}
       {gameMinimized && (activeGame || quizActive) && (
         <FloatingGameBubble
           gameName={activeGame || "quiz"}
@@ -877,14 +867,13 @@ export default function Call() {
         />
       )}
 
-      {/* Unified Post-Call Modal: Rating + Optional Report */}
+      {/* Post-Call Modal */}
       <Dialog open={showPostCallModal} onOpenChange={setShowPostCallModal}>
         <DialogContent className="glass-card border-border max-w-[320px]">
           <DialogHeader>
-          <DialogTitle className="text-foreground text-lg text-center">Rate your experience</DialogTitle>
+            <DialogTitle className="text-foreground text-lg text-center">Rate your experience</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            {/* Like / Dislike toggle */}
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => { setPostCallRating("like"); setSelectedReportReasons([]); setSelectedLikeReasons([]); }}
@@ -899,7 +888,7 @@ export default function Call() {
                   "w-10 h-10 rounded-full flex items-center justify-center transition-all",
                   postCallRating === "like" ? "bg-green-500/30" : "bg-green-500/20"
                 )}>
-                  {postCallRating === "like" 
+                  {postCallRating === "like"
                     ? <Flag className="w-5 h-5 text-green-400 fill-green-400" />
                     : <ThumbsUp className="w-5 h-5 text-green-400" />
                   }
@@ -928,7 +917,6 @@ export default function Call() {
               </button>
             </div>
 
-            {/* Reasons — shown inline based on rating */}
             {postCallRating === "dislike" && (
               <div className="space-y-1.5">
                 <p className="text-muted-foreground text-[10px]">Report a reason (optional):</p>
@@ -976,7 +964,6 @@ export default function Call() {
               </div>
             )}
 
-            {/* Submit */}
             <DialogFooter className="flex flex-col gap-2 sm:flex-col pt-1">
               <Button variant="destructive" onClick={handleSubmitPostCall} disabled={!postCallRating} className="w-full">
                 End Call
@@ -989,7 +976,7 @@ export default function Call() {
         </DialogContent>
       </Dialog>
 
-      {/* My Profile Bubble Popup */}
+      {/* My Profile Popup */}
       <Dialog open={showMyProfile} onOpenChange={setShowMyProfile}>
         <DialogContent className="max-w-[280px] rounded-3xl glass-card border-border p-5">
           <div className="flex flex-col items-center gap-3">
@@ -1038,5 +1025,30 @@ export default function Call() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/** Main Call component — wraps everything in LiveKitRoom */
+export default function Call() {
+  const location = useLocation();
+  const livekitToken = (location.state as any)?.livekitToken || null;
+  const roomId = (location.state as any)?.roomId || null;
+
+  // If no token (e.g. direct navigation or friend call), render without LiveKit
+  if (!livekitToken) {
+    return <CallRoomUI />;
+  }
+
+  return (
+    <LiveKitRoom
+      serverUrl={LIVEKIT_URL}
+      token={livekitToken}
+      connect={true}
+      audio={true}
+      video={false}
+      style={{ height: "100%" }}
+    >
+      <CallRoomUI />
+    </LiveKitRoom>
   );
 }
