@@ -109,6 +109,8 @@ export default function Rooms() {
     fetchRooms();
   }, []);
 
+  const [customRoomCode, setCustomRoomCode] = useState("");
+
   const handleCreateRoom = async () => {
     if (!roomTitle.trim()) {
       toast({ title: "Error", description: "Please enter a room title" });
@@ -121,7 +123,17 @@ export default function Rooms() {
       return;
     }
 
-    const newCode = generateRoomCode();
+    // Premium users can use a custom/previous room code
+    const newCode = (isPremium && customRoomCode.trim()) ? customRoomCode.trim() : generateRoomCode();
+
+    // Check if code already exists (for premium recreation)
+    if (isPremium && customRoomCode.trim()) {
+      const { data: existing } = await supabase.from("rooms").select("id").eq("room_code", newCode).maybeSingle();
+      if (existing) {
+        toast({ title: "Code already in use", description: "That room code is currently active. Choose another." });
+        return;
+      }
+    }
 
     // Insert room
     const { data: newRoom, error } = await supabase
@@ -151,6 +163,7 @@ export default function Rooms() {
     setRoomTitle("");
     setRoomType("public");
     setRoomLanguage("English");
+    setCustomRoomCode("");
 
     // Navigate to discussion
     navigate(`/room/${newCode}`);
@@ -434,6 +447,23 @@ export default function Rooms() {
                 </p>
               )}
             </div>
+
+            {/* Premium: Custom Room Code */}
+            {isPremium && (
+              <div>
+                <label className="text-sm text-muted-foreground mb-2 block">
+                  Custom Room Code <span className="text-xs text-primary">(Premium)</span>
+                </label>
+                <Input
+                  value={customRoomCode}
+                  onChange={(e) => setCustomRoomCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  placeholder="Leave empty for auto-generated"
+                  className="glass-button border-border"
+                  maxLength={8}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Recreate a favorite room with its previous code</p>
+              </div>
+            )}
 
             <Button 
               onClick={handleCreateRoom}

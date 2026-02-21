@@ -222,7 +222,25 @@ export default function RoomDiscussion() {
       .eq("room_id", room.id)
       .eq("user_id", user.id);
 
+    // Auto-delete room if no members remain
+    const { count } = await supabase
+      .from("room_members")
+      .select("*", { count: "exact", head: true })
+      .eq("room_id", room.id);
+    if (count === 0) {
+      await supabase.from("rooms").delete().eq("id", room.id);
+    }
+
     toast({ title: "Left room", description: `You left "${room.title}"` });
+    navigate("/rooms");
+  };
+
+  const handleCloseRoom = async () => {
+    if (!room || !user) return;
+    // Any active member can close the room (delegation)
+    await supabase.from("room_members").delete().eq("room_id", room.id);
+    await supabase.from("rooms").delete().eq("id", room.id);
+    toast({ title: "Room closed", description: `"${room.title}" has been permanently closed.` });
     navigate("/rooms");
   };
 
@@ -264,6 +282,9 @@ export default function RoomDiscussion() {
           </button>
           <button onClick={handleLeaveRoom} className="p-1.5 rounded-full hover:bg-destructive/10 text-destructive transition-colors" title="Leave room">
             <LogOut className="w-4 h-4" />
+          </button>
+          <button onClick={handleCloseRoom} className="p-1.5 rounded-full hover:bg-destructive/10 text-destructive transition-colors" title="Close room for everyone">
+            <span className="text-xs font-bold">✕</span>
           </button>
         </div>
       </div>

@@ -111,6 +111,7 @@ export default function UserProfilePage() {
   const [profileLoading, setProfileLoading] = useState(!stateUser);
   const { toast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   // Fetch profile from DB if no state was passed
   useEffect(() => {
@@ -168,7 +169,7 @@ export default function UserProfilePage() {
       });
   }, [user?.id]);
 
-  // Fetch my following list to know who I already follow
+  // Fetch my following list to know who I already follow + check if following this user
   useEffect(() => {
     const fetchMyFollowing = async () => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -178,10 +179,16 @@ export default function UserProfilePage() {
         .select("friend_id")
         .eq("user_id", authUser.id)
         .eq("status", "accepted");
-      if (data) setFollowedIds(new Set(data.map(f => f.friend_id)));
+      if (data) {
+        setFollowedIds(new Set(data.map(f => f.friend_id)));
+        // Set initial follow state for this user
+        if (id && data.some(f => f.friend_id === id)) {
+          setIsFollowing(true);
+        }
+      }
     };
     fetchMyFollowing();
-  }, []);
+  }, [id]);
 
   const openListModal = async (type: "following" | "followers" | "fans") => {
     if (!user) return;
@@ -405,7 +412,24 @@ export default function UserProfilePage() {
         {/* Action buttons */}
         <div className="flex items-center gap-3 mt-5 w-full max-w-xs">
           <Button
-            onClick={() => setIsFollowing(!isFollowing)}
+            onClick={async () => {
+              if (!user?.id || !myProfile?.id) return;
+              const newState = !isFollowing;
+              setIsFollowing(newState);
+              if (newState) {
+                await supabase.from("friendships").insert({ user_id: myProfile.id, friend_id: user.id, status: "accepted" });
+                // Increment followers_count on target
+                await supabase.from("profiles").update({ followers_count: (user.followersCount || 0) + 1 }).eq("id", user.id);
+                // Increment following_count on self
+                await supabase.from("profiles").update({ following_count: (myProfile.following_count ?? 0) + 1 }).eq("id", myProfile.id);
+                setUser(prev => prev ? { ...prev, followersCount: prev.followersCount + 1 } : prev);
+              } else {
+                await supabase.from("friendships").delete().eq("user_id", myProfile.id).eq("friend_id", user.id);
+                await supabase.from("profiles").update({ followers_count: Math.max(0, (user.followersCount || 1) - 1) }).eq("id", user.id);
+                await supabase.from("profiles").update({ following_count: Math.max(0, (myProfile.following_count ?? 1) - 1) }).eq("id", myProfile.id);
+                setUser(prev => prev ? { ...prev, followersCount: Math.max(0, prev.followersCount - 1) } : prev);
+              }
+            }}
             variant={isFollowing ? "outline" : "default"}
             size="sm"
             className="flex-1"

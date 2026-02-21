@@ -37,7 +37,9 @@ import ContactUs from "./pages/ContactUs";
 const queryClient = new QueryClient();
 
 function isProfileComplete(profile: any): boolean {
-  return !!(profile?.username && profile?.gender && profile.gender !== "unknown");
+  // Founder rule: gender defaults to 'male' — users can always access home.
+  // Only block if username is completely missing (null).
+  return !!(profile?.username);
 }
 
 const LoadingSpinner = () => (

@@ -754,6 +754,21 @@ export default function Chat() {
           )}
           {messages.map((message) => {
             const isMe = message.senderId === "me";
+            const isCallLog = message.content.startsWith("📞 ");
+            
+            // Instagram-style call log rendering
+            if (isCallLog) {
+              return (
+                <div key={message.id} className="flex justify-center">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-xs text-muted-foreground">
+                    <span>{message.content}</span>
+                    <span className="text-[10px]">{formatTime(message.timestamp)}</span>
+                    {isMe && getStatusIcon(message.status)}
+                  </div>
+                </div>
+              );
+            }
+            
             return (
               <div
                 key={message.id}
@@ -776,9 +791,7 @@ export default function Chat() {
                       <button
                         className="inline-flex items-center gap-1 underline"
                         onClick={async () => {
-                          // Show content briefly, then destroy from storage + DB
                           toast({ title: "📸 View Once", description: "This image will be deleted after viewing." });
-                          // Extract storage path from media_url if available
                           const msgRow = await supabase
                             .from("chat_messages")
                             .select("media_url")
@@ -786,18 +799,15 @@ export default function Chat() {
                             .single();
                           const mediaUrl = msgRow.data?.media_url;
                           if (mediaUrl) {
-                            // Extract file path from public URL
                             const pathMatch = mediaUrl.match(/chat_media\/(.+)$/);
                             if (pathMatch?.[1]) {
                               await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
                             }
                           }
-                          // Delete the message row
                           await supabase
                             .from("chat_messages")
                             .delete()
                             .eq("id", message.id);
-                          // Remove from local state
                           setMessages(prev => prev.filter(m => m.id !== message.id));
                           toast({ title: "View Once media destroyed", description: "File permanently deleted." });
                         }}
