@@ -455,34 +455,82 @@ export default function Chat() {
     });
   };
 
-  const stopRecording = () => {
+  const stopRecording = async () => {
     setIsRecording(false);
-    if (recordingTime > 0) {
+    if (recordingTime > 0 && profile?.id && selectedFriend) {
+      // Create a small audio blob placeholder (real MediaRecorder integration would go here)
+      const blob = new Blob([new ArrayBuffer(recordingTime * 100)], { type: "audio/webm" });
+      const fileName = `${profile.id}/voice_${Date.now()}.webm`;
+
+      // Optimistic local update
+      const tempId = Date.now().toString();
       const voiceMessage: Message = {
-        id: Date.now().toString(),
+        id: tempId,
         content: `🎤 Voice note (${recordingTime}s)`,
         senderId: "me",
         timestamp: new Date(),
         status: "sent",
         type: "voice",
       };
-      setMessages([...messages, voiceMessage]);
-      toast({
-        title: "Voice note sent!",
-        description: `${recordingTime} seconds recorded.`,
+      setMessages(prev => [...prev, voiceMessage]);
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("chat_media")
+        .upload(fileName, blob, { upsert: true });
+
+      if (uploadError) {
+        toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from("chat_media").getPublicUrl(fileName);
+
+      // Insert real message with media_url
+      const { error } = await supabase.from("chat_messages").insert({
+        sender_id: profile.id,
+        receiver_id: selectedFriend.id,
+        content: `🎤 Voice note (${recordingTime}s)`,
+        media_url: publicUrl,
       });
+
+      if (error) {
+        toast({ title: "Failed to send voice note", variant: "destructive" });
+      } else {
+        toast({ title: "Voice note sent!", description: `${recordingTime} seconds recorded.` });
+      }
     }
   };
 
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
   const handleImageOption = (viewOnce: boolean) => {
     setShowImageOptions(false);
-    toast({
-      title: viewOnce ? "📸 View Once Image" : "🖼️ Send Image",
-      description: viewOnce ? "Image will disappear after viewing" : "Selecting image...",
-    });
-    // Simulate sending image
+    // Trigger file picker
+    if (imageInputRef.current) {
+      imageInputRef.current.setAttribute("data-view-once", viewOnce ? "true" : "false");
+      imageInputRef.current.click();
+    }
+  };
+
+  const handleImageFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile?.id || !selectedFriend) return;
+    const viewOnce = e.target.getAttribute("data-view-once") === "true";
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please select an image.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max 10MB", variant: "destructive" });
+      return;
+    }
+
+    // Optimistic local update
+    const tempId = Date.now().toString();
     const imageMessage: Message = {
-      id: Date.now().toString(),
+      id: tempId,
       content: viewOnce ? "📸 View once photo" : "🖼️ Photo",
       senderId: "me",
       timestamp: new Date(),
@@ -490,7 +538,38 @@ export default function Chat() {
       type: "image",
       viewOnce,
     };
-    setMessages([...messages, imageMessage]);
+    setMessages(prev => [...prev, imageMessage]);
+
+    // Upload to Supabase Storage
+    const ext = file.name.split(".").pop() || "jpg";
+    const fileName = `${profile.id}/img_${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("chat_media")
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) {
+      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from("chat_media").getPublicUrl(fileName);
+
+    // Insert real message with media_url
+    const { error } = await supabase.from("chat_messages").insert({
+      sender_id: profile.id,
+      receiver_id: selectedFriend.id,
+      content: viewOnce ? "📸 View once photo" : "🖼️ Photo",
+      media_url: publicUrl,
+    });
+
+    if (error) {
+      toast({ title: "Failed to send image", variant: "destructive" });
+    } else {
+      toast({ title: viewOnce ? "📸 View once image sent!" : "🖼️ Image sent!" });
+    }
+
+    // Reset input
+    e.target.value = "";
   };
 
   const formatTime = (date: Date) => {
@@ -652,6 +731,15 @@ export default function Chat() {
           })}
           <div ref={messagesEndRef} />
         </main>
+
+        {/* Hidden file input for image uploads */}
+        <input
+          type="file"
+          ref={imageInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageFileSelected}
+        />
 
         {/* Message Input */}
         <div className="p-4 glass-nav safe-bottom">
