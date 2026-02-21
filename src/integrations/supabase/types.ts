@@ -271,6 +271,36 @@ export type Database = {
           },
         ]
       }
+      matchmaking_queue: {
+        Row: {
+          created_at: string
+          id: string
+          matched_with: string | null
+          room_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          matched_with?: string | null
+          room_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          matched_with?: string | null
+          room_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           created_at: string
@@ -749,6 +779,7 @@ export type Database = {
     }
     Functions: {
       check_reference_id: { Args: { ref_id: string }; Returns: boolean }
+      find_match: { Args: { p_user_id: string }; Returns: Json }
       get_my_role: { Args: never; Returns: string }
       get_public_profile_columns: {
         Args: never
@@ -780,6 +811,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      leave_matchmaking: { Args: { p_user_id: string }; Returns: undefined }
       sync_test_role: { Args: never; Returns: Json }
     }
     Enums: {

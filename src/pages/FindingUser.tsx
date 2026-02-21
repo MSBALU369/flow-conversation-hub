@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import worldMapImg from "@/assets/world-map.png";
 import {
@@ -16,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 const SEARCH_TIMEOUT = 30;
+const POLL_INTERVAL = 2500; // Poll every 2.5 seconds
 
 const STATUS_MESSAGES = [
   "Finding a perfect partner for you...",
@@ -30,11 +32,15 @@ export default function FindingUser() {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile } = useProfile();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [countdown, setCountdown] = useState(SEARCH_TIMEOUT);
   const [statusIndex, setStatusIndex] = useState(0);
   const [showNoMatchModal, setShowNoMatchModal] = useState(false);
   const [isFetchingToken, setIsFetchingToken] = useState(false);
+  const [isMatched, setIsMatched] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
 
   // Read premium filters from route state
   const levelFilter = (location.state as any)?.levelFilter || null;
@@ -48,6 +54,19 @@ export default function FindingUser() {
   const circumference = 2 * Math.PI * radius;
   const progress = countdown / SEARCH_TIMEOUT;
   const strokeDashoffset = circumference * (1 - progress);
+
+  // Cleanup: leave matchmaking queue on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (pollRef.current) clearInterval(pollRef.current);
+      // Fire-and-forget cleanup
+      if (user?.id) {
+        supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+      }
+    };
+  }, [user?.id]);
 
   // Countdown timer
   useEffect(() => {
@@ -78,22 +97,45 @@ export default function FindingUser() {
     return () => clearTimeout(timer);
   }, [filtersActive]);
 
-  // Auto-navigate to call (only if no filter timeout)
+  // Real matchmaking polling
+  const pollForMatch = useCallback(async () => {
+    if (!user?.id || isFetchingToken || isMatched || !mountedRef.current) return;
+
+    try {
+      const { data, error } = await supabase.rpc("find_match", { p_user_id: user.id });
+      if (error || !mountedRef.current) return;
+
+      const result = data as { status: string; room_id?: string; matched_with?: string };
+
+      if (result?.status === "matched" && result?.room_id) {
+        setIsMatched(true);
+        if (pollRef.current) clearInterval(pollRef.current);
+        await fetchTokenAndNavigate(result.room_id);
+      }
+    } catch (err) {
+      console.error("Matchmaking poll error:", err);
+    }
+  }, [user?.id, isFetchingToken, isMatched]);
+
+  // Start polling when component mounts (and user is ready)
   useEffect(() => {
-    if (filterTimeout || isFetchingToken) return;
+    if (!user?.id || filterTimeout || isMatched) return;
 
-    const connectTimer = setTimeout(async () => {
-      await fetchTokenAndNavigate();
-    }, 3500);
+    // Initial call
+    pollForMatch();
 
-    return () => clearTimeout(connectTimer);
-  }, [navigate, filterTimeout, isFetchingToken]);
+    // Poll every 2.5s
+    pollRef.current = setInterval(pollForMatch, POLL_INTERVAL);
 
-  const fetchTokenAndNavigate = async () => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [user?.id, filterTimeout, isMatched, pollForMatch]);
+
+  const fetchTokenAndNavigate = async (roomId: string) => {
+    if (!mountedRef.current) return;
     setIsFetchingToken(true);
-    
-    // Generate a unique room ID for this call
-    const roomId = `room_${crypto.randomUUID()}`;
+
     const participantName = profile?.username || "User";
 
     try {
@@ -114,10 +156,7 @@ export default function FindingUser() {
 
       navigate("/call", {
         replace: true,
-        state: {
-          roomId,
-          livekitToken: data.token,
-        },
+        state: { roomId, livekitToken: data.token },
       });
     } catch (err) {
       console.error("Token fetch error:", err);
@@ -130,7 +169,12 @@ export default function FindingUser() {
     }
   };
 
-  const handleCancel = () => navigate(-1);
+  const handleCancel = () => {
+    if (user?.id) {
+      supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+    }
+    navigate(-1);
+  };
 
   const handleExpandSearch = () => {
     setFiltersActive(false);
@@ -138,6 +182,7 @@ export default function FindingUser() {
     setShowNoMatchModal(false);
     setCountdown(SEARCH_TIMEOUT);
     setIsFetchingToken(false);
+    setIsMatched(false);
   };
 
   return (
