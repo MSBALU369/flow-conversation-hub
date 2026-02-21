@@ -158,36 +158,47 @@ function CallRoomUI() {
 
   const callStartTime = useRef<number>(Date.now());
 
-  // LiveKit: toggle mute
+  // LiveKit: toggle mute — only after room is connected
   useEffect(() => {
-    if (localParticipant) {
+    if (localParticipant && room?.state === 'connected') {
       localParticipant.setMicrophoneEnabled(!isMuted);
     }
-  }, [isMuted, localParticipant]);
+  }, [isMuted, localParticipant, room?.state]);
 
-  // LiveKit: detect speaking via simple pulse simulation
+  // LiveKit: detect real speaking via audio level events
   useEffect(() => {
-    if (callStatus !== "talking") {
-      setIsSpeaking(false);
-      setPulseIntensity(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      const intensity = 0.3 + Math.random() * 0.7;
-      setIsSpeaking(true);
-      setPulseIntensity(isMuted ? intensity * 0.3 : intensity);
-    }, 200);
-    return () => clearInterval(interval);
-  }, [callStatus, isMuted]);
+    if (!room) return;
+    const handleActiveSpeakers = (speakers: any[]) => {
+      const localIsSpeaking = speakers.some(s => s.isLocal);
+      setIsSpeaking(localIsSpeaking);
+      setPulseIntensity(localIsSpeaking ? 0.7 : 0);
+    };
+    room.on(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakers);
+    return () => { room.off(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakers); };
+  }, [room]);
 
-  // Simulate partner mute toggling
+  // LiveKit: detect real partner mute status
   useEffect(() => {
-    if (callStatus !== "talking") return;
-    const interval = setInterval(() => {
-      setIsPartnerMuted(Math.random() > 0.85);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [callStatus]);
+    if (!room) return;
+    const handleTrackMuted = () => {
+      const remoteParticipant = participants.find(p => !p.isLocal);
+      if (remoteParticipant) {
+        const audioTrack = remoteParticipant.getTrackPublications().find(
+          t => t.kind === Track.Kind.Audio
+        );
+        setIsPartnerMuted(audioTrack?.isMuted ?? false);
+      }
+    };
+    room.on(RoomEvent.TrackMuted, handleTrackMuted);
+    room.on(RoomEvent.TrackUnmuted, handleTrackMuted);
+    room.on(RoomEvent.ParticipantConnected, handleTrackMuted);
+    handleTrackMuted(); // check initial state
+    return () => {
+      room.off(RoomEvent.TrackMuted, handleTrackMuted);
+      room.off(RoomEvent.TrackUnmuted, handleTrackMuted);
+      room.off(RoomEvent.ParticipantConnected, handleTrackMuted);
+    };
+  }, [room, participants]);
 
   // Fetch partner profile from real data
   useEffect(() => {
@@ -355,8 +366,8 @@ function CallRoomUI() {
 
   return (
     <div className="min-h-screen flex flex-col call-immersive-bg">
-      {/* Hidden AudioConference handles all audio routing */}
-      <div className="hidden">
+      {/* AudioConference handles all audio routing — visually hidden but must render */}
+      <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
         <AudioConference />
       </div>
 
