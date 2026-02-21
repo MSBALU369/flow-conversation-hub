@@ -18,13 +18,6 @@ interface BlockedUser {
   avatar_url: string | null;
 }
 
-// Dummy blocked users for demo
-const dummyBlockedUsers: BlockedUser[] = [
-  { id: "dummy-1", friend_id: "user-1", username: "ToxicUser123", avatar_url: null },
-  { id: "dummy-2", friend_id: "user-2", username: "SpamBot99", avatar_url: null },
-  { id: "dummy-3", friend_id: "user-3", username: "RudeGuy", avatar_url: null },
-  { id: "dummy-4", friend_id: "user-4", username: "Annoying_Person", avatar_url: null },
-];
 
 interface BlockedListManagerProps {
   open: boolean;
@@ -48,8 +41,7 @@ export function BlockedListManager({ open, onOpenChange }: BlockedListManagerPro
     setLoading(true);
     
     if (!user?.id) {
-      // Show dummy data when no user is logged in
-      setBlockedUsers(dummyBlockedUsers);
+      setBlockedUsers([]);
       setLoading(false);
       return;
     }
@@ -69,8 +61,7 @@ export function BlockedListManager({ open, onOpenChange }: BlockedListManagerPro
 
     if (error) {
       console.error("Error fetching blocked users:", error);
-      // Fallback to dummy data on error
-      setBlockedUsers(dummyBlockedUsers);
+      setBlockedUsers([]);
     } else {
       const formattedData: BlockedUser[] = (data || []).map((item: any) => ({
         id: item.id,
@@ -78,26 +69,13 @@ export function BlockedListManager({ open, onOpenChange }: BlockedListManagerPro
         username: item.profiles?.username || "Unknown User",
         avatar_url: item.profiles?.avatar_url,
       }));
-      // Combine real data with dummy data for demo
-      setBlockedUsers(formattedData.length > 0 ? formattedData : dummyBlockedUsers);
+      setBlockedUsers(formattedData);
     }
     setLoading(false);
   };
 
   const handleUnblock = async (friendshipId: string, friendId: string) => {
     setUnblocking(friendId);
-    
-    // Check if it's a dummy user
-    if (friendshipId.startsWith("dummy-")) {
-      // Immediately remove from list for dummy users
-      setBlockedUsers((prev) => prev.filter((u) => u.id !== friendshipId));
-      toast({
-        title: "Unblocked",
-        description: "User has been unblocked. You can now interact again.",
-      });
-      setUnblocking(null);
-      return;
-    }
     
     const { error } = await supabase
       .from("friendships")

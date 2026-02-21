@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Mic, Play, Pause, Heart, MessageCircle, Star, Upload, Clock, Share2, Users, ArrowLeft, MoreVertical, EyeOff, Eye, Trash2, Flag, Send, Link, UserPlus, Reply, FolderOpen, ListMusic, Plus, Check, ThumbsDown, X, Lock, Globe } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -65,84 +66,13 @@ const languages = [
   "Nepali",
 ];
 
-// Mock data with categories - First 2 are Singing
-const mockTalentPosts: TalentPost[] = [{
-  id: "1",
-  username: "MelodyQueen",
-  avatar: null,
-  language: "English",
-  category: "Singing",
-  title: "Amazing cover of 'Perfect' by Ed Sheeran",
-  likes: 156,
-  plays: 892,
-  shares: 12,
-  duration: "2:45",
-  isLiked: false,
-  isFan: false,
-  isPrivate: false
-}, {
-  id: "2",
-  username: "SoulSinger",
-  avatar: null,
-  language: "Hindi",
-  category: "Singing",
-  title: "Tum Hi Ho - Aashiqui 2 Cover",
-  likes: 234,
-  plays: 1205,
-  shares: 34,
-  duration: "3:10",
-  isLiked: true,
-  isFan: true,
-  isPrivate: false
-}, {
-  id: "3",
-  username: "ComedyKing",
-  avatar: null,
-  language: "English",
-  category: "Comedy",
-  title: "When you try to speak English in India 😂",
-  likes: 89,
-  plays: 432,
-  shares: 5,
-  duration: "1:30",
-  isLiked: false,
-  isFan: false,
-  isPrivate: false
-}, {
-  id: "4",
-  username: "FilmFan",
-  avatar: null,
-  language: "Hindi",
-  category: "Dialogue",
-  title: "Iconic Bollywood dialogues compilation",
-  likes: 45,
-  plays: 234,
-  shares: 3,
-  duration: "1:45",
-  isLiked: false,
-  isFan: false,
-  isPrivate: false
-}, {
-  id: "5",
-  username: "MotivateDaily",
-  avatar: null,
-  language: "English",
-  category: "Motivation",
-  title: "Start your day with positive energy!",
-  likes: 178,
-  plays: 567,
-  shares: 20,
-  duration: "2:00",
-  isLiked: false,
-  isFan: false,
-  isPrivate: false
-}];
+// No mock data - talent posts fetched from Supabase
 export default function Talent() {
   const {
     profile
   } = useProfile();
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<TalentPost[]>(mockTalentPosts);
+  const [posts, setPosts] = useState<TalentPost[]>([]);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showMyTalents, setShowMyTalents] = useState(false);
@@ -165,14 +95,62 @@ export default function Talent() {
   const [previewPostId, setPreviewPostId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Mock friends for sharing
-  const shareFriends = [
-    { id: "1", name: "Sarah", avatar: null },
-    { id: "2", name: "Raj", avatar: null },
-    { id: "3", name: "Maria", avatar: null },
-    { id: "4", name: "Alex", avatar: null },
-    { id: "5", name: "Priya", avatar: null },
-  ];
+  // Fetch real talent posts from Supabase
+  useEffect(() => {
+    const fetchTalents = async () => {
+      const { data } = await supabase
+        .from("talent_uploads")
+        .select("id, title, language, likes_count, plays_count, duration_sec, created_at, user_id, is_private")
+        .eq("is_private", false)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (!data || data.length === 0) { setPosts([]); return; }
+
+      const userIds = [...new Set(data.map(t => t.user_id))];
+      const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_url").in("id", userIds);
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+      setPosts(data.map(t => {
+        const p = profileMap.get(t.user_id);
+        const durMin = Math.floor((t.duration_sec || 0) / 60);
+        const durSec = (t.duration_sec || 0) % 60;
+        return {
+          id: t.id,
+          username: p?.username || "User",
+          avatar: p?.avatar_url || null,
+          language: t.language || "English",
+          category: "Singing",
+          title: t.title || "Untitled",
+          likes: t.likes_count,
+          plays: t.plays_count,
+          shares: 0,
+          duration: `${durMin}:${durSec.toString().padStart(2, '0')}`,
+          isLiked: false,
+          isFan: false,
+          isPrivate: t.is_private,
+        };
+      }));
+    };
+    fetchTalents();
+  }, []);
+
+  // Fetch real friends for sharing from mutual followers
+  const [shareFriends, setShareFriends] = useState<{ id: string; name: string; avatar: string | null }[]>([]);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    const fetchShareFriends = async () => {
+      const { data: iFollow } = await supabase.from("friendships").select("friend_id").eq("user_id", profile.id).eq("status", "accepted");
+      const { data: followMe } = await supabase.from("friendships").select("user_id").eq("friend_id", profile.id).eq("status", "accepted");
+      const iFollowSet = new Set((iFollow || []).map(f => f.friend_id));
+      const mutualIds = (followMe || []).map(f => f.user_id).filter(id => iFollowSet.has(id));
+      if (mutualIds.length === 0) { setShareFriends([]); return; }
+      const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_url").in("id", mutualIds);
+      setShareFriends((profiles || []).map(p => ({ id: p.id, name: p.username || "User", avatar: p.avatar_url })));
+    };
+    fetchShareFriends();
+  }, [profile?.id]);
 
   // Users available for @mention (post authors + friends)
   const mentionUsers = [
@@ -420,7 +398,13 @@ export default function Talent() {
 
         {/* Talent Cards - COMPACT */}
         <div className="space-y-2">
-          {filteredPosts.map(post => <div key={post.id} className="glass-card p-2.5">
+          {filteredPosts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Mic className="w-12 h-12 text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">No talents yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Be the first to share your talent!</p>
+            </div>
+          ) : filteredPosts.map(post => <div key={post.id} className="glass-card p-2.5">
               <div className="flex items-start gap-2.5">
                 {/* Avatar - Smaller */}
                 <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
