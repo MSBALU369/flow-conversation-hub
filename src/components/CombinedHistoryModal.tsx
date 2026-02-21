@@ -1,7 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { Clock, PhoneIncoming, PhoneOutgoing, PhoneMissed, Users, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import { Clock, PhoneIncoming, PhoneOutgoing, PhoneMissed, Users, Phone, ChevronDown, ChevronUp, UserPlus, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +20,13 @@ interface CallHistoryItem {
   created_at: string;
 }
 
+interface PartnerProfile {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  level: number | null;
+}
+
 interface CombinedHistoryModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,6 +36,10 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
   const [callHistory, setCallHistory] = useState<CallHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [partnerProfiles, setPartnerProfiles] = useState<Record<string, PartnerProfile>>({});
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+  const [followLoading, setFollowLoading] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -39,7 +53,31 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
         .order("created_at", { ascending: false })
         .limit(50);
 
-      setCallHistory((calls as unknown as CallHistoryItem[]) || []);
+      const items = (calls as unknown as CallHistoryItem[]) || [];
+      setCallHistory(items);
+
+      // Fetch partner profiles by username
+      const uniqueNames = [...new Set(items.map(c => c.partner_name))].filter(Boolean);
+      if (uniqueNames.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, username, avatar_url, level")
+          .in("username", uniqueNames);
+        if (profiles) {
+          const map: Record<string, PartnerProfile> = {};
+          profiles.forEach(p => { if (p.username) map[p.username] = p as PartnerProfile; });
+          setPartnerProfiles(map);
+        }
+      }
+
+      // Fetch existing friendships
+      const { data: friendships } = await supabase
+        .from("friendships")
+        .select("friend_id")
+        .eq("user_id", user.id);
+      if (friendships) {
+        setFollowingIds(new Set(friendships.map(f => f.friend_id)));
+      }
     } catch (err) {
       console.error("Error fetching history:", err);
     } finally {
@@ -54,6 +92,25 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
     }
   }, [open, fetchHistory]);
 
+  const handleFollow = async (partnerId: string) => {
+    setFollowLoading(partnerId);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from("friendships").insert({ user_id: user.id, friend_id: partnerId, status: "accepted" });
+      setFollowingIds(prev => new Set(prev).add(partnerId));
+    } catch (err) {
+      console.error("Follow error:", err);
+    } finally {
+      setFollowLoading(null);
+    }
+  };
+
+  const handleProfileClick = (partnerId: string) => {
+    onOpenChange(false);
+    navigate(`/user/${partnerId}`);
+  };
+
   const formatDuration = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`;
     const mins = Math.floor(seconds / 60);
@@ -63,27 +120,17 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "incoming":
-        return <PhoneIncoming className="w-3.5 h-3.5" />;
-      case "missed":
-        return <PhoneMissed className="w-3.5 h-3.5" />;
-      case "outgoing":
-      case "completed":
-      default:
-        return <PhoneOutgoing className="w-3.5 h-3.5" />;
+      case "incoming": return <PhoneIncoming className="w-3.5 h-3.5" />;
+      case "missed": return <PhoneMissed className="w-3.5 h-3.5" />;
+      default: return <PhoneOutgoing className="w-3.5 h-3.5" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "incoming":
-        return { bg: "bg-green-500/15", text: "text-green-500", icon: "text-green-500" };
-      case "missed":
-        return { bg: "bg-destructive/15", text: "text-destructive", icon: "text-destructive" };
-      case "outgoing":
-      case "completed":
-      default:
-        return { bg: "bg-blue-500/15", text: "text-blue-500", icon: "text-blue-500" };
+      case "incoming": return { bg: "bg-green-500/15", text: "text-green-500", icon: "text-green-500" };
+      case "missed": return { bg: "bg-destructive/15", text: "text-destructive", icon: "text-destructive" };
+      default: return { bg: "bg-blue-500/15", text: "text-blue-500", icon: "text-blue-500" };
     }
   };
 
@@ -91,13 +138,10 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
     switch (status) {
       case "incoming": return "Incoming";
       case "missed": return "Missed";
-      case "outgoing":
-      case "completed":
       default: return "Outgoing";
     }
   };
 
-  // Group calls by partner name
   const groupedCalls = callHistory.reduce<Record<string, CallHistoryItem[]>>((acc, item) => {
     if (!acc[item.partner_name]) acc[item.partner_name] = [];
     acc[item.partner_name].push(item);
@@ -144,28 +188,60 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                 const isExpanded = expandedUser === name;
                 const lastCall = calls[0];
                 const lastColors = getStatusColor(lastCall.status);
+                const partner = partnerProfiles[name];
+                const isFollowing = partner ? followingIds.has(partner.id) : false;
+
                 return (
                   <li key={name}>
-                    {/* User row – tap to expand */}
-                    <button
-                      onClick={() => setExpandedUser(isExpanded ? null : name)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors text-left"
-                    >
-                      <div className={`w-10 h-10 rounded-full ${lastColors.bg} flex items-center justify-center ${lastColors.icon}`}>
-                        {getStatusIcon(lastCall.status)}
-                      </div>
-                      <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors">
+                      {/* Avatar – clickable to profile */}
+                      <button
+                        onClick={() => partner && handleProfileClick(partner.id)}
+                        className="shrink-0"
+                        disabled={!partner}
+                      >
+                        <Avatar className="w-10 h-10">
+                          {partner?.avatar_url ? (
+                            <AvatarImage src={partner.avatar_url} alt={name} />
+                          ) : null}
+                          <AvatarFallback className={`${lastColors.bg} ${lastColors.icon}`}>
+                            {getStatusIcon(lastCall.status)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
+
+                      {/* Name & stats – clickable to profile */}
+                      <button
+                        onClick={() => partner && handleProfileClick(partner.id)}
+                        className="flex-1 min-w-0 text-left"
+                        disabled={!partner}
+                      >
                         <p className="text-sm font-medium text-foreground truncate">{name}</p>
                         <p className="text-[10px] text-muted-foreground">
                           {calls.length} call{calls.length > 1 ? "s" : ""} · {formatDuration(getTotalDuration(calls))} total
                         </p>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      </div>
-                    </button>
+                      </button>
 
-                    {/* Expanded call list */}
+                      {/* Follow button */}
+                      {partner && (
+                        <Button
+                          size="sm"
+                          variant={isFollowing ? "secondary" : "default"}
+                          className="h-7 px-2.5 text-xs gap-1"
+                          disabled={isFollowing || followLoading === partner.id}
+                          onClick={(e) => { e.stopPropagation(); handleFollow(partner.id); }}
+                        >
+                          {isFollowing ? <Check className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                          {isFollowing ? "Following" : "Follow"}
+                        </Button>
+                      )}
+
+                      {/* Expand toggle */}
+                      <button onClick={() => setExpandedUser(isExpanded ? null : name)} className="text-muted-foreground p-1">
+                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                    </div>
+
                     {isExpanded && (
                       <ul className="mt-1 ml-6 space-y-1 border-l-2 border-border pl-3">
                         {calls.map((item) => {
