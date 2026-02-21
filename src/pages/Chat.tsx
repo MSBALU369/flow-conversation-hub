@@ -108,7 +108,7 @@ export default function Chat() {
   const { profile } = useProfile();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { startCall } = useCallState();
+  const { initiateDirectCall } = useCallState();
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -686,52 +686,9 @@ export default function Chat() {
           {/* Audio Call Button */}
           <button
             className="p-2 rounded-lg hover:bg-muted/50 text-primary"
-            onClick={async () => {
+            onClick={() => {
               if (!profile?.id || !selectedFriend) return;
-              try {
-                // 1. Insert a pending call row so receiver gets Realtime notification
-                const { data: callRow, error: callErr } = await supabase
-                  .from("calls")
-                  .insert({
-                    caller_id: profile.id,
-                    receiver_id: selectedFriend.id,
-                    status: "pending",
-                  })
-                  .select()
-                  .single();
-
-                if (callErr || !callRow) {
-                  toast({ title: "Call Error", description: "Could not initiate call.", variant: "destructive" });
-                  return;
-                }
-
-                const roomId = `direct_${callRow.id}`;
-
-                // 2. Get LiveKit token for caller
-                const { data: tokenData, error: tokenErr } = await supabase.functions.invoke("generate-livekit-token", {
-                  body: { room_id: roomId, participant_name: profile.username || "User" },
-                });
-
-                if (tokenErr || !tokenData?.token) {
-                  toast({ title: "Connection Error", description: "Could not establish call.", variant: "destructive" });
-                  return;
-                }
-
-                startCall(selectedFriend.name, selectedFriend.avatar);
-                navigate("/call", {
-                  replace: true,
-                  state: {
-                    roomId,
-                    livekitToken: tokenData.token,
-                    matchedUserId: selectedFriend.id,
-                    partnerName: selectedFriend.name,
-                    partnerAvatar: selectedFriend.avatar,
-                    directCallId: callRow.id,
-                  },
-                });
-              } catch {
-                toast({ title: "Call Error", description: "Something went wrong.", variant: "destructive" });
-              }
+              initiateDirectCall(selectedFriend.id, selectedFriend.name, selectedFriend.avatar);
             }}
           >
             <Phone className="w-5 h-5" />
