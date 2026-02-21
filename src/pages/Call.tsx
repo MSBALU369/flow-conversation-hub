@@ -10,7 +10,7 @@ import {
   useLocalParticipant,
 } from "@livekit/components-react";
 import { RoomEvent, Track } from "livekit-client";
-import "@livekit/components-styles";
+// LiveKit styles handled via custom CSS
 import {
   ArrowLeft,
   RefreshCw,
