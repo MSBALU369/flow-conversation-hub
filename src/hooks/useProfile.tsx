@@ -12,6 +12,7 @@ interface Profile {
   is_online: boolean | null;
   energy_bars: number | null;
   last_refill_time: string | null;
+  last_username_change: string | null;
   level: number | null;
   xp: number | null;
   streak_count: number | null;

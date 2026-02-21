@@ -403,20 +403,39 @@ export default function Profile() {
       });
     }
   };
-  const canEditProfile = () => true;
+  const canEditProfile = () => {
+    if (!profile?.last_username_change) return true;
+    const lastChange = new Date(profile.last_username_change);
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // If last change was more than a week ago, allow
+    if (lastChange < oneWeekAgo) return true;
+    // Count how many times changed this week by checking if last_username_change is within this week
+    // Since we only store the last change timestamp, we use a simple rule:
+    // Allow max 2 changes per week. We track this by checking the time gap.
+    // If the last change was less than 3.5 days ago (half a week), that means likely 2 changes already.
+    const diffDays = (now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays < 3.5) return false; // Block: too soon after last change
+    return true;
+  };
   const handleEditName = async () => {
     if (!editName.trim()) return;
     if (!canEditProfile()) {
       toast({
         title: "Edit Limit Reached",
-        description: "You can only change your name twice per week.",
+        description: "You can only change your name twice per week. Try again later.",
         variant: "destructive"
       });
       return;
     }
-    await updateProfile({
-      username: editName
-    });
+    const { error } = await updateProfile({
+      username: editName,
+      last_username_change: new Date().toISOString(),
+    } as any);
+    if (error) {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({
       title: "Updated!",
       description: "Your name has been changed."
@@ -445,11 +464,11 @@ export default function Profile() {
     setUploadingAvatar(true);
     try {
       const ext = file.name.split(".").pop();
-      const path = `${profile.id}/avatar.${ext}`;
+      const path = `${profile.id}/avatar_${Date.now()}.${ext}`;
       const {
         error: uploadError
       } = await supabase.storage.from("avatars").upload(path, file, {
-        upsert: true
+        upsert: false
       });
       if (uploadError) throw uploadError;
       const {
@@ -457,9 +476,8 @@ export default function Profile() {
           publicUrl
         }
       } = supabase.storage.from("avatars").getPublicUrl(path);
-      const url = `${publicUrl}?t=${Date.now()}`;
       await updateProfile({
-        avatar_url: url
+        avatar_url: publicUrl
       });
       toast({
         title: "Profile picture updated!"
@@ -582,6 +600,19 @@ export default function Profile() {
             </p>
 
             <LocationSelector country={profile?.country || null} city={profile?.location_city || null} lastLocationChange={profile?.last_location_change || null} compact onSelect={async (country, city) => {
+            // Enforce 24-hour cooldown on location changes
+            if (profile?.last_location_change) {
+              const lastChange = new Date(profile.last_location_change);
+              const hoursSince = (Date.now() - lastChange.getTime()) / (1000 * 60 * 60);
+              if (hoursSince < 24) {
+                toast({
+                  title: "Location Locked",
+                  description: "Location can only be changed once every 24 hours.",
+                  variant: "destructive"
+                });
+                return;
+              }
+            }
             await updateProfile({
               country,
               location_city: city,

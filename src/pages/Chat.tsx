@@ -264,6 +264,10 @@ export default function Chat() {
     const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
     // Only horizontal swipe, ignore vertical scrolling
     if (deltaY > 30) { touchStartRef.current = null; return; }
+    // Prevent vertical scroll when swiping horizontally
+    if (Math.abs(deltaX) > deltaY) {
+      e.preventDefault();
+    }
     if (deltaX < 0) {
       setSwipeOffsets(prev => ({ ...prev, [friendId]: Math.min(0, deltaX) }));
     }
@@ -925,37 +929,54 @@ export default function Chat() {
                     case "1m": cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
                     default: cutoff = new Date(0);
                   }
-                  // Real Supabase DELETE
+                  // Real Supabase DELETE with orphaned media cleanup
                   if (profile?.id && selectedFriend) {
-                    const deleteQuery = supabase
+                    // Step 1: Fetch messages to be deleted (to find media_urls)
+                    let selectQuery = supabase
+                      .from("chat_messages")
+                      .select("id, media_url")
+                      .eq("sender_id", profile.id)
+                      .eq("receiver_id", selectedFriend.id);
+                    if (clearChatOption !== "all") {
+                      selectQuery = selectQuery.gte("created_at", cutoff.toISOString());
+                    }
+                    const { data: toDelete } = await selectQuery;
+
+                    // Step 2: Remove orphaned media from storage
+                    if (toDelete && toDelete.length > 0) {
+                      const mediaPaths = toDelete
+                        .filter(m => m.media_url)
+                        .map(m => {
+                          // Extract storage path from public URL
+                          const url = m.media_url!;
+                          const bucketSegment = "/chat_media/";
+                          const idx = url.indexOf(bucketSegment);
+                          return idx !== -1 ? url.substring(idx + bucketSegment.length).split("?")[0] : null;
+                        })
+                        .filter(Boolean) as string[];
+
+                      if (mediaPaths.length > 0) {
+                        await supabase.storage.from("chat_media").remove(mediaPaths);
+                      }
+                    }
+
+                    // Step 3: Delete messages
+                    let deleteQuery = supabase
                       .from("chat_messages")
                       .delete()
                       .eq("sender_id", profile.id)
-                      .or(`receiver_id.eq.${selectedFriend.id}`)
-                      .gte("created_at", cutoff.toISOString());
+                      .eq("receiver_id", selectedFriend.id);
+                    if (clearChatOption !== "all") {
+                      deleteQuery = deleteQuery.gte("created_at", cutoff.toISOString());
+                    }
 
-                    // For "all time", don't filter by date
-                    const query = clearChatOption === "all"
-                      ? supabase
-                          .from("chat_messages")
-                          .delete()
-                          .eq("sender_id", profile.id)
-                          .eq("receiver_id", selectedFriend.id)
-                      : supabase
-                          .from("chat_messages")
-                          .delete()
-                          .eq("sender_id", profile.id)
-                          .eq("receiver_id", selectedFriend.id)
-                          .gte("created_at", cutoff.toISOString());
-
-                    const { error } = await query;
+                    const { error } = await deleteQuery;
                     if (error) {
                       console.error("Failed to clear chat:", error);
                       toast({ title: "Failed to clear chat", variant: "destructive" });
                     } else {
-                      // Update local state to reflect deletion
                       setMessages(prev => prev.filter(m => {
-                        if (m.senderId !== "me") return true; // keep partner messages (they own those)
+                        if (m.senderId !== "me") return true;
                         if (clearChatOption === "all") return false;
                         return m.timestamp < cutoff;
                       }));
