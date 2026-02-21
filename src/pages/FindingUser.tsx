@@ -1,46 +1,35 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, X, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { useProfile } from "@/hooks/useProfile";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useCallState } from "@/hooks/useCallState";
 import worldMapImg from "@/assets/world-map.png";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription } from
-"@/components/ui/dialog";
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 const SEARCH_TIMEOUT = 30;
-const POLL_INTERVAL = 2500; // Poll every 2.5 seconds
 
 const STATUS_MESSAGES = [
-"Finding a perfect partner for you...",
-"Searching in Europe...",
-"Connecting to India...",
-"Looking for the best match...",
-"Scanning Australia...",
-"Checking in New York..."];
-
+  "Finding a perfect partner for you...",
+  "Searching in Europe...",
+  "Connecting to India...",
+  "Looking for the best match...",
+  "Scanning Australia...",
+  "Checking in New York...",
+];
 
 export default function FindingUser() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile } = useProfile();
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const { isSearching, startSearching, stopSearching } = useCallState();
   const [countdown, setCountdown] = useState(SEARCH_TIMEOUT);
   const [statusIndex, setStatusIndex] = useState(0);
   const [showNoMatchModal, setShowNoMatchModal] = useState(false);
-  const [isFetchingToken, setIsFetchingToken] = useState(false);
-  const [isMatched, setIsMatched] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const mountedRef = useRef(true);
 
   // Read premium filters from route state
   const levelFilter = (location.state as any)?.levelFilter || null;
@@ -55,26 +44,17 @@ export default function FindingUser() {
   const progress = countdown / SEARCH_TIMEOUT;
   const strokeDashoffset = circumference * (1 - progress);
 
-  // Cleanup: leave matchmaking queue on unmount
+  // Start searching on mount if not already
   useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      if (pollRef.current) clearInterval(pollRef.current);
-      // Fire-and-forget cleanup
-      if (user?.id) {
-        supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
-      }
-    };
-  }, [user?.id]);
+    if (!isSearching) {
+      startSearching();
+    }
+  }, []);
 
-  // Countdown timer
+  // Countdown timer (visual only)
   useEffect(() => {
     const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) return SEARCH_TIMEOUT;
-        return prev - 1;
-      });
+      setCountdown((prev) => (prev <= 1 ? SEARCH_TIMEOUT : prev - 1));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -97,82 +77,14 @@ export default function FindingUser() {
     return () => clearTimeout(timer);
   }, [filtersActive]);
 
-  // Real matchmaking polling
-  const pollForMatch = useCallback(async () => {
-    if (!user?.id || isFetchingToken || isMatched || !mountedRef.current) return;
-
-    try {
-      const { data, error } = await supabase.rpc("find_match", { p_user_id: user.id });
-      if (error || !mountedRef.current) return;
-
-      const result = data as {status: string;room_id?: string;matched_with?: string;};
-
-      if (result?.status === "matched" && result?.room_id) {
-        setIsMatched(true);
-        if (pollRef.current) clearInterval(pollRef.current);
-        await fetchTokenAndNavigate(result.room_id);
-      }
-    } catch (err) {
-      console.error("Matchmaking poll error:", err);
-    }
-  }, [user?.id, isFetchingToken, isMatched]);
-
-  // Start polling when component mounts (and user is ready)
-  useEffect(() => {
-    if (!user?.id || filterTimeout || isMatched) return;
-
-    // Initial call
-    pollForMatch();
-
-    // Poll every 2.5s
-    pollRef.current = setInterval(pollForMatch, POLL_INTERVAL);
-
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [user?.id, filterTimeout, isMatched, pollForMatch]);
-
-  const fetchTokenAndNavigate = async (roomId: string) => {
-    if (!mountedRef.current) return;
-    setIsFetchingToken(true);
-
-    const participantName = profile?.username || "User";
-
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
-        body: { room_id: roomId, participant_name: participantName }
-      });
-
-      if (error || !data?.token) {
-        console.error("Failed to get LiveKit token:", error);
-        toast({
-          title: "Connection Error",
-          description: "Could not establish call. Please try again.",
-          variant: "destructive"
-        });
-        navigate(-1);
-        return;
-      }
-
-      navigate("/call", {
-        replace: true,
-        state: { roomId, livekitToken: data.token }
-      });
-    } catch (err) {
-      console.error("Token fetch error:", err);
-      toast({
-        title: "Connection Error",
-        description: "Could not establish call. Please try again.",
-        variant: "destructive"
-      });
-      navigate(-1);
-    }
+  // Back button: go back but keep searching in background
+  const handleBack = () => {
+    navigate(-1);
   };
 
+  // Cancel button: stop searching and go back
   const handleCancel = () => {
-    if (user?.id) {
-      supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
-    }
+    stopSearching();
     navigate(-1);
   };
 
@@ -181,8 +93,6 @@ export default function FindingUser() {
     setFilterTimeout(false);
     setShowNoMatchModal(false);
     setCountdown(SEARCH_TIMEOUT);
-    setIsFetchingToken(false);
-    setIsMatched(false);
   };
 
   return (
@@ -190,9 +100,9 @@ export default function FindingUser() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-4 safe-top">
         <button
-          onClick={handleCancel}
-          className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-muted transition-colors">
-
+          onClick={handleBack}
+          className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-muted transition-colors"
+        >
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
         <h1 className="text-sm font-semibold text-foreground">Finding Partner</h1>
@@ -200,20 +110,20 @@ export default function FindingUser() {
       </header>
 
       {/* Active filters badge */}
-      {filtersActive && (levelFilter || genderFilter) &&
-      <div className="flex justify-center gap-2 px-4 mb-2">
-          {levelFilter &&
-        <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
+      {filtersActive && (levelFilter || genderFilter) && (
+        <div className="flex justify-center gap-2 px-4 mb-2">
+          {levelFilter && (
+            <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
               Level: {levelFilter}
             </span>
-        }
-          {genderFilter &&
-        <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
+          )}
+          {genderFilter && (
+            <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
               Gender: {genderFilter}
             </span>
-        }
+          )}
         </div>
-      }
+      )}
 
       {/* Main content */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 -mt-8">
@@ -232,7 +142,6 @@ export default function FindingUser() {
           <div className="absolute" style={{ left: "46%", top: "24%", transform: "translate(-50%, -50%)" }}>
             <span className="absolute rounded-full border-2 border-blue-500/50" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "0.5s" }} />
             <span className="absolute rounded-full border border-blue-400/30" style={{ width: 24, height: 24, marginLeft: -12, marginTop: -12, animation: "city-pulse 2s ease-out infinite", animationDelay: "1.1s" }} />
-            
           </div>
 
           {/* === New Delhi === */}
@@ -278,10 +187,7 @@ export default function FindingUser() {
           </div>
 
           {/* Magnifying glass panning across */}
-          <div
-            className="absolute w-8 h-8 pointer-events-none"
-            style={{ animation: "map-pan 6s ease-in-out infinite" }}>
-
+          <div className="absolute w-8 h-8 pointer-events-none" style={{ animation: "map-pan 6s ease-in-out infinite" }}>
             <Search className="w-full h-full text-foreground" />
           </div>
 
@@ -316,8 +222,8 @@ export default function FindingUser() {
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
-              style={{ transition: "stroke-dashoffset 1s linear" }} />
-
+              style={{ transition: "stroke-dashoffset 1s linear" }}
+            />
           </svg>
           <div className="flex flex-col items-center gap-1 z-10">
             <Search className="w-5 h-5 text-primary animate-pulse" />
@@ -334,8 +240,8 @@ export default function FindingUser() {
         {/* Cancel button */}
         <button
           onClick={handleCancel}
-          className="mt-10 w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors">
-
+          className="mt-10 w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors"
+        >
           <X className="w-6 h-6 text-destructive" />
         </button>
         <p className="text-xs text-muted-foreground mt-2">Cancel</p>
@@ -360,6 +266,6 @@ export default function FindingUser() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>);
-
+    </div>
+  );
 }

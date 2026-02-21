@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile, ProfileProvider } from "@/hooks/useProfile";
 import { CallStateProvider } from "@/hooks/useCallState";
 import FloatingCallBubble from "@/components/FloatingCallBubble";
+import FloatingSearchBubble from "@/components/FloatingSearchBubble";
 import IncomingCallBanner from "@/components/IncomingCallBanner";
 import OutgoingCallBanner from "@/components/OutgoingCallBanner";
 import { IncomingCallDemo } from "@/components/IncomingCallDemo";
@@ -107,6 +108,7 @@ const App = () => (
           <CallStateProvider>
             <AppRoutes />
             <FloatingCallBubble />
+            <FloatingSearchBubble />
             <IncomingCallBanner />
             <OutgoingCallBanner />
             <IncomingCallDemo />
