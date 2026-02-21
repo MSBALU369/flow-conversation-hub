@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { getRegionForCountry } from "@/lib/countryRegions";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import { EFLogo } from "@/components/ui/EFLogo";
@@ -108,6 +109,7 @@ export default function Onboarding() {
       if (selectedCountry && selectedCity) {
         updates.country = selectedCountry;
         updates.location_city = selectedCity;
+        updates.region = getRegionForCountry(selectedCountry);
         updates.last_location_change = new Date().toISOString();
       }
       const { error } = await updateProfile(updates);

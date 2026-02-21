@@ -7,32 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const locationData: Record<string, string[]> = {
-  "India": ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Kolkata", "Pune", "Ahmedabad", "Jaipur", "Lucknow", "Surat", "Chandigarh", "Kochi", "Bhopal", "Indore"],
-  "United States": ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "San Francisco", "Miami", "Seattle", "Boston", "Denver"],
-  "United Kingdom": ["London", "Manchester", "Birmingham", "Liverpool", "Leeds", "Edinburgh", "Glasgow", "Bristol"],
-  "United Arab Emirates": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah"],
-  "Saudi Arabia": ["Riyadh", "Jeddah", "Mecca", "Medina", "Dammam"],
-  "Canada": ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa"],
-  "Australia": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide"],
-  "Germany": ["Berlin", "Munich", "Hamburg", "Frankfurt", "Cologne"],
-  "France": ["Paris", "Lyon", "Marseille", "Toulouse", "Nice"],
-  "Japan": ["Tokyo", "Osaka", "Kyoto", "Yokohama", "Nagoya"],
-  "South Korea": ["Seoul", "Busan", "Incheon", "Daegu"],
-  "Brazil": ["São Paulo", "Rio de Janeiro", "Brasília", "Salvador"],
-  "Pakistan": ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad"],
-  "Bangladesh": ["Dhaka", "Chittagong", "Sylhet", "Rajshahi"],
-  "Indonesia": ["Jakarta", "Surabaya", "Bandung", "Medan"],
-  "Turkey": ["Istanbul", "Ankara", "Izmir", "Bursa"],
-  "Egypt": ["Cairo", "Alexandria", "Giza", "Luxor"],
-  "Nigeria": ["Lagos", "Abuja", "Kano", "Ibadan"],
-  "South Africa": ["Johannesburg", "Cape Town", "Durban", "Pretoria"],
-  "Mexico": ["Mexico City", "Guadalajara", "Monterrey", "Cancún"],
-};
-
-const priorityCountries = ["India"];
-const countries = [...priorityCountries, ...Object.keys(locationData).filter(c => !priorityCountries.includes(c)).sort()];
+import { locationData, allCountries, getRegionForCountry } from "@/lib/countryRegions";
 
 interface LocationSelectorProps {
   country: string | null;
@@ -118,7 +93,7 @@ export function LocationSelector({ country, city, lastLocationChange, onSelect, 
                 <SelectValue placeholder="Country" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border z-50 max-h-48">
-                {countries.map((c) => (
+                {allCountries.map((c) => (
                   <SelectItem key={c} value={c} className="text-sm">
                     {c}
                   </SelectItem>

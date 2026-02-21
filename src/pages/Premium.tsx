@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Crown, Sparkles, ArrowLeft } from "lucide-react";
 import premiumHero from "@/assets/premium-hero.png";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/useProfile";
 import { PremiumCelebration } from "@/components/PremiumCelebration";
 import { useToast } from "@/hooks/use-toast";
+import { getRegionForCountry } from "@/lib/countryRegions";
 
 interface Plan {
   id: string;
@@ -44,18 +45,21 @@ export default function Premium() {
   const [loading, setLoading] = useState(true);
   const [showCelebration, setShowCelebration] = useState(false);
 
+  const userRegion = useMemo(() => {
+    if (profile?.country) return getRegionForCountry(profile.country);
+    return "INDIA"; // default fallback
+  }, [profile?.country]);
+
   useEffect(() => {
     const fetchPlans = async () => {
-      // Default to INDIA region for demo
       const { data, error } = await supabase.
       from("plans").
       select("*").
-      eq("region", "INDIA").
+      eq("region", userRegion).
       order("price", { ascending: false });
 
       if (!error && data) {
         setPlans(data);
-        // Select the 6-month plan by default (best value)
         const sixMonth = data.find((p) => p.duration === "6_month");
         if (sixMonth) setSelectedPlan(sixMonth.id);
       }
@@ -63,7 +67,7 @@ export default function Premium() {
     };
 
     fetchPlans();
-  }, []);
+  }, [userRegion]);
 
   const formatPrice = (price: number, currency: string) => {
     if (currency === "INR") {
