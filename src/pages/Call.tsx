@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LiveKitRoom,
   AudioConference,
+  RoomAudioRenderer,
+  StartAudio,
   useRoomContext,
   useParticipants,
   useIsSpeaking,
@@ -44,7 +46,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useNetworkStrength } from "@/hooks/useNetworkStrength";
 import { useCallState } from "@/hooks/useCallState";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, isInAppBrowser } from "@/lib/utils";
 import { GameListModal } from "@/components/games/GameListModal";
 import { QuizBetModal } from "@/components/games/QuizBetModal";
 import { GameBetModal } from "@/components/games/GameBetModal";
@@ -1217,10 +1219,41 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 /** Main Call component — wraps everything in LiveKitRoom */
 export default function Call() {
   const location = useLocation();
+  const navigate = useNavigate();
   const livekitToken = (location.state as any)?.livekitToken || null;
   const roomId = (location.state as any)?.roomId || null;
 
   const noLiveKit: LiveKitState = { room: null, participants: [], localParticipant: null };
+
+  // WebView escape hatch — block call entirely
+  if (isInAppBrowser()) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6 text-center gap-6">
+        <AlertTriangle className="w-16 h-16 text-destructive" />
+        <h1 className="text-2xl font-bold text-foreground">In-App Browser Detected</h1>
+        <p className="text-muted-foreground max-w-sm">
+          ⚠️ You are using an In-App Browser. Microphone access is blocked by this app.
+          Please tap the menu icon (•••) and select <strong>"Open in System Browser"</strong> or <strong>"Open in Chrome/Safari"</strong>.
+        </p>
+        <Button
+          onClick={() => {
+            navigator.clipboard.writeText(window.location.origin);
+            // simple feedback
+            const el = document.getElementById("copy-feedback");
+            if (el) el.textContent = "✅ Link Copied!";
+          }}
+          className="gap-2"
+          size="lg"
+        >
+          📋 Copy Link
+        </Button>
+        <p id="copy-feedback" className="text-sm text-primary font-medium h-5"></p>
+        <Button variant="outline" onClick={() => navigate("/")} className="mt-2">
+          ← Go Home
+        </Button>
+      </div>
+    );
+  }
 
   // If no token (e.g. direct navigation or friend call), render without LiveKit
   if (!livekitToken) {
@@ -1239,6 +1272,8 @@ export default function Call() {
       style={{ height: "100%" }}
     >
       <SafeAudioConference />
+      <RoomAudioRenderer />
+      <StartAudio label="Tap to enable audio" className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full bg-primary text-primary-foreground font-semibold shadow-lg animate-pulse" />
       <LiveKitBridge>
         {(lk) => <CallRoomUI lk={lk} />}
       </LiveKitBridge>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, X, Search } from "lucide-react";
+import { ArrowLeft, X, Search, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCallState } from "@/hooks/useCallState";
+import { isInAppBrowser } from "@/lib/utils";
 import worldMapImg from "@/assets/world-map.png";
 import {
   Dialog,
@@ -30,6 +31,8 @@ export default function FindingUser() {
   const location = useLocation();
   const { user } = useAuth();
   const { isSearching, startSearching, stopSearching } = useCallState();
+
+
   const [countdown, setCountdown] = useState(SEARCH_TIMEOUT);
   const [statusIndex, setStatusIndex] = useState(0);
   const [showNoMatchModal, setShowNoMatchModal] = useState(false);
@@ -109,6 +112,21 @@ export default function FindingUser() {
     setShowNoMatchModal(false);
     setCountdown(SEARCH_TIMEOUT);
   };
+
+  // WebView escape hatch
+  if (isInAppBrowser()) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6 text-center gap-6">
+        <AlertTriangle className="w-16 h-16 text-destructive" />
+        <h1 className="text-2xl font-bold text-foreground">In-App Browser Detected</h1>
+        <p className="text-muted-foreground max-w-sm">
+          ⚠️ Microphone access is blocked in this browser. Please open this page in <strong>Chrome</strong> or <strong>Safari</strong>.
+        </p>
+        <Button onClick={() => { navigator.clipboard.writeText(window.location.origin); }} size="lg">📋 Copy Link</Button>
+        <Button variant="outline" onClick={() => navigate("/")} className="mt-2">← Go Home</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
