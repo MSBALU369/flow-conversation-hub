@@ -233,7 +233,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
                 onClick={tab === "send" ? handleSend : handleRequest}
               >
                 {tab === "send" ? <Send className="w-4 h-4 mr-1" /> : <ArrowDownLeft className="w-4 h-4 mr-1" />}
-                {tab === "send" ? "Send Coins" : "Request Coins"}
+                {loading ? "Processing..." : tab === "send" ? "Send Coins" : "Request Coins"}
               </Button>
             </div>
           )}

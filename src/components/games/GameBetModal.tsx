@@ -28,6 +28,7 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
   const { profile } = useProfile();
   const coins = profile?.coins ?? 0;
   const [betAmount, setBetAmount] = useState(0);
+  const [isStarting, setIsStarting] = useState(false);
   const info = GAME_INFO[gameId] || { name: "Game", icon: "🎮" };
 
   return (
@@ -72,11 +73,15 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
 
         <DialogFooter>
           <Button
-            onClick={() => onStart(betAmount)}
+            onClick={() => {
+              setIsStarting(true);
+              onStart(betAmount);
+            }}
+            disabled={isStarting}
             className="w-full gap-2"
           >
             <Zap className="w-4 h-4" />
-            Start Game {betAmount > 0 && `(Bet ${betAmount} coins)`}
+            {isStarting ? "Starting..." : `Start Game${betAmount > 0 ? ` (Bet ${betAmount} coins)` : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>

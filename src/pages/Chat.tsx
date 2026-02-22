@@ -150,6 +150,9 @@ export default function Chat() {
   const [clearChatOption, setClearChatOption] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingChannelRef = useRef<any>(null);
   const [addFriendOpen, setAddFriendOpen] = useState(false);
   const [chatFriends, setChatFriends] = useState<Friend[]>([]);
   const [mutualFollowers, setMutualFollowers] = useState<{ id: string; name: string; avatar: string | null; isOnline: boolean }[]>([]);
@@ -436,6 +439,49 @@ export default function Chat() {
       supabase.removeChannel(channel);
     };
   }, [selectedFriend?.id, profile?.id]);
+
+  // ─── Typing indicator: broadcast + listen with 3s TTL ───
+  useEffect(() => {
+    if (!selectedFriend || !profile?.id) {
+      setIsPartnerTyping(false);
+      return;
+    }
+
+    const channelName = `typing-${[profile.id, selectedFriend.id].sort().join("-")}`;
+    const typingChannel = supabase.channel(channelName);
+
+    typingChannel
+      .on("broadcast", { event: "typing" }, (payload: any) => {
+        if (payload?.payload?.userId === selectedFriend.id) {
+          setIsPartnerTyping(true);
+          // Reset TTL timer
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setIsPartnerTyping(false), 3000);
+        }
+      })
+      .subscribe();
+
+    typingChannelRef.current = typingChannel;
+
+    return () => {
+      setIsPartnerTyping(false);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      supabase.removeChannel(typingChannel);
+      typingChannelRef.current = null;
+    };
+  }, [selectedFriend?.id, profile?.id]);
+
+  // Broadcast typing event when user types
+  const broadcastTyping = useCallback(() => {
+    if (typingChannelRef.current && profile?.id) {
+      typingChannelRef.current.send({
+        type: "broadcast",
+        event: "typing",
+        payload: { userId: profile.id },
+      });
+    }
+  }, [profile?.id]);
+
   // Infinite scroll: load older messages
   const loadOlderMessages = useCallback(async () => {
     if (!selectedFriend || !profile?.id || loadingOlder || !hasMore) return;
@@ -1099,6 +1145,16 @@ export default function Chat() {
               </div>
             );
           })}
+          {/* Typing Indicator */}
+          {isPartnerTyping && (
+            <div className="flex items-center gap-2 px-2 py-1">
+              <div className="flex items-center gap-1 bg-muted rounded-2xl px-3 py-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </main>
 
@@ -1205,7 +1261,7 @@ export default function Chat() {
               
               <Input
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={(e) => { setNewMessage(e.target.value); broadcastTyping(); }}
                 placeholder="Type a message..."
                 className="flex-1 bg-muted border-border"
                 onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}

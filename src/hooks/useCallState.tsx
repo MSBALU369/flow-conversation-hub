@@ -88,6 +88,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
   const isMatchedRef = useRef(false);
   const isFetchingRef = useRef(false);
   const currentRoomRef = useRef<any>(null);
+  const outgoingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const registerCurrentRoom = useCallback((room: any) => {
     currentRoomRef.current = room;
@@ -283,6 +284,10 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
 
   // ─── Cancel outgoing call (caller side) ───
   const cancelOutgoingCall = useCallback(async () => {
+    if (outgoingTimeoutRef.current) {
+      clearTimeout(outgoingTimeoutRef.current);
+      outgoingTimeoutRef.current = null;
+    }
     if (outgoingCall.callId) {
       await supabase
         .from("calls")
@@ -291,6 +296,57 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     }
     setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
   }, [outgoingCall.callId]);
+
+  // ─── 60-second auto-timeout for outgoing calls ───
+  useEffect(() => {
+    if (!outgoingCall.active || !outgoingCall.callId) {
+      if (outgoingTimeoutRef.current) {
+        clearTimeout(outgoingTimeoutRef.current);
+        outgoingTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    outgoingTimeoutRef.current = setTimeout(async () => {
+      // Auto-cancel: update DB to missed
+      if (outgoingCall.callId) {
+        await supabase
+          .from("calls")
+          .update({ status: "missed" })
+          .eq("id", outgoingCall.callId);
+      }
+
+      // Play busy tone
+      try {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(480, ctx.currentTime);
+        osc.type = "sine";
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.8);
+        osc.onended = () => ctx.close();
+      } catch {}
+
+      setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
+      toast({
+        title: "No Answer",
+        description: "The user didn't pick up.",
+        variant: "destructive",
+      });
+    }, 60_000);
+
+    return () => {
+      if (outgoingTimeoutRef.current) {
+        clearTimeout(outgoingTimeoutRef.current);
+        outgoingTimeoutRef.current = null;
+      }
+    };
+  }, [outgoingCall.active, outgoingCall.callId, toast]);
 
   const fetchTokenAndNavigate = useCallback(async (roomId: string, matchedUserId?: string) => {
     if (isFetchingRef.current) return;
