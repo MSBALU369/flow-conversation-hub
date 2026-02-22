@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { startOfWeek, getDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown, Pause, Play } from "lucide-react";
+import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown, Pause, Play, Pencil, X } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useProfile } from "@/hooks/useProfile";
 import { useCallState } from "@/hooks/useCallState";
@@ -48,6 +48,10 @@ interface Message {
   status: "sent" | "delivered" | "read";
   type: "text" | "image" | "voice";
   viewOnce?: boolean;
+  mediaUrl?: string;
+  editedAt?: string | null;
+  deletedFor?: string[];
+  deletedForEveryone?: boolean;
 }
 
 // No more mock data — friends and messages are fetched from Supabase
@@ -120,6 +124,12 @@ export default function Chat() {
   const [compareMyData, setCompareMyData] = useState(dayLabels.map(d => ({ day: d, minutes: 0 })));
   const [compareFriendData, setCompareFriendData] = useState(dayLabels.map(d => ({ day: d, minutes: 0 })));
   const [mutedUsers, setMutedUsers] = useState<Set<string>>(new Set());
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [editText, setEditText] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Message | null>(null);
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load muted users from Supabase on mount
   useEffect(() => {
@@ -319,8 +329,12 @@ export default function Chat() {
         senderId: msg.sender_id === profile.id ? "me" : msg.sender_id,
         timestamp: new Date(msg.created_at),
         status: msg.is_read ? "read" as const : "delivered" as const,
-        type: msg.media_url ? "image" as const : "text" as const,
+        type: msg.media_url ? (msg.content?.startsWith("🎤") ? "voice" as const : "image" as const) : "text" as const,
         viewOnce: (msg.content || "").startsWith("📸 View once"),
+        mediaUrl: msg.media_url || undefined,
+        editedAt: (msg as any).edited_at || null,
+        deletedFor: (msg as any).deleted_for || [],
+        deletedForEveryone: (msg as any).deleted_for_everyone || false,
       }));
       setMessages(mapped);
 
@@ -359,7 +373,11 @@ export default function Chat() {
             senderId: msg.sender_id === profile.id ? "me" : msg.sender_id,
             timestamp: new Date(msg.created_at),
             status: msg.is_read ? "read" as const : "delivered" as const,
-            type: msg.media_url ? "image" as const : "text" as const,
+            type: msg.media_url ? (msg.content?.startsWith("🎤") ? "voice" as const : "image" as const) : "text" as const,
+            mediaUrl: msg.media_url || undefined,
+            editedAt: (msg as any).edited_at || null,
+            deletedFor: (msg as any).deleted_for || [],
+            deletedForEveryone: (msg as any).deleted_for_everyone || false,
           };
 
           // If incoming from friend, mark as read immediately (we have the chat open)
@@ -394,12 +412,22 @@ export default function Chat() {
         (payload: any) => {
           const msg = payload.new;
           if (!msg) return;
-          // Update read status for our sent messages (blue ticks)
-          if (msg.sender_id === profile.id && msg.is_read) {
-            setMessages(prev => prev.map(m => 
-              m.id === msg.id ? { ...m, status: "read" as const } : m
-            ));
-          }
+          const isRelevant =
+            (msg.sender_id === profile.id && msg.receiver_id === selectedFriend.id) ||
+            (msg.sender_id === selectedFriend.id && msg.receiver_id === profile.id);
+          if (!isRelevant) return;
+
+          setMessages(prev => prev.map(m => {
+            if (m.id !== msg.id) return m;
+            return {
+              ...m,
+              status: msg.is_read ? "read" as const : m.status,
+              content: msg.content || m.content,
+              editedAt: (msg as any).edited_at || m.editedAt,
+              deletedFor: (msg as any).deleted_for || m.deletedFor,
+              deletedForEveryone: (msg as any).deleted_for_everyone || m.deletedForEveryone,
+            };
+          }));
         }
       )
       .subscribe();
@@ -429,7 +457,11 @@ export default function Chat() {
       senderId: msg.sender_id === profile.id ? "me" : msg.sender_id,
       timestamp: new Date(msg.created_at),
       status: msg.is_read ? "read" as const : "delivered" as const,
-      type: msg.media_url ? "image" as const : "text" as const,
+      type: msg.media_url ? (msg.content?.startsWith("🎤") ? "voice" as const : "image" as const) : "text" as const,
+      mediaUrl: msg.media_url || undefined,
+      editedAt: (msg as any).edited_at || null,
+      deletedFor: (msg as any).deleted_for || [],
+      deletedForEveryone: (msg as any).deleted_for_everyone || false,
     }));
     setMessages(prev => [...older, ...prev]);
     setLoadingOlder(false);
@@ -607,6 +639,81 @@ export default function Chat() {
       }
     }
   };
+
+  // Voice playback
+  const handlePlayVoice = (message: Message) => {
+    if (playingVoiceId === message.id) {
+      audioRef.current?.pause();
+      setPlayingVoiceId(null);
+      return;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if (message.mediaUrl) {
+      const audio = new Audio(message.mediaUrl);
+      audioRef.current = audio;
+      setPlayingVoiceId(message.id);
+      audio.play();
+      audio.onended = () => setPlayingVoiceId(null);
+    }
+  };
+
+  // Edit message (within 3 hours and before opponent reads)
+  const handleStartEdit = (message: Message) => {
+    setEditingMessage(message);
+    setEditText(message.content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMessage || !editText.trim() || !profile?.id) return;
+    const { error } = await supabase
+      .from("chat_messages")
+      .update({ content: editText.trim(), edited_at: new Date().toISOString() } as any)
+      .eq("id", editingMessage.id);
+    if (error) {
+      toast({ title: "Edit failed", variant: "destructive" });
+    } else {
+      setMessages(prev => prev.map(m => m.id === editingMessage.id ? { ...m, content: editText.trim(), editedAt: new Date().toISOString() } : m));
+    }
+    setEditingMessage(null);
+    setEditText("");
+  };
+
+  const canEditMessage = (message: Message) => {
+    if (message.senderId !== "me") return false;
+    if (message.status === "read") return false;
+    if (message.type !== "text") return false;
+    if (message.deletedForEveryone) return false;
+    const hoursDiff = (Date.now() - message.timestamp.getTime()) / (1000 * 60 * 60);
+    return hoursDiff <= 3;
+  };
+
+  // Delete message
+  const handleDeleteForMe = async () => {
+    if (!deleteTarget || !profile?.id) return;
+    const currentDeletedFor = deleteTarget.deletedFor || [];
+    const newDeletedFor = [...currentDeletedFor, profile.id];
+    await supabase
+      .from("chat_messages")
+      .update({ deleted_for: newDeletedFor } as any)
+      .eq("id", deleteTarget.id);
+    setMessages(prev => prev.map(m => m.id === deleteTarget.id ? { ...m, deletedFor: newDeletedFor } : m));
+    setShowDeleteDialog(false);
+    setDeleteTarget(null);
+  };
+
+  const handleDeleteForBoth = async () => {
+    if (!deleteTarget || !profile?.id) return;
+    await supabase
+      .from("chat_messages")
+      .update({ deleted_for_everyone: true } as any)
+      .eq("id", deleteTarget.id);
+    setMessages(prev => prev.map(m => m.id === deleteTarget.id ? { ...m, deletedForEveryone: true } : m));
+    setShowDeleteDialog(false);
+    setDeleteTarget(null);
+  };
+
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -806,8 +913,32 @@ export default function Chat() {
           {messages.map((message) => {
             const isMe = message.senderId === "me";
             const isCallLog = message.content.startsWith("📞 ");
+
+            // Check if deleted for current user
+            const isDeletedForMe = profile?.id && (message.deletedFor || []).includes(profile.id);
+            const isDeletedForEveryone = message.deletedForEveryone;
+
+            // Deleted for me only: hide entirely
+            if (isDeletedForMe && !isDeletedForEveryone) return null;
+
+            // Deleted for everyone: show placeholder
+            if (isDeletedForEveryone) {
+              const deletedByMe = isMe;
+              return (
+                <div key={message.id} className={cn("flex", isMe ? "justify-end" : "justify-start")}>
+                  <div className="max-w-[75%] px-4 py-2 rounded-2xl bg-muted/30 border border-border/50">
+                    <p className="text-sm text-muted-foreground italic">
+                      🚫 {deletedByMe ? "You deleted this message for both" : `${selectedFriend?.name || "User"} deleted this message`}
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-[10px] text-muted-foreground">{formatTime(message.timestamp)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
             
-            // Call log rendering with color-coded icons
+            // Call log rendering
             if (isCallLog) {
               const isMissedCall = message.content.includes("Missed Call");
               let callIcon: React.ReactNode;
@@ -815,18 +946,15 @@ export default function Chat() {
               let callColor: string;
 
               if (isMissedCall) {
-                // Missed call: red
                 callIcon = <PhoneMissed className="w-3.5 h-3.5 text-destructive" />;
                 callText = isMe ? "Missed call" : `Missed call from ${selectedFriend?.name || "Unknown"}`;
                 callColor = "text-destructive";
               } else if (isMe) {
-                // I called (outgoing): blue
                 const duration = message.content.replace("📞 Outgoing Call - ", "");
                 callIcon = <PhoneOutgoing className="w-3.5 h-3.5 text-blue-500" />;
                 callText = `You called · ${duration}`;
                 callColor = "text-blue-500";
               } else {
-                // Opponent called (incoming): green
                 const duration = message.content.replace("📞 Outgoing Call - ", "");
                 callIcon = <PhoneIncoming className="w-3.5 h-3.5 text-green-500" />;
                 callText = `${selectedFriend?.name || "Unknown"} called · ${duration}`;
@@ -847,67 +975,125 @@ export default function Chat() {
             return (
               <div
                 key={message.id}
-                className={cn("flex", isMe ? "justify-end" : "justify-start")}
+                className={cn("flex group", isMe ? "justify-end" : "justify-start")}
               >
-                <div
-                  className={cn(
-                    "max-w-[75%] px-4 py-2 rounded-2xl",
-                    isMe
-                      ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "glass-card rounded-bl-md"
-                  )}
-                >
-                  <p className={cn(
-                    isMe ? "text-primary-foreground" : "text-foreground",
-                    message.type === "voice" && "flex items-center gap-2"
+                <div className="relative">
+                  <div
+                    className={cn(
+                      "max-w-[75vw] px-4 py-2 rounded-2xl",
+                      isMe
+                        ? "bg-primary text-primary-foreground rounded-br-md"
+                        : "glass-card rounded-bl-md"
+                    )}
+                  >
+                    {/* Voice message with play button */}
+                    {message.type === "voice" ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handlePlayVoice(message)}
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                            isMe ? "bg-primary-foreground/20" : "bg-primary/20"
+                          )}
+                        >
+                          {playingVoiceId === message.id ? (
+                            <Pause className={cn("w-4 h-4", isMe ? "text-primary-foreground" : "text-primary")} />
+                          ) : (
+                            <Play className={cn("w-4 h-4", isMe ? "text-primary-foreground" : "text-primary")} />
+                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1">
+                            <Mic className={cn("w-3 h-3", isMe ? "text-primary-foreground/70" : "text-muted-foreground")} />
+                            <span className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>
+                              {message.content.replace("🎤 ", "")}
+                            </span>
+                          </div>
+                          {playingVoiceId === message.id && (
+                            <div className="flex gap-0.5 mt-1">
+                              {Array.from({ length: 20 }).map((_, i) => (
+                                <div
+                                  key={i}
+                                  className={cn("w-1 rounded-full animate-pulse", isMe ? "bg-primary-foreground/50" : "bg-primary/50")}
+                                  style={{ height: `${4 + Math.random() * 10}px`, animationDelay: `${i * 50}ms` }}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className={cn(isMe ? "text-primary-foreground" : "text-foreground")}>
+                        {message.type === "image" && message.viewOnce && !isMe && (
+                          <button
+                            className="inline-flex items-center gap-1 underline"
+                            onClick={async () => {
+                              toast({ title: "📸 View Once", description: "This image will be deleted after viewing." });
+                              const msgRow = await supabase
+                                .from("chat_messages")
+                                .select("media_url")
+                                .eq("id", message.id)
+                                .single();
+                              const mediaUrl = msgRow.data?.media_url;
+                              if (mediaUrl) {
+                                const pathMatch = mediaUrl.match(/chat_media\/(.+)$/);
+                                if (pathMatch?.[1]) {
+                                  await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
+                                }
+                              }
+                              await supabase.from("chat_messages").delete().eq("id", message.id);
+                              setMessages(prev => prev.filter(m => m.id !== message.id));
+                              toast({ title: "View Once media destroyed", description: "File permanently deleted." });
+                            }}
+                          >
+                            <Eye className="w-4 h-4" /> Tap to view
+                          </button>
+                        )}
+                        {message.type === "image" && message.viewOnce && isMe && (
+                          <span className="inline-flex items-center gap-1">
+                            <Eye className="w-4 h-4" /> {message.content}
+                          </span>
+                        )}
+                        {!(message.type === "image" && message.viewOnce) && message.content}
+                      </p>
+                    )}
+                    <div className={cn(
+                      "flex items-center gap-1 mt-1",
+                      isMe ? "justify-end" : "justify-start"
+                    )}>
+                      {message.editedAt && (
+                        <span className={cn("text-[10px] italic", isMe ? "text-primary-foreground/50" : "text-muted-foreground/70")}>
+                          edited
+                        </span>
+                      )}
+                      <span className={cn(
+                        "text-[10px]",
+                        isMe ? "text-primary-foreground/70" : "text-muted-foreground"
+                      )}>
+                        {formatTime(message.timestamp)}
+                      </span>
+                      {isMe && getStatusIcon(message.status)}
+                    </div>
+                  </div>
+                  {/* Action buttons on hover */}
+                  <div className={cn(
+                    "absolute top-1/2 -translate-y-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity",
+                    isMe ? "-left-16" : "-right-16"
                   )}>
-                    {message.type === "voice" && <Mic className="w-4 h-4" />}
-                    {message.type === "image" && message.viewOnce && !isMe && (
+                    {canEditMessage(message) && (
                       <button
-                        className="inline-flex items-center gap-1 underline"
-                        onClick={async () => {
-                          toast({ title: "📸 View Once", description: "This image will be deleted after viewing." });
-                          const msgRow = await supabase
-                            .from("chat_messages")
-                            .select("media_url")
-                            .eq("id", message.id)
-                            .single();
-                          const mediaUrl = msgRow.data?.media_url;
-                          if (mediaUrl) {
-                            const pathMatch = mediaUrl.match(/chat_media\/(.+)$/);
-                            if (pathMatch?.[1]) {
-                              await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
-                            }
-                          }
-                          await supabase
-                            .from("chat_messages")
-                            .delete()
-                            .eq("id", message.id);
-                          setMessages(prev => prev.filter(m => m.id !== message.id));
-                          toast({ title: "View Once media destroyed", description: "File permanently deleted." });
-                        }}
+                        onClick={() => handleStartEdit(message)}
+                        className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted"
                       >
-                        <Eye className="w-4 h-4" /> Tap to view
+                        <Pencil className="w-3 h-3 text-muted-foreground" />
                       </button>
                     )}
-                    {message.type === "image" && message.viewOnce && isMe && (
-                      <span className="inline-flex items-center gap-1">
-                        <Eye className="w-4 h-4" /> {message.content}
-                      </span>
-                    )}
-                    {!(message.type === "image" && message.viewOnce) && message.content}
-                  </p>
-                  <div className={cn(
-                    "flex items-center gap-1 mt-1",
-                    isMe ? "justify-end" : "justify-start"
-                  )}>
-                    <span className={cn(
-                      "text-[10px]",
-                      isMe ? "text-primary-foreground/70" : "text-muted-foreground"
-                    )}>
-                      {formatTime(message.timestamp)}
-                    </span>
-                    {isMe && getStatusIcon(message.status)}
+                    <button
+                      onClick={() => { setDeleteTarget(message); setShowDeleteDialog(true); }}
+                      className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-destructive/20"
+                    >
+                      <Trash2 className="w-3 h-3 text-muted-foreground" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -925,9 +1111,44 @@ export default function Chat() {
           onChange={handleImageFileSelected}
         />
 
+        {/* Edit Bar */}
+        {editingMessage && (
+          <div className="px-4 pt-2 pb-0 glass-nav border-b border-border/50">
+            <div className="flex items-center gap-2 bg-muted/50 rounded-xl px-3 py-2">
+              <Pencil className="w-4 h-4 text-primary flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-primary font-medium">Editing message</p>
+                <p className="text-xs text-muted-foreground truncate">{editingMessage.content}</p>
+              </div>
+              <button onClick={() => { setEditingMessage(null); setEditText(""); }} className="p-1">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Message Input */}
         <div className="p-4 glass-nav safe-bottom">
-          {isRecording ? (
+          {editingMessage ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                placeholder="Edit message..."
+                className="flex-1 bg-muted border-border"
+                onKeyDown={(e) => e.key === "Enter" && handleSaveEdit()}
+                autoFocus
+              />
+              <Button
+                onClick={handleSaveEdit}
+                size="icon"
+                className="bg-primary text-primary-foreground"
+                disabled={!editText.trim()}
+              >
+                <Check className="w-5 h-5" />
+              </Button>
+            </div>
+          ) : isRecording ? (
             <div className="flex items-center gap-1.5">
               {/* Delete / Cancel */}
               <Button
@@ -1190,6 +1411,42 @@ export default function Chat() {
                 }}
               >
                 Clear
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Message Dialog */}
+        <Dialog open={showDeleteDialog} onOpenChange={(open) => { setShowDeleteDialog(open); if (!open) setDeleteTarget(null); }}>
+          <DialogContent className="glass-card border-border max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-destructive" />
+                Delete Message
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">How would you like to delete this message?</p>
+            <div className="space-y-2 py-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={handleDeleteForMe}
+              >
+                Delete for me
+              </Button>
+              {deleteTarget?.senderId === "me" && (
+                <Button
+                  variant="destructive"
+                  className="w-full justify-start"
+                  onClick={handleDeleteForBoth}
+                >
+                  Delete for everyone
+                </Button>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" className="w-full" onClick={() => { setShowDeleteDialog(false); setDeleteTarget(null); }}>
+                Cancel
               </Button>
             </DialogFooter>
           </DialogContent>
