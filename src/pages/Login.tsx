@@ -21,6 +21,7 @@ export default function Login() {
   const [referenceIdError, setReferenceIdError] = useState("");
   const [signUpBlink, setSignUpBlink] = useState(false);
   const [referenceIdValid, setReferenceIdValid] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -95,15 +96,22 @@ export default function Login() {
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
-        // Auto-assign role & premium for test emails
+        setLoginError("");
         try { await (supabase.rpc as any)("sync_test_role"); } catch {}
         navigate("/");
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const msg = error.message || "";
       if (!isSignUp) {
+        if (msg.toLowerCase().includes("invalid login credentials")) {
+          setLoginError("Incorrect email or password");
+        } else {
+          setLoginError(msg);
+        }
         setSignUpBlink(true);
         setTimeout(() => setSignUpBlink(false), 3000);
+      } else {
+        toast({ title: "Error", description: msg, variant: "destructive" });
       }
     } finally {
       setLoading(false);
@@ -228,8 +236,8 @@ export default function Login() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
-          <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
+          <Input type="email" placeholder="Email" value={email} onChange={(e) => { setEmail(e.target.value); setLoginError(""); }} required className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
+          <Input type="password" placeholder="Password" value={password} onChange={(e) => { setPassword(e.target.value); setLoginError(""); }} required minLength={6} className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
           {isSignUp && (
             <div>
               <div className="relative">
@@ -259,8 +267,10 @@ export default function Login() {
           <Button type="submit" disabled={loading || (isSignUp && !!referenceId.trim() && !referenceIdValid)} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6">
             {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
           </Button>
+          {loginError && !isSignUp && (
+            <p className="text-destructive text-xs text-center mt-2 animate-shake-zoom">{loginError}</p>
+          )}
         </form>
-
         <button
           onClick={() => setIsSignUp(!isSignUp)}
           className={`w-full mt-4 text-primary text-base font-semibold py-3 rounded-full border border-primary/30 hover:bg-primary/10 transition-all ${signUpBlink ? "animate-shake-zoom bg-primary/15 ring-2 ring-primary/50" : ""}`}
