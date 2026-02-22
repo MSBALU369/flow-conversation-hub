@@ -928,40 +928,40 @@ export default function Chat() {
         {/* Message Input */}
         <div className="p-4 glass-nav safe-bottom">
           {isRecording ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {/* Delete / Cancel */}
               <Button
                 onClick={cancelRecording}
-                size="icon"
+                size="sm"
                 variant="ghost"
-                className="text-destructive hover:bg-destructive/10"
+                className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
               >
-                <Trash2 className="w-5 h-5" />
+                <Trash2 className="w-4 h-4" />
               </Button>
 
-              <div className="flex-1 flex items-center gap-3 bg-destructive/20 rounded-xl px-4 py-3">
-                <div className={cn("w-3 h-3 bg-destructive rounded-full", !isPaused && "animate-pulse")} />
-                <span className="text-foreground font-medium">{isPaused ? "Paused" : "Recording..."}</span>
-                <span className="text-muted-foreground ml-auto">{formatRecordingTime(recordingTime)} / 1:30</span>
+              <div className="flex-1 flex items-center gap-2 bg-destructive/20 rounded-xl px-3 py-2">
+                <div className={cn("w-2.5 h-2.5 bg-destructive rounded-full", !isPaused && "animate-pulse")} />
+                <span className="text-foreground font-medium text-sm">{isPaused ? "Paused" : "Recording..."}</span>
+                <span className="text-muted-foreground ml-auto text-xs">{formatRecordingTime(recordingTime)} / 1:30</span>
               </div>
 
               {/* Pause / Resume */}
               <Button
                 onClick={togglePauseRecording}
-                size="icon"
+                size="sm"
                 variant="outline"
-                className="border-border"
+                className="h-8 w-8 p-0 border-border"
               >
-                {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+                {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
               </Button>
 
               {/* Send */}
               <Button
                 onClick={stopRecording}
-                size="icon"
-                className="bg-primary text-primary-foreground"
+                size="sm"
+                className="h-8 w-8 p-0 bg-primary text-primary-foreground"
               >
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4" />
               </Button>
             </div>
           ) : (
