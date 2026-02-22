@@ -19,6 +19,7 @@ export default function Login() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [referenceId, setReferenceId] = useState("");
   const [referenceIdError, setReferenceIdError] = useState("");
+  const [signUpBlink, setSignUpBlink] = useState(false);
   const [referenceIdValid, setReferenceIdValid] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -100,6 +101,10 @@ export default function Login() {
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+      if (!isSignUp) {
+        setSignUpBlink(true);
+        setTimeout(() => setSignUpBlink(false), 3000);
+      }
     } finally {
       setLoading(false);
     }
@@ -256,7 +261,10 @@ export default function Login() {
           </Button>
         </form>
 
-        <button onClick={() => setIsSignUp(!isSignUp)} className="w-full mt-4 text-primary text-sm font-medium hover:underline">
+        <button
+          onClick={() => setIsSignUp(!isSignUp)}
+          className={`w-full mt-4 text-primary text-base font-semibold py-3 rounded-full border border-primary/30 hover:bg-primary/10 transition-all ${signUpBlink ? "animate-pulse bg-primary/15 ring-2 ring-primary/50" : ""}`}
+        >
           {isSignUp ? "Already have an account? Sign In" : "New here? Create Account"}
         </button>
 
