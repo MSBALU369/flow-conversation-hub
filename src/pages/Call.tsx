@@ -1109,27 +1109,6 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               </div>
             )}
 
-            {/* Follow User Button */}
-            {(partnerId || stateMatchedUserId) && !hasFollowedPartner && (
-              <button
-                onClick={async () => {
-                  const effectivePartnerId = partnerId || stateMatchedUserId;
-                  const { data: { user: authUser } } = await supabase.auth.getUser();
-                  if (!authUser || !effectivePartnerId) return;
-                  await supabase.from("friendships").insert({ user_id: authUser.id, friend_id: effectivePartnerId, status: "accepted" });
-                  setHasFollowedPartner(true);
-                  toast({ title: `Followed ${partnerProfile?.username || "User"}!`, duration: 2000 });
-                }}
-                className="w-full py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
-              >
-                <UserPlus className="w-4 h-4" />
-                Follow {partnerProfile?.username || "User"}
-              </button>
-            )}
-            {hasFollowedPartner && (
-              <p className="text-center text-xs text-primary font-medium">✓ Following {partnerProfile?.username || "User"}</p>
-            )}
-
             <DialogFooter className="flex flex-col gap-2 sm:flex-col pt-1">
               <Button variant="destructive" onClick={handleSubmitPostCall} disabled={!postCallRating} className="w-full">
                 End Call
@@ -1137,6 +1116,29 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               <Button variant="outline" onClick={() => { setShowPostCallModal(false); setPostCallRating(null); setSelectedReportReasons([]); setSelectedLikeReasons([]); }} className="w-full">
                 Stay
               </Button>
+
+              {/* Follow User Button - small, below Stay with 3-step gap */}
+              <div className="mt-6">
+                {(partnerId || stateMatchedUserId) && !hasFollowedPartner && (
+                  <button
+                    onClick={async () => {
+                      const effectivePartnerId = partnerId || stateMatchedUserId;
+                      const { data: { user: authUser } } = await supabase.auth.getUser();
+                      if (!authUser || !effectivePartnerId) return;
+                      await supabase.from("friendships").insert({ user_id: authUser.id, friend_id: effectivePartnerId, status: "accepted" });
+                      setHasFollowedPartner(true);
+                      toast({ title: `Followed ${partnerProfile?.username || "User"}!`, duration: 2000 });
+                    }}
+                    className="w-full py-1.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-[11px] font-medium hover:bg-primary/20 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <UserPlus className="w-3 h-3" />
+                    Follow {partnerProfile?.username || "User"}
+                  </button>
+                )}
+                {hasFollowedPartner && (
+                  <p className="text-center text-[11px] text-primary font-medium">✓ Following {partnerProfile?.username || "User"}</p>
+                )}
+              </div>
             </DialogFooter>
           </div>
         </DialogContent>
