@@ -263,7 +263,7 @@ export default function Login() {
 
         <button
           onClick={() => setIsSignUp(!isSignUp)}
-          className={`w-full mt-4 text-primary text-base font-semibold py-3 rounded-full border border-primary/30 hover:bg-primary/10 transition-all ${signUpBlink ? "animate-pulse bg-primary/15 ring-2 ring-primary/50" : ""}`}
+          className={`w-full mt-4 text-primary text-base font-semibold py-3 rounded-full border border-primary/30 hover:bg-primary/10 transition-all ${signUpBlink ? "animate-shake-zoom bg-primary/15 ring-2 ring-primary/50" : ""}`}
         >
           {isSignUp ? "Already have an account? Sign In" : "New here? Create Account"}
         </button>
