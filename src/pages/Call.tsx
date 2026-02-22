@@ -1113,7 +1113,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               <Button variant="destructive" onClick={handleSubmitPostCall} disabled={!postCallRating} className="w-full">
                 End Call
               </Button>
-              <Button variant="outline" onClick={() => { setShowPostCallModal(false); setPostCallRating(null); setSelectedReportReasons([]); setSelectedLikeReasons([]); }} className="w-full">
+              <Button variant="outline" onClick={() => { setShowPostCallModal(false); setPostCallRating(null); setSelectedReportReasons([]); setSelectedLikeReasons([]); }} className="w-full bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
                 Stay
               </Button>
 
@@ -1129,7 +1129,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
                       setHasFollowedPartner(true);
                       toast({ title: `Followed ${partnerProfile?.username || "User"}!`, duration: 2000 });
                     }}
-                    className="w-full py-1.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-[11px] font-medium hover:bg-primary/20 transition-colors flex items-center justify-center gap-1.5"
+                    className="w-full py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[11px] font-medium hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-1.5"
                   >
                     <UserPlus className="w-3 h-3" />
                     Follow {partnerProfile?.username || "User"}
