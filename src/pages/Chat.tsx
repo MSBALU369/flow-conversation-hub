@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { startOfWeek, getDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Phone, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown } from "lucide-react";
+import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useProfile } from "@/hooks/useProfile";
 import { useCallState } from "@/hooks/useCallState";
@@ -322,10 +322,18 @@ export default function Chat() {
         viewOnce: (msg.content || "").startsWith("📸 View once"),
       }));
       setMessages(mapped);
+
+      // Mark unread messages from friend as read
+      await supabase
+        .from("chat_messages")
+        .update({ is_read: true })
+        .eq("sender_id", selectedFriend.id)
+        .eq("receiver_id", profile.id)
+        .eq("is_read", false);
     };
     fetchMessages();
 
-    // Realtime subscription for new messages in this conversation
+    // Realtime subscription for new messages + updates in this conversation
     const channel = supabase
       .channel(`chat-${[profile.id, selectedFriend.id].sort().join("-")}`)
       .on(
@@ -335,7 +343,7 @@ export default function Chat() {
           schema: "public",
           table: "chat_messages",
         },
-        (payload: any) => {
+        async (payload: any) => {
           const msg = payload.new;
           if (!msg) return;
           // Only add messages that belong to this conversation
@@ -352,6 +360,17 @@ export default function Chat() {
             status: msg.is_read ? "read" as const : "delivered" as const,
             type: msg.media_url ? "image" as const : "text" as const,
           };
+
+          // If incoming from friend, mark as read immediately (we have the chat open)
+          if (msg.sender_id === selectedFriend.id && !msg.is_read) {
+            supabase
+              .from("chat_messages")
+              .update({ is_read: true })
+              .eq("id", msg.id)
+              .then(() => {});
+            newMsg.status = "read";
+          }
+
           // Avoid duplicates (from optimistic update)
           setMessages(prev => {
             if (prev.some(m => m.id === msg.id)) return prev;
@@ -362,6 +381,24 @@ export default function Chat() {
             }
             return [...prev, newMsg];
           });
+        }
+      )
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "chat_messages",
+        },
+        (payload: any) => {
+          const msg = payload.new;
+          if (!msg) return;
+          // Update read status for our sent messages (blue ticks)
+          if (msg.sender_id === profile.id && msg.is_read) {
+            setMessages(prev => prev.map(m => 
+              m.id === msg.id ? { ...m, status: "read" as const } : m
+            ));
+          }
         }
       )
       .subscribe();
@@ -756,14 +793,38 @@ export default function Chat() {
             const isMe = message.senderId === "me";
             const isCallLog = message.content.startsWith("📞 ");
             
-            // Instagram-style call log rendering
+            // Call log rendering with color-coded icons
             if (isCallLog) {
+              const isMissedCall = message.content.includes("Missed Call");
+              let callIcon: React.ReactNode;
+              let callText: string;
+              let callColor: string;
+
+              if (isMissedCall) {
+                // Missed call: red
+                callIcon = <PhoneMissed className="w-3.5 h-3.5 text-destructive" />;
+                callText = isMe ? "Missed call" : `Missed call from ${selectedFriend?.name || "Unknown"}`;
+                callColor = "text-destructive";
+              } else if (isMe) {
+                // I called (outgoing): blue
+                const duration = message.content.replace("📞 Outgoing Call - ", "");
+                callIcon = <PhoneOutgoing className="w-3.5 h-3.5 text-blue-500" />;
+                callText = `You called · ${duration}`;
+                callColor = "text-blue-500";
+              } else {
+                // Opponent called (incoming): green
+                const duration = message.content.replace("📞 Outgoing Call - ", "");
+                callIcon = <PhoneIncoming className="w-3.5 h-3.5 text-green-500" />;
+                callText = `${selectedFriend?.name || "Unknown"} called · ${duration}`;
+                callColor = "text-green-500";
+              }
+
               return (
                 <div key={message.id} className="flex justify-center">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-xs text-muted-foreground">
-                    <span>{message.content}</span>
-                    <span className="text-[10px]">{formatTime(message.timestamp)}</span>
-                    {isMe && getStatusIcon(message.status)}
+                  <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-xs", callColor)}>
+                    {callIcon}
+                    <span>{callText}</span>
+                    <span className="text-[10px] text-muted-foreground">{formatTime(message.timestamp)}</span>
                   </div>
                 </div>
               );
