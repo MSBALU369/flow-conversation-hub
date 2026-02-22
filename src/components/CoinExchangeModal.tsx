@@ -94,7 +94,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
   }, [open, profile?.id, tab]);
 
   const handleSend = async () => {
-    if (!selectedFriend || !profile?.id) return;
+    if (!selectedFriend || !profile?.id || loading) return;
     const coins = parseInt(amount);
     if (isNaN(coins) || coins <= 0) {
       toast({ title: "Invalid amount", variant: "destructive" });
@@ -127,7 +127,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
   };
 
   const handleRequest = async () => {
-    if (!selectedFriend || !profile?.id) return;
+    if (!selectedFriend || !profile?.id || loading) return;
     const coins = parseInt(amount);
     if (isNaN(coins) || coins <= 0) {
       toast({ title: "Invalid amount", variant: "destructive" });

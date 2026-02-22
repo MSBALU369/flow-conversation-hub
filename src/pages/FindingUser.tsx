@@ -47,11 +47,15 @@ export default function FindingUser() {
   const progress = countdown / SEARCH_TIMEOUT;
   const strokeDashoffset = circumference * (1 - progress);
 
-  // Start searching on mount if not already
+  // Start searching on mount if not already; cleanup on unmount
   useEffect(() => {
     if (!isSearching) {
       startSearching();
     }
+    return () => {
+      // Force leave matchmaking queue when navigating away without clicking Cancel
+      stopSearching();
+    };
   }, []);
 
   // Countdown timer (visual only)
