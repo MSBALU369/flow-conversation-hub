@@ -1110,7 +1110,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             )}
 
             <DialogFooter className="flex flex-col gap-2 sm:flex-col pt-1">
-              <Button variant="destructive" onClick={handleSubmitPostCall} disabled={!postCallRating} className="w-full">
+              <Button variant="destructive" onClick={handleSubmitPostCall} className="w-full">
                 End Call
               </Button>
               <Button onClick={() => { setShowPostCallModal(false); setPostCallRating(null); setSelectedReportReasons([]); setSelectedLikeReasons([]); }} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
