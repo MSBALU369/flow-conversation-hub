@@ -98,6 +98,9 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string
+          deleted_for: string[] | null
+          deleted_for_everyone: boolean | null
+          edited_at: string | null
           id: string
           is_read: boolean
           media_url: string | null
@@ -107,6 +110,9 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string
+          deleted_for?: string[] | null
+          deleted_for_everyone?: boolean | null
+          edited_at?: string | null
           id?: string
           is_read?: boolean
           media_url?: string | null
@@ -116,6 +122,9 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string
+          deleted_for?: string[] | null
+          deleted_for_everyone?: boolean | null
+          edited_at?: string | null
           id?: string
           is_read?: boolean
           media_url?: string | null
