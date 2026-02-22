@@ -43,7 +43,7 @@ interface CallStateContextType {
   triggerIncomingCall: (callerName: string, callerAvatar: string | null) => void;
   acceptIncomingCall: () => void;
   declineIncomingCall: () => void;
-  startSearching: () => void;
+  startSearching: (preferences?: { genderPref?: string | null; levelPref?: string | null }) => void;
   stopSearching: () => void;
   initiateDirectCall: (receiverId: string, receiverName: string, receiverAvatar: string | null) => Promise<void>;
   cancelOutgoingCall: () => Promise<void>;
@@ -411,9 +411,17 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     };
   }, [isSearching, user?.id, pollForMatch]);
 
-  const startSearching = useCallback(() => {
+  const startSearching = useCallback(async (preferences?: { genderPref?: string | null; levelPref?: string | null }) => {
+    if (user?.id) {
+      // Call join_matchmaking RPC with preferences (premium-verified server-side)
+      await (supabase.rpc as any)("join_matchmaking", {
+        p_user_id: user.id,
+        p_gender_pref: preferences?.genderPref || null,
+        p_level_pref: preferences?.levelPref || null,
+      });
+    }
     setIsSearching(true);
-  }, []);
+  }, [user?.id]);
 
   const stopSearching = useCallback(async () => {
     setIsSearching(false);

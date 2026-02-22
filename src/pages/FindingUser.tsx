@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 const SEARCH_TIMEOUT = 30;
+const FILTER_TIMEOUT = 60;
 
 const STATUS_MESSAGES = [
   "Finding a perfect partner for you...",
@@ -53,7 +54,10 @@ export default function FindingUser() {
   // Start searching on mount if not already; cleanup on unmount
   useEffect(() => {
     if (!isSearching) {
-      startSearching();
+      startSearching({
+        genderPref: genderFilter || null,
+        levelPref: levelFilter || null,
+      });
     }
     return () => {
       // Force leave matchmaking queue when navigating away without clicking Cancel
@@ -77,13 +81,15 @@ export default function FindingUser() {
     return () => clearInterval(interval);
   }, []);
 
-  // 30-second filter timeout for premium users
+  // 60-second filter timeout for premium users with filters
   useEffect(() => {
     if (!filtersActive) return;
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       setFilterTimeout(true);
+      // Gracefully leave matchmaking on timeout — no coin deduction
+      await stopSearching();
       setShowNoMatchModal(true);
-    }, 30000);
+    }, FILTER_TIMEOUT * 1000);
     return () => clearTimeout(timer);
   }, [filtersActive]);
 
@@ -99,18 +105,13 @@ export default function FindingUser() {
   };
 
   const handleExpandSearch = async () => {
-    // Remove filters from matchmaking queue row in Supabase
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase
-        .from("matchmaking_queue")
-        .update({ status: "searching", updated_at: new Date().toISOString() })
-        .eq("user_id", user.id);
-    }
+    // Restart matchmaking without filters
     setFiltersActive(false);
     setFilterTimeout(false);
     setShowNoMatchModal(false);
     setCountdown(SEARCH_TIMEOUT);
+    // Re-join with no preferences
+    startSearching({ genderPref: null, levelPref: null });
   };
 
   // WebView escape hatch
@@ -285,8 +286,8 @@ export default function FindingUser() {
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-center text-base">No Exact Matches Found</DialogTitle>
-            <DialogDescription className="text-center text-xs">
-              Currently no exact matches found for your selected filters. Would you like to expand your search to other levels/genders?
+          <DialogDescription className="text-center text-xs">
+              No users found with your specific filters right now. Try broadening your search.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2 mt-2">
