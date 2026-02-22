@@ -268,7 +268,7 @@ export default function Login() {
             {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
           </Button>
           {loginError && !isSignUp && (
-            <p className="text-destructive text-xs text-center mt-2 animate-shake-zoom">{loginError}</p>
+            <p className="text-destructive text-xs text-center mt-2">{loginError}</p>
           )}
         </form>
         <button
