@@ -1200,6 +1200,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 export default function Call() {
   const location = useLocation();
   const livekitToken = (location.state as any)?.livekitToken || null;
+  const roomId = (location.state as any)?.roomId || null;
 
   const noLiveKit: LiveKitState = { room: null, participants: [], localParticipant: null };
 
@@ -1208,8 +1209,10 @@ export default function Call() {
     return <CallRoomUI lk={noLiveKit} />;
   }
 
+  // key={livekitToken} forces full remount on token change (call-waiting transition)
   return (
     <LiveKitRoom
+      key={livekitToken}
       serverUrl={LIVEKIT_URL}
       token={livekitToken}
       connect={true}
