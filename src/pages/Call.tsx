@@ -248,17 +248,23 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     if (!room) return;
     hasHandledDisconnectRef.current = false;
 
-    const forceEnd = async () => {
+    const forceEnd = async (isLocalDisconnect = false) => {
       if (hasHandledDisconnectRef.current) return;
       hasHandledDisconnectRef.current = true;
-      toast({ title: "Call Ended", description: "The other user has left the call." });
+      toast({ title: "Call Ended", description: isLocalDisconnect ? "You were disconnected." : "The other user has left the call." });
       try { room.disconnect(); } catch {}
       endCall();
 
-      // Clean up matchmaking queue
+      // Clean up matchmaking queue + update calls table to ended
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+
+        // FIX #4: Network drop zombie — update any active calls to 'ended'
+        const directCallId = (location.state as any)?.directCallId;
+        if (directCallId) {
+          supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", directCallId).then();
+        }
       }
 
       // Show post-call modal instead of navigating away (so user can rate)
@@ -273,9 +279,10 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     };
 
     const handleParticipantDisconnected = (participant: any) => {
-      if (!participant.isLocal) forceEnd();
+      if (!participant.isLocal) forceEnd(false);
     };
-    const handleRoomDisconnected = () => forceEnd();
+    // FIX #4: Local disconnect (network drop) also updates DB
+    const handleRoomDisconnected = () => forceEnd(true);
 
     room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
     room.on(RoomEvent.Disconnected, handleRoomDisconnected);
@@ -283,7 +290,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       room.off(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
       room.off(RoomEvent.Disconnected, handleRoomDisconnected);
     };
-  }, [room, endCall, navigate, toast, isFriendCall]);
+  }, [room, endCall, navigate, toast, isFriendCall, location.state]);
 
   // Fetch partner profile from real data
   useEffect(() => {
@@ -379,13 +386,24 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     // Background DB work: save call history + clean matchmaking queue + log call in chat
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      supabase.from("call_history").insert({
-        user_id: user.id,
-        duration: callDuration,
-        partner_name: partnerProfile?.username || "Partner",
-        status: "outgoing",
-      }).then(() => {});
+      // FIX #5: Only the caller inserts call_history to prevent duplication
+      const directCallId = (location.state as any)?.directCallId;
+      const callerId = (location.state as any)?.callerId;
+      const isCallerOrInitiator = !directCallId || callerId === undefined || user.id === callerId;
+      if (isCallerOrInitiator) {
+        supabase.from("call_history").insert({
+          user_id: user.id,
+          duration: callDuration,
+          partner_name: partnerProfile?.username || "Partner",
+          status: "outgoing",
+        }).then(() => {});
+      }
       supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+
+      // Update calls table to ended
+      if (directCallId) {
+        supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString(), duration_sec: callDuration }).eq("id", directCallId).then();
+      }
 
       // Instagram-style: log call as system message in chat_messages for friend calls
       const effectivePartnerId = partnerId || stateMatchedUserId;
