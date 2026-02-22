@@ -1031,11 +1031,11 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               >
                 <div className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center transition-all",
-                  postCallRating === "like" ? "bg-green-500/30" : "bg-green-500/20"
+                  postCallRating === "like" ? "bg-primary" : "bg-primary/80"
                 )}>
                   {postCallRating === "like"
-                    ? <Flag className="w-5 h-5 text-green-400 fill-green-400" />
-                    : <ThumbsUp className="w-5 h-5 text-green-400" />
+                    ? <Flag className="w-5 h-5 text-primary-foreground fill-primary-foreground" />
+                    : <ThumbsUp className="w-5 h-5 text-primary-foreground" />
                   }
                 </div>
                 <span className="text-foreground text-[10px]">{postCallRating === "like" ? "Liked" : "Like"}</span>
@@ -1051,11 +1051,11 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               >
                 <div className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center transition-all",
-                  postCallRating === "dislike" ? "bg-destructive/30" : "bg-destructive/20"
+                  postCallRating === "dislike" ? "bg-destructive" : "bg-destructive/80"
                 )}>
                   {postCallRating === "dislike"
-                    ? <Flag className="w-5 h-5 text-destructive fill-destructive" />
-                    : <ThumbsDown className="w-5 h-5 text-destructive" />
+                    ? <Flag className="w-5 h-5 text-destructive-foreground fill-destructive-foreground" />
+                    : <ThumbsDown className="w-5 h-5 text-destructive-foreground" />
                   }
                 </div>
                 <span className="text-foreground text-[10px]">{postCallRating === "dislike" ? "Disliked" : "Dislike"}</span>
