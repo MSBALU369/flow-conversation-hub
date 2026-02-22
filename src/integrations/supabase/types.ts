@@ -283,7 +283,9 @@ export type Database = {
       matchmaking_queue: {
         Row: {
           created_at: string
+          gender_preference: string | null
           id: string
+          level_preference: string | null
           matched_with: string | null
           room_id: string | null
           status: string
@@ -292,7 +294,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          gender_preference?: string | null
           id?: string
+          level_preference?: string | null
           matched_with?: string | null
           room_id?: string | null
           status?: string
@@ -301,7 +305,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          gender_preference?: string | null
           id?: string
+          level_preference?: string | null
           matched_with?: string | null
           room_id?: string | null
           status?: string
@@ -907,6 +913,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      join_matchmaking: {
+        Args: {
+          p_gender_pref?: string
+          p_level_pref?: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
       leave_matchmaking: { Args: { p_user_id: string }; Returns: undefined }
       sync_test_role: { Args: never; Returns: Json }

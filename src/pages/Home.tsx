@@ -146,9 +146,11 @@ export default function Home() {
     return () => clearInterval(midnightInterval);
   }, [profile?.id]);
   const handleStartCall = () => {
+    // Free users always get random — premium filters enforced server-side too
+    const genderPref = isPremium && selectedFilter !== "random" ? selectedFilter : null;
     navigate("/finding", {
       state: {
-        genderFilter: selectedFilter !== "random" ? selectedFilter : null,
+        genderFilter: genderPref,
       },
     });
   };

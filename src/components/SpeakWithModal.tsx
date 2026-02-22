@@ -27,7 +27,12 @@ export function SpeakWithModal({ open, onOpenChange, isPremium, onPremiumRequire
       return;
     }
     onOpenChange(false);
-    navigate("/finding", { state: { levelFilter: selectedLevel, genderFilter: selectedGender } });
+    navigate("/finding", {
+      state: {
+        levelFilter: selectedLevel !== "Any" ? selectedLevel : null,
+        genderFilter: selectedGender !== "Random" ? selectedGender.toLowerCase() : null,
+      },
+    });
   };
 
   return (
