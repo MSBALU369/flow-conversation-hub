@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { startOfWeek, getDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown } from "lucide-react";
+import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown, Pause, Play } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useProfile } from "@/hooks/useProfile";
 import { useCallState } from "@/hooks/useCallState";
@@ -114,6 +114,7 @@ export default function Chat() {
   const [newMessage, setNewMessage] = useState("");
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [showCompareGraph, setShowCompareGraph] = useState(false);
   const [compareMyData, setCompareMyData] = useState(dayLabels.map(d => ({ day: d, minutes: 0 })));
@@ -451,7 +452,7 @@ export default function Chat() {
 
 
   useEffect(() => {
-    if (isRecording) {
+    if (isRecording && !isPaused) {
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime((prev) => {
           if (prev >= 90) {
@@ -465,14 +466,14 @@ export default function Chat() {
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
       }
-      setRecordingTime(0);
+      if (!isRecording) setRecordingTime(0);
     }
     return () => {
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
       }
     };
-  }, [isRecording]);
+  }, [isRecording, isPaused]);
 
   // Fetch real compare graph data when dialog opens
   useEffect(() => {
@@ -541,14 +542,27 @@ export default function Chat() {
 
   const startRecording = () => {
     setIsRecording(true);
+    setIsPaused(false);
     toast({
       title: "🎙️ Recording...",
-      description: "Max 90 seconds. Tap again to stop.",
+      description: "Max 90 seconds.",
     });
+  };
+
+  const togglePauseRecording = () => {
+    setIsPaused(prev => !prev);
+  };
+
+  const cancelRecording = () => {
+    setIsRecording(false);
+    setIsPaused(false);
+    setRecordingTime(0);
+    toast({ title: "Recording deleted" });
   };
 
   const stopRecording = async () => {
     setIsRecording(false);
+    setIsPaused(false);
     if (recordingTime > 0 && profile?.id && selectedFriend) {
       // Create a small audio blob placeholder (real MediaRecorder integration would go here)
       const blob = new Blob([new ArrayBuffer(recordingTime * 100)], { type: "audio/webm" });
@@ -914,16 +928,38 @@ export default function Chat() {
         {/* Message Input */}
         <div className="p-4 glass-nav safe-bottom">
           {isRecording ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Delete / Cancel */}
+              <Button
+                onClick={cancelRecording}
+                size="icon"
+                variant="ghost"
+                className="text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="w-5 h-5" />
+              </Button>
+
               <div className="flex-1 flex items-center gap-3 bg-destructive/20 rounded-xl px-4 py-3">
-                <div className="w-3 h-3 bg-destructive rounded-full animate-pulse" />
-                <span className="text-foreground font-medium">Recording...</span>
+                <div className={cn("w-3 h-3 bg-destructive rounded-full", !isPaused && "animate-pulse")} />
+                <span className="text-foreground font-medium">{isPaused ? "Paused" : "Recording..."}</span>
                 <span className="text-muted-foreground ml-auto">{formatRecordingTime(recordingTime)} / 1:30</span>
               </div>
+
+              {/* Pause / Resume */}
+              <Button
+                onClick={togglePauseRecording}
+                size="icon"
+                variant="outline"
+                className="border-border"
+              >
+                {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+              </Button>
+
+              {/* Send */}
               <Button
                 onClick={stopRecording}
                 size="icon"
-                className="bg-destructive text-destructive-foreground"
+                className="bg-primary text-primary-foreground"
               >
                 <Send className="w-5 h-5" />
               </Button>
