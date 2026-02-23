@@ -1,87 +1,106 @@
 
 
-# Implementation Plan: 4 Major Updates
+# Chat UI & Functionality Perfection Update
 
-## 1. Registration Screen - Username Validation with Debouncing
-
-**What changes:**
-- Create a `useDebounce` hook (`src/hooks/useDebounce.ts`) that delays a value by 500ms
-- Update `Onboarding.tsx` to:
-  - Restrict username input to alphanumeric characters only (regex filter on input change)
-  - After 500ms debounce, query `profiles` table to check if the username already exists
-  - Show a red error message "Username already taken or not available" below the input when taken
-  - Show a green checkmark when the username is available
-  - Disable the "Get Started" button while a taken username is entered
-
-**Technical details:**
-- New file: `src/hooks/useDebounce.ts` - generic debounce hook using `useState` + `useEffect` with a configurable delay
-- In `Onboarding.tsx`: filter input with `/^[a-zA-Z0-9]*$/`, use debounced value to run `supabase.from('profiles').select('id').eq('username', debouncedUsername).maybeSingle()`, display validation state below the input
+## Summary
+This plan enhances the existing Chat.tsx with 4 major improvements: WhatsApp-style image rendering with full-screen viewer, proper View Once logic, read receipt tick marks, functional context menu actions, and two-way Clear Chat. All features already have partial implementations that will be enhanced -- not duplicated.
 
 ---
 
-## 2. Finding Screen - Engaging 2D Map Animation
+## PART 1: WhatsApp-Style Image Rendering & Full-Screen Viewer
 
-**What changes:**
-- Completely redesign `FindingUser.tsx` with:
-  - An inline SVG world map (lightweight, no external dependencies) showing simplified continent outlines
-  - Animated blinking dots on key capitals: New York (USA), London (Europe), New Delhi (India), Sydney (Australia)
-  - A magnifying glass icon that pans across the map using CSS keyframe animations
-  - Cycling status text that rotates every 3 seconds through: "Finding a perfect partner for you...", "Searching in Europe...", "Connecting to India...", "Looking for the best match..."
-  - Keep the existing countdown timer and cancel button
-  - Accept `levelFilter` and `genderFilter` from route state for premium matchmaking (point 4)
+### What exists now
+- Images show as text labels ("Photo" / "View once photo") inside chat bubbles (lines 1370-1401)
+- `compressImage()` function already exists (lines 72-89) and is called during upload (lines 957-963)
+- `mediaUrl` is stored on messages but never rendered as an actual `<img>` tag in bubbles
 
-**Technical details:**
-- All animations are pure CSS keyframes (no Framer Motion dependency needed to keep it lightweight)
-- SVG map is a simplified world outline (~2KB inline) with positioned circle elements for city markers
-- The magnifying glass uses a `@keyframes pan-search` animation moving across the map viewport
-- Text cycling via a `useState` + `useEffect` interval
+### Changes
+1. **Direct image rendering in bubbles**: Replace the text-only rendering for `type === "image"` (non-viewOnce) messages with an actual `<img>` tag using `message.mediaUrl`, styled as `max-w-[75vw] rounded-lg overflow-hidden` -- matching WhatsApp's bubble style
+2. **Full-screen image viewer**: Add a new state `fullScreenImage` (string | null). When a regular image is clicked, set it. Render a fixed full-screen overlay (`fixed inset-0 z-50 bg-black/95`) with the image centered, a close button, and tap-to-dismiss
+3. **Compression is already implemented** -- no changes needed. The existing `compressImage` (max 1200px, quality 0.7) is already called before upload
+
+### Gallery Dialog fix
+- The Gallery Dialog (lines 1742-1752) currently shows placeholder icons instead of actual images. Update to render `<img src={msg.mediaUrl}>` for each media message
 
 ---
 
-## 3. Sidebar / Support Section Content
+## PART 2: View Once Logic Enhancement
 
-**What changes:**
+### What exists now
+- View Once detection: `viewOnce` is set based on content prefix "View once" (line 388)
+- Receiver sees "Tap to view" button (lines 1371-1394) that deletes from storage + DB
+- BUT: clicking "Tap to view" never actually shows the image -- it just deletes it immediately
 
-### Contact Us (`ContactUs.tsx`):
-- Replace the generic "support@ef-app.com" card with two distinct email cards:
-  - **Support**: help@englishflow.in - "For user queries and help"
-  - **Partnerships**: collaborate@englishflow.in - "For companies and brands"
-
-### Privacy Policy (`PrivacyPolicy.tsx`):
-- Add a prominent section: "Voice Call Privacy" explicitly stating: "All voice calls on English Flow are 100% private, not recorded, and not saved. We do not have access to any audio content from your conversations."
-- Add a section: "Data Security" stating: "User data is highly secured using industry-standard encryption and access controls."
-
-### Legal Info (`LegalInfo.tsx`):
-- Add a "Voice Communication" section explicitly stating: "Voice calls made through English Flow are 100% private. We do not record, store, or monitor any voice conversations."
-- Add a "User Data Protection" section stating: "All user data is highly secured and protected using advanced encryption standards."
+### Changes
+1. **Show image before deleting**: When receiver taps "Tap to view":
+   - Fetch `media_url` from DB
+   - Open the full-screen viewer with that URL
+   - When the viewer is closed, THEN delete from Storage + mark `deleted_for_everyone = true` in DB
+2. **View Once bubble UI**: Show a distinct bubble with camera icon and "Photo (View Once)" text, with a frosted/blurred background effect to make it visually distinct
+3. **After viewed**: Message transforms to " Opened" (greyed out, non-clickable)
 
 ---
 
-## 4. Speak With - Premium Strict Matchmaking with Timeout
+## PART 3: Read Receipts (Tick Marks)
 
-**What changes:**
-- Update `FindingUser.tsx` to read `levelFilter` and `genderFilter` from `useLocation().state`
-- When filters are active (premium user), show the active filters on the finding screen
-- After exactly 30 seconds of searching with filters, show a modal: "Currently no exact matches found. Would you like to expand your search to other levels/genders?" with two buttons:
-  - "Expand Search" - resets filters to Any/Random and restarts the countdown
-  - "Cancel" - navigates back
-- Create a `NoMatchModal` component for this prompt
+### What exists now
+- `getStatusIcon()` function (lines 1064-1073) already renders:
+  - Single grey Check for "sent"
+  - Double grey CheckCheck for "delivered"  
+  - Double blue CheckCheck for "read"
+- Ticks are already displayed next to timestamps (line 1419)
+- `is_read` is updated in realtime via UPDATE subscription (line 493)
+- Messages from friend are auto-marked as `is_read = true` when chat is open (lines 411-416, 453-458)
 
-**Technical details:**
-- `FindingUser.tsx` uses `useLocation()` to get filter state
-- A 30-second timeout triggers the `NoMatchModal` dialog
-- "Expand Search" clears filters and resets the search state
-- The existing countdown timer continues to work alongside this logic
+### Changes
+1. **Replace Lucide icons with custom SVG ticks** for a more WhatsApp-authentic look (smaller, cleaner double-check marks)
+2. **Ensure "sent" status is properly set**: Currently optimistic messages start as "sent", but once the DB confirms insertion, they should transition to "delivered". The realtime UPDATE handler already handles the "read" transition. Add logic so that when INSERT realtime fires for our own message, status becomes "delivered"
+3. No database schema changes needed -- `is_read` boolean already covers sent/delivered/read flow
 
 ---
 
-## Files to Create
-1. `src/hooks/useDebounce.ts`
+## PART 4: Message Context Menu & Clear Chat
 
-## Files to Modify
-1. `src/pages/Onboarding.tsx` - username validation
-2. `src/pages/FindingUser.tsx` - map animation + filter timeout logic
-3. `src/pages/ContactUs.tsx` - two email addresses
-4. `src/pages/PrivacyPolicy.tsx` - voice privacy + data security sections
-5. `src/pages/LegalInfo.tsx` - voice communication + data protection sections
+### What exists now
+- Hover action buttons exist (lines 1451-1499): React, Copy, Forward, Pin, Edit, Delete
+- Copy handler works (line 841-845)
+- Forward handler works (lines 847-857)
+- Delete for me / Delete for everyone both work (lines 901-929)
+- Clear Chat dialog exists (lines 1758-1868) with time picker (1h, 1d, 1m, all)
+- BUT: Clear Chat only deletes the current user's sent messages (one-way), not both sides
+
+### Changes
+
+#### A. Long-press context menu (mobile)
+- Add `onContextMenu` (right-click / long-press) handler on message bubbles that shows a native-feeling popup menu with: Copy, Reply, Forward, Pin, Edit (if eligible), Delete
+- This complements the existing hover buttons which are desktop-only
+
+#### B. Clear Chat -- Two-way vanish
+- Current implementation only deletes `sender_id = profile.id` messages (lines 1809-1845)
+- Update to delete messages from BOTH directions in the conversation:
+  - Delete where `(sender_id = me AND receiver_id = friend) OR (sender_id = friend AND receiver_id = me)`
+  - RLS only allows deleting own sent messages, so we need to use `deleted_for` array approach for the friend's messages (mark current user in `deleted_for` array) while physically deleting own messages
+  - Update the query to: (1) physically delete own sent messages, (2) add user ID to `deleted_for` array for received messages
+- Also clean up orphaned media from storage for deleted messages
+
+---
+
+## Technical Details
+
+### New state variables in Chat.tsx
+- `fullScreenImage: string | null` -- URL for full-screen image viewer
+- `viewOnceImageUrl: string | null` -- URL for view-once image being viewed
+- `viewOnceMessageId: string | null` -- ID of view-once message being viewed
+- `contextMenuMessage: Message | null` -- message for long-press context menu
+- `contextMenuPos: {x: number, y: number} | null` -- position of context menu
+
+### Files modified
+- `src/pages/Chat.tsx` -- All changes are in this single file (enhance existing code, no new files needed)
+
+### No database schema changes required
+- `chat_messages` table already has: `media_url`, `is_read`, `deleted_for` (array), `deleted_for_everyone`, `reactions`, `reply_to_id`, `is_pinned`, `edited_at`
+- All needed columns exist
+
+### No new dependencies
+- All features use existing libraries (Lucide icons, Radix Dialog, Supabase client)
 
