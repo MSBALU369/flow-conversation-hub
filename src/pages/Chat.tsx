@@ -171,6 +171,11 @@ export default function Chat() {
   const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
   const [pinnedMessage, setPinnedMessage] = useState<Message | null>(null);
   const [showGiftPicker, setShowGiftPicker] = useState(false);
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
+  const [viewOnceImageUrl, setViewOnceImageUrl] = useState<string | null>(null);
+  const [viewOnceMessageId, setViewOnceMessageId] = useState<string | null>(null);
+  const [contextMenuMessage, setContextMenuMessage] = useState<Message | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   // Load muted users from Supabase on mount
   useEffect(() => {
@@ -462,8 +467,9 @@ export default function Chat() {
           // Avoid duplicates (from optimistic update)
           setMessages(prev => {
             if (prev.some(m => m.id === msg.id)) return prev;
-            // Remove optimistic message if this is our own message
+            // Remove optimistic message if this is our own message — mark as "delivered"
             if (msg.sender_id === profile.id) {
+              newMsg.status = msg.is_read ? "read" : "delivered";
               const withoutOptimistic = prev.filter(m => !(m.senderId === "me" && m.content === msg.content && m.id.match(/^\d+$/)));
               return [...withoutOptimistic, newMsg];
             }
@@ -1062,13 +1068,24 @@ export default function Chat() {
   };
 
   const getStatusIcon = (status: Message["status"]) => {
+    const SingleTick = ({ color }: { color: string }) => (
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11.071 0.929L4.5 7.5L1.929 4.929" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+    const DoubleTick = ({ color }: { color: string }) => (
+      <svg width="20" height="11" viewBox="0 0 20 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14.071 0.929L7.5 7.5L6 6" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M10.071 0.929L3.5 7.5L0.929 4.929" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
     switch (status) {
       case "sent":
-        return <Check className="w-3 h-3 text-muted-foreground" />;
+        return <SingleTick color="hsl(var(--muted-foreground))" />;
       case "delivered":
-        return <CheckCheck className="w-3 h-3 text-muted-foreground" />;
+        return <DoubleTick color="hsl(var(--muted-foreground))" />;
       case "read":
-        return <CheckCheck className="w-3 h-3 text-primary" />;
+        return <DoubleTick color="hsl(var(--primary))" />;
     }
   };
 
@@ -1308,6 +1325,11 @@ export default function Chat() {
                 onTouchStart={(e) => handleMsgTouchStart(e, message.id)}
                 onTouchMove={(e) => handleMsgTouchMove(e, message.id)}
                 onTouchEnd={() => handleMsgTouchEnd(message.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenuMessage(message);
+                  setContextMenuPos({ x: e.clientX, y: e.clientY });
+                }}
               >
                 <div
                   className="relative transition-transform duration-150"
@@ -1366,13 +1388,19 @@ export default function Chat() {
                           )}
                         </div>
                       </div>
-                    ) : (
-                      <p className={cn(isMe ? "text-primary-foreground" : "text-foreground")}>
-                        {message.type === "image" && message.viewOnce && !isMe && (
+                    ) : message.type === "image" ? (
+                      // Image message rendering
+                      message.viewOnce ? (
+                        // View Once image
+                        message.deletedForEveryone ? (
+                          <div className="flex items-center gap-2 py-1">
+                            <Eye className={cn("w-4 h-4", isMe ? "text-primary-foreground/50" : "text-muted-foreground")} />
+                            <span className={cn("text-sm italic", isMe ? "text-primary-foreground/50" : "text-muted-foreground")}>Opened</span>
+                          </div>
+                        ) : !isMe ? (
                           <button
-                            className="inline-flex items-center gap-1 underline"
+                            className="flex items-center gap-2 py-2 px-3 rounded-xl bg-gradient-to-r from-muted/80 to-muted/40 backdrop-blur-sm border border-border/50"
                             onClick={async () => {
-                              toast({ title: "📸 View Once", description: "This image will be deleted after viewing." });
                               const msgRow = await supabase
                                 .from("chat_messages")
                                 .select("media_url")
@@ -1380,25 +1408,52 @@ export default function Chat() {
                                 .single();
                               const mediaUrl = msgRow.data?.media_url;
                               if (mediaUrl) {
-                                const pathMatch = mediaUrl.match(/chat_media\/(.+)$/);
-                                if (pathMatch?.[1]) {
-                                  await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
-                                }
+                                setViewOnceImageUrl(mediaUrl);
+                                setViewOnceMessageId(message.id);
+                              } else {
+                                toast({ title: "Image no longer available", variant: "destructive" });
                               }
-                              await supabase.from("chat_messages").delete().eq("id", message.id);
-                              setMessages(prev => prev.filter(m => m.id !== message.id));
-                              toast({ title: "View Once media destroyed", description: "File permanently deleted." });
                             }}
                           >
-                            <Eye className="w-4 h-4" /> Tap to view
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                              <span className="text-base">📷</span>
+                            </div>
+                            <div className="text-left">
+                              <p className={cn("text-sm font-medium", "text-foreground")}>Photo</p>
+                              <p className="text-[10px] text-muted-foreground">View Once · Tap to open</p>
+                            </div>
                           </button>
-                        )}
-                        {message.type === "image" && message.viewOnce && isMe && (
-                          <span className="inline-flex items-center gap-1">
-                            <Eye className="w-4 h-4" /> {message.content}
-                          </span>
-                        )}
-                        {!(message.type === "image" && message.viewOnce) && message.content}
+                        ) : (
+                          <div className="flex items-center gap-2 py-1">
+                            <Eye className={cn("w-4 h-4", isMe ? "text-primary-foreground/70" : "text-muted-foreground")} />
+                            <span className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>{message.content}</span>
+                          </div>
+                        )
+                      ) : (
+                        // Regular image — render as WhatsApp-style bubble
+                        <div
+                          className="cursor-pointer -mx-4 -mt-2 -mb-1"
+                          onClick={() => message.mediaUrl && setFullScreenImage(message.mediaUrl)}
+                        >
+                          {message.mediaUrl ? (
+                            <img
+                              src={message.mediaUrl}
+                              alt="Shared photo"
+                              className="rounded-2xl max-w-full w-full object-cover"
+                              style={{ maxHeight: "300px" }}
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 py-2 px-4">
+                              <ImageIcon className={cn("w-4 h-4", isMe ? "text-primary-foreground/70" : "text-muted-foreground")} />
+                              <span className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>Photo</span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    ) : (
+                      <p className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>
+                        {message.content}
                       </p>
                     )}
                     <div className={cn(
@@ -1741,11 +1796,19 @@ export default function Chat() {
                 }
                 return (
                   <div className="grid grid-cols-3 gap-2">
-                    {mediaMessages.map(msg => (
-                      <div key={msg.id} className="aspect-square rounded-lg bg-muted overflow-hidden">
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="w-6 h-6 text-muted-foreground" />
-                        </div>
+                    {mediaMessages.filter(m => !m.viewOnce).map(msg => (
+                      <div
+                        key={msg.id}
+                        className="aspect-square rounded-lg bg-muted overflow-hidden cursor-pointer"
+                        onClick={() => msg.mediaUrl && setFullScreenImage(msg.mediaUrl)}
+                      >
+                        {msg.mediaUrl ? (
+                          <img src={msg.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1803,38 +1866,48 @@ export default function Chat() {
                     case "1m": cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
                     default: cutoff = new Date(0);
                   }
-                  // Real Supabase DELETE with orphaned media cleanup
+                  // Two-way clear: delete own messages + mark received messages in deleted_for
                   if (profile?.id && selectedFriend) {
-                    // Step 1: Fetch messages to be deleted (to find media_urls)
-                    let selectQuery = supabase
+                    // Step 1: Fetch OWN sent messages to delete (for media cleanup)
+                    let selectOwnQuery = supabase
                       .from("chat_messages")
                       .select("id, media_url")
                       .eq("sender_id", profile.id)
                       .eq("receiver_id", selectedFriend.id);
                     if (clearChatOption !== "all") {
-                      selectQuery = selectQuery.gte("created_at", cutoff.toISOString());
+                      selectOwnQuery = selectOwnQuery.gte("created_at", cutoff.toISOString());
                     }
-                    const { data: toDelete } = await selectQuery;
+                    const { data: ownToDelete } = await selectOwnQuery;
 
-                    // Step 2: Remove orphaned media from storage
-                    if (toDelete && toDelete.length > 0) {
-                      const mediaPaths = toDelete
+                    // Step 2: Fetch RECEIVED messages to add to deleted_for
+                    let selectReceivedQuery = supabase
+                      .from("chat_messages")
+                      .select("id, media_url, deleted_for")
+                      .eq("sender_id", selectedFriend.id)
+                      .eq("receiver_id", profile.id);
+                    if (clearChatOption !== "all") {
+                      selectReceivedQuery = selectReceivedQuery.gte("created_at", cutoff.toISOString());
+                    }
+                    const { data: receivedMsgs } = await selectReceivedQuery;
+
+                    // Step 3: Remove orphaned media from own messages
+                    const allMedia = [...(ownToDelete || [])];
+                    if (allMedia.length > 0) {
+                      const mediaPaths = allMedia
                         .filter(m => m.media_url)
                         .map(m => {
-                          // Extract storage path from public URL
                           const url = m.media_url!;
                           const bucketSegment = "/chat_media/";
                           const idx = url.indexOf(bucketSegment);
                           return idx !== -1 ? url.substring(idx + bucketSegment.length).split("?")[0] : null;
                         })
                         .filter(Boolean) as string[];
-
                       if (mediaPaths.length > 0) {
                         await supabase.storage.from("chat_media").remove(mediaPaths);
                       }
                     }
 
-                    // Step 3: Delete messages
+                    // Step 4: Delete own sent messages
                     let deleteQuery = supabase
                       .from("chat_messages")
                       .delete()
@@ -1843,19 +1916,27 @@ export default function Chat() {
                     if (clearChatOption !== "all") {
                       deleteQuery = deleteQuery.gte("created_at", cutoff.toISOString());
                     }
+                    await deleteQuery;
 
-                    const { error } = await deleteQuery;
-                    if (error) {
-                      console.error("Failed to clear chat:", error);
-                      toast({ title: "Failed to clear chat", variant: "destructive" });
-                    } else {
-                      setMessages(prev => prev.filter(m => {
-                        if (m.senderId !== "me") return true;
-                        if (clearChatOption === "all") return false;
-                        return m.timestamp < cutoff;
-                      }));
-                      toast({ title: "Chat cleared", description: `Your messages from ${clearChatOption === "all" ? "all time" : `last ${clearChatOption === "1h" ? "1 hour" : clearChatOption === "1d" ? "1 day" : "1 month"}`} have been removed.` });
+                    // Step 5: Mark received messages as deleted_for current user
+                    if (receivedMsgs && receivedMsgs.length > 0) {
+                      for (const msg of receivedMsgs) {
+                        const currentDeletedFor = (msg.deleted_for || []) as string[];
+                        if (!currentDeletedFor.includes(profile.id)) {
+                          await supabase
+                            .from("chat_messages")
+                            .update({ deleted_for: [...currentDeletedFor, profile.id] } as any)
+                            .eq("id", msg.id);
+                        }
+                      }
                     }
+
+                    // Step 6: Clear local state
+                    setMessages(prev => prev.filter(m => {
+                      if (clearChatOption === "all") return false;
+                      return m.timestamp < cutoff;
+                    }));
+                    toast({ title: "Chat cleared", description: `Messages from ${clearChatOption === "all" ? "all time" : `last ${clearChatOption === "1h" ? "1 hour" : clearChatOption === "1d" ? "1 day" : "1 month"}`} cleared for you.` });
                   }
                   setShowClearChat(false);
                   setClearChatOption(null);
@@ -1932,6 +2013,141 @@ export default function Chat() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Full-Screen Image Viewer */}
+        {fullScreenImage && (
+          <div
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+            onClick={() => setFullScreenImage(null)}
+          >
+            <button
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              onClick={() => setFullScreenImage(null)}
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+            <img
+              src={fullScreenImage}
+              alt="Full screen view"
+              className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+
+        {/* View Once Image Viewer */}
+        {viewOnceImageUrl && viewOnceMessageId && (
+          <div
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+            onClick={async () => {
+              // On close, delete the image from storage & mark deleted
+              const msgId = viewOnceMessageId;
+              const mediaUrl = viewOnceImageUrl;
+              setViewOnceImageUrl(null);
+              setViewOnceMessageId(null);
+              // Delete from storage
+              if (mediaUrl) {
+                const pathMatch = mediaUrl.match(/chat_media\/(.+?)(\?|$)/);
+                if (pathMatch?.[1]) {
+                  await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
+                }
+              }
+              // Mark as deleted for everyone
+              await supabase.from("chat_messages").update({ deleted_for_everyone: true } as any).eq("id", msgId);
+              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deletedForEveryone: true } : m));
+              toast({ title: "View Once photo destroyed" });
+            }}
+          >
+            <button
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              onClick={async () => {
+                const msgId = viewOnceMessageId;
+                const mediaUrl = viewOnceImageUrl;
+                setViewOnceImageUrl(null);
+                setViewOnceMessageId(null);
+                if (mediaUrl) {
+                  const pathMatch = mediaUrl.match(/chat_media\/(.+?)(\?|$)/);
+                  if (pathMatch?.[1]) {
+                    await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
+                  }
+                }
+                await supabase.from("chat_messages").update({ deleted_for_everyone: true } as any).eq("id", msgId);
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deletedForEveryone: true } : m));
+                toast({ title: "View Once photo destroyed" });
+              }}
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+            <div className="text-center">
+              <p className="text-white/60 text-xs mb-2">View Once · Closes on tap</p>
+              <img
+                src={viewOnceImageUrl}
+                alt="View once"
+                className="max-w-[95vw] max-h-[85vh] object-contain rounded-lg"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Context Menu (Long-press / Right-click) */}
+        {contextMenuMessage && contextMenuPos && (
+          <div
+            className="fixed inset-0 z-50"
+            onClick={() => { setContextMenuMessage(null); setContextMenuPos(null); }}
+          >
+            <div
+              className="absolute bg-popover border border-border rounded-xl shadow-xl py-1.5 min-w-[180px] animate-in fade-in-0 zoom-in-95"
+              style={{
+                top: Math.min(contextMenuPos.y, window.innerHeight - 280),
+                left: Math.min(contextMenuPos.x, window.innerWidth - 200),
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {contextMenuMessage.type === "text" && (
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                  onClick={() => { handleCopyMessage(contextMenuMessage); setContextMenuMessage(null); setContextMenuPos(null); }}
+                >
+                  <Copy className="w-4 h-4 text-muted-foreground" /> Copy
+                </button>
+              )}
+              <button
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                onClick={() => { setReplyToMessage(contextMenuMessage); setContextMenuMessage(null); setContextMenuPos(null); }}
+              >
+                <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" /> Reply
+              </button>
+              <button
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                onClick={() => { setForwardingMessage(contextMenuMessage); setContextMenuMessage(null); setContextMenuPos(null); }}
+              >
+                <Send className="w-4 h-4 text-muted-foreground" /> Forward
+              </button>
+              <button
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                onClick={() => { handlePinMessage(contextMenuMessage); setContextMenuMessage(null); setContextMenuPos(null); }}
+              >
+                <span className="text-sm">📌</span> Pin
+              </button>
+              {canEditMessage(contextMenuMessage) && (
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                  onClick={() => { handleStartEdit(contextMenuMessage); setContextMenuMessage(null); setContextMenuPos(null); }}
+                >
+                  <Pencil className="w-4 h-4 text-muted-foreground" /> Edit
+                </button>
+              )}
+              <div className="h-px bg-border mx-2 my-1" />
+              <button
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                onClick={() => { setDeleteTarget(contextMenuMessage); setShowDeleteDialog(true); setContextMenuMessage(null); setContextMenuPos(null); }}
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     );
