@@ -194,10 +194,12 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
                 className="w-full flex items-center justify-between px-2 py-1 rounded-lg border border-[hsl(45,100%,50%)]/20 transition-colors"
               >
                 <div className="flex items-center gap-1.5">
-                  <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
                   <span className="text-[10px] font-semibold text-foreground">🪙 My Coins</span>
                 </div>
-                <span className="text-[11px] font-extrabold" style={{ color: 'hsl(43,80%,40%)', WebkitTextStroke: '0.5px hsl(0,0%,10%)', textShadow: '0 1px 2px rgba(0,0,0,0.5), 0 0 8px hsla(45,100%,50%,0.3), inset 0 1px 0 hsla(45,100%,80%,0.4)' }}>{profile?.coins ?? 0}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] font-extrabold" style={{ color: 'hsl(43,80%,40%)', WebkitTextStroke: '0.5px hsl(0,0%,10%)', textShadow: '0 1px 2px rgba(0,0,0,0.5), 0 0 8px hsla(45,100%,50%,0.3), inset 0 1px 0 hsla(45,100%,80%,0.4)' }}>{profile?.coins ?? 0}</span>
+                  <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+                </div>
               </button>
             </div>
 
