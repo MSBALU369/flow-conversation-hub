@@ -106,9 +106,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
-    // Set user offline on tab close / unmount
+    // Set user offline on tab close / unmount + update last_seen
     const handleOffline = () => {
-      supabase.from("profiles").update({ is_online: false }).eq("id", user.id).then();
+      supabase.from("profiles").update({ is_online: false, last_seen: new Date().toISOString() } as any).eq("id", user.id).then();
     };
     window.addEventListener("beforeunload", handleOffline);
 

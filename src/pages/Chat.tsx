@@ -38,6 +38,7 @@ interface Friend {
   time: string;
   unread: number;
   isOnline: boolean;
+  lastSeen?: string | null;
 }
 
 interface Message {
@@ -52,6 +53,8 @@ interface Message {
   editedAt?: string | null;
   deletedFor?: string[];
   deletedForEveryone?: boolean;
+  replyToId?: string | null;
+  replyToContent?: string | null;
 }
 
 // No more mock data — friends and messages are fetched from Supabase
@@ -129,6 +132,9 @@ export default function Chat() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Message | null>(null);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
+  const [msgSwipeOffsets, setMsgSwipeOffsets] = useState<Record<string, number>>({});
+  const msgTouchStartRef = useRef<{ x: number; y: number; id: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load muted users from Supabase on mount
@@ -188,7 +194,7 @@ export default function Chat() {
 
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, username, avatar_url, is_online")
+        .select("id, username, avatar_url, is_online, last_seen")
         .in("id", mutualIds);
 
       const mutuals = (profiles || []).map(p => ({
@@ -196,20 +202,26 @@ export default function Chat() {
         name: p.username || "User",
         avatar: p.avatar_url,
         isOnline: p.is_online ?? false,
+        lastSeen: (p as any).last_seen || null,
       }));
       setMutualFollowers(mutuals);
 
       // Also set up chat friends from those who have existing messages
       const { data: recentMessages } = await supabase
         .from("chat_messages")
-        .select("sender_id, receiver_id, content, created_at")
+        .select("sender_id, receiver_id, content, created_at, is_read")
         .or(`sender_id.eq.${profile.id},receiver_id.eq.${profile.id}`)
         .order("created_at", { ascending: false });
 
-      // Build friends list from recent messages
+      // Build friends list from recent messages with unread counts
       const friendMap = new Map<string, Friend>();
+      const unreadCounts = new Map<string, number>();
       (recentMessages || []).forEach(msg => {
         const partnerId = msg.sender_id === profile.id ? msg.receiver_id : msg.sender_id;
+        // Count unread messages from partner
+        if (msg.sender_id !== profile.id && !msg.is_read) {
+          unreadCounts.set(partnerId, (unreadCounts.get(partnerId) || 0) + 1);
+        }
         if (!friendMap.has(partnerId)) {
           const mutual = mutuals.find(m => m.id === partnerId);
           if (mutual) {
@@ -221,11 +233,16 @@ export default function Chat() {
               avatar: mutual.avatar,
               lastMessage: msg.content || "📷 Media",
               time: timeStr,
-              unread: 0,
+              unread: unreadCounts.get(partnerId) || 0,
               isOnline: mutual.isOnline,
+              lastSeen: mutual.lastSeen,
             });
           }
         }
+      });
+      // Update unread counts for already-built friends
+      friendMap.forEach((friend, id) => {
+        friend.unread = unreadCounts.get(id) || 0;
       });
       setChatFriends(Array.from(friendMap.values()));
     };
@@ -338,7 +355,20 @@ export default function Chat() {
         editedAt: (msg as any).edited_at || null,
         deletedFor: (msg as any).deleted_for || [],
         deletedForEveryone: (msg as any).deleted_for_everyone || false,
+        replyToId: (msg as any).reply_to_id || null,
       }));
+      // Resolve reply content for messages that have reply_to_id
+      const replyIds = mapped.filter(m => m.replyToId).map(m => m.replyToId!);
+      if (replyIds.length > 0) {
+        const { data: replyMsgs } = await supabase
+          .from("chat_messages")
+          .select("id, content")
+          .in("id", replyIds);
+        const replyMap = new Map((replyMsgs || []).map(r => [r.id, r.content]));
+        mapped.forEach(m => {
+          if (m.replyToId) m.replyToContent = replyMap.get(m.replyToId) || null;
+        });
+      }
       setMessages(mapped);
 
       // Mark unread messages from friend as read
@@ -601,17 +631,24 @@ export default function Chat() {
       timestamp: new Date(),
       status: "sent",
       type: "text",
+      replyToId: replyToMessage?.id || null,
+      replyToContent: replyToMessage?.content || null,
     };
     setMessages(prev => [...prev, message]);
     const msgContent = newMessage;
+    const replyId = replyToMessage?.id || null;
     setNewMessage("");
+    setReplyToMessage(null);
 
     // Persist to Supabase
-    const { error } = await supabase.from("chat_messages").insert({
+    const insertPayload: any = {
       sender_id: profile.id,
       receiver_id: selectedFriend.id,
       content: msgContent,
-    });
+    };
+    if (replyId) insertPayload.reply_to_id = replyId;
+
+    const { error } = await supabase.from("chat_messages").insert(insertPayload);
     if (error) {
       console.error("Failed to send message:", error);
       toast({ title: "Message failed", description: "Could not send message.", variant: "destructive" });
@@ -835,6 +872,50 @@ export default function Chat() {
     return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   };
 
+  const formatLastSeen = (isoStr: string) => {
+    const date = new Date(isoStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+    const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    if (isToday) return `today at ${timeStr}`;
+    if (isYesterday) return `yesterday at ${timeStr}`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ` at ${timeStr}`;
+  };
+
+  // Swipe-to-reply handlers for message bubbles
+  const handleMsgTouchStart = useCallback((e: React.TouchEvent, msgId: string) => {
+    msgTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, id: msgId };
+  }, []);
+
+  const handleMsgTouchMove = useCallback((e: React.TouchEvent, msgId: string) => {
+    if (!msgTouchStartRef.current || msgTouchStartRef.current.id !== msgId) return;
+    const deltaX = e.touches[0].clientX - msgTouchStartRef.current.x;
+    const deltaY = Math.abs(e.touches[0].clientY - msgTouchStartRef.current.y);
+    if (deltaY > 30) { msgTouchStartRef.current = null; return; }
+    // Only allow swipe right (positive deltaX) for reply
+    if (deltaX > 0 && Math.abs(deltaX) > deltaY) {
+      e.preventDefault();
+      setMsgSwipeOffsets(prev => ({ ...prev, [msgId]: Math.min(80, deltaX) }));
+    }
+  }, []);
+
+  const handleMsgTouchEnd = useCallback((msgId: string) => {
+    const offset = msgSwipeOffsets[msgId] || 0;
+    if (offset > 50) {
+      // Trigger reply
+      const msg = messages.find(m => m.id === msgId);
+      if (msg) setReplyToMessage(msg);
+    }
+    setMsgSwipeOffsets(prev => ({ ...prev, [msgId]: 0 }));
+    msgTouchStartRef.current = null;
+  }, [msgSwipeOffsets, messages]);
+
   const formatRecordingTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -875,14 +956,18 @@ export default function Chat() {
                 )}
               </div>
               {selectedFriend.isOnline && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background shadow-[0_0_6px_hsl(var(--ef-online))]" />
               )}
             </div>
 
             <div className="text-left">
               <h2 className="font-semibold text-foreground">{selectedFriend.name}</h2>
               <p className="text-xs text-muted-foreground">
-                {selectedFriend.isOnline ? "Online" : "Offline"}
+                {isPartnerTyping ? (
+                  <span className="text-primary">typing...</span>
+                ) : selectedFriend.isOnline ? "Online" : selectedFriend.lastSeen ? (
+                  `Last seen ${formatLastSeen(selectedFriend.lastSeen)}`
+                ) : "Offline"}
               </p>
             </div>
           </button>
@@ -1066,8 +1151,14 @@ export default function Chat() {
               <div
                 key={message.id}
                 className={cn("flex group", isMe ? "justify-end" : "justify-start")}
+                onTouchStart={(e) => handleMsgTouchStart(e, message.id)}
+                onTouchMove={(e) => handleMsgTouchMove(e, message.id)}
+                onTouchEnd={() => handleMsgTouchEnd(message.id)}
               >
-                <div className="relative">
+                <div
+                  className="relative transition-transform duration-150"
+                  style={{ transform: `translateX(${msgSwipeOffsets[message.id] || 0}px)` }}
+                >
                   <div
                     className={cn(
                       "max-w-[75vw] px-4 py-2 rounded-2xl",
@@ -1076,6 +1167,15 @@ export default function Chat() {
                         : "glass-card rounded-bl-md"
                     )}
                   >
+                    {/* Reply context */}
+                    {message.replyToContent && (
+                      <div className={cn(
+                        "mb-1 px-2 py-1 rounded-lg border-l-2 text-[11px]",
+                        isMe ? "bg-primary-foreground/10 border-primary-foreground/40 text-primary-foreground/70" : "bg-muted/50 border-primary/40 text-muted-foreground"
+                      )}>
+                        <p className="truncate">{message.replyToContent}</p>
+                      </div>
+                    )}
                     {/* Voice message with play button */}
                     {message.type === "voice" ? (
                       <div className="flex items-center gap-2">
@@ -1221,6 +1321,21 @@ export default function Chat() {
                 <p className="text-xs text-muted-foreground truncate">{editingMessage.content}</p>
               </div>
               <button onClick={() => { setEditingMessage(null); setEditText(""); }} className="p-1">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Reply Preview Bar */}
+        {replyToMessage && !editingMessage && (
+          <div className="px-4 pt-2 pb-0 glass-nav border-b border-border/50">
+            <div className="flex items-center gap-2 bg-muted/50 rounded-xl px-3 py-2 border-l-2 border-primary">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-primary font-medium">Replying to {replyToMessage.senderId === "me" ? "yourself" : selectedFriend?.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{replyToMessage.content}</p>
+              </div>
+              <button onClick={() => setReplyToMessage(null)} className="p-1">
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
@@ -1632,7 +1747,7 @@ export default function Chat() {
                           )}
                         </div>
                         {follower.isOnline && (
-                          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
+                          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background shadow-[0_0_6px_hsl(var(--ef-online))]" />
                         )}
                       </div>
                       <span className="text-sm font-medium text-foreground flex-1 text-left">{follower.name}</span>
@@ -1692,7 +1807,7 @@ export default function Chat() {
                         )}
                       </div>
                       {friend.isOnline && (
-                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
+                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background shadow-[0_0_6px_hsl(var(--ef-online))]" />
                       )}
                     </div>
 
