@@ -156,6 +156,69 @@ export default function UserProfilePage() {
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const { profile: myProfile } = useProfile();
 
+  // Real speaking data from calls table
+  const [myWeeklyReal, setMyWeeklyReal] = useState<{ day: string; minutes: number }[]>([]);
+  const [friendWeeklyReal, setFriendWeeklyReal] = useState<{ day: string; minutes: number }[]>([]);
+  const [mutualMinutes, setMutualMinutes] = useState(0);
+
+  useEffect(() => {
+    if (!user?.id || !myProfile?.id) return;
+    const fetchCallStats = async () => {
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun
+      const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - mondayOffset);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekStartISO = weekStart.toISOString();
+
+      // Fetch all calls involving me this week
+      const { data: myCalls } = await supabase
+        .from("calls")
+        .select("caller_id, receiver_id, duration_sec, created_at")
+        .or(`caller_id.eq.${myProfile.id},receiver_id.eq.${myProfile.id}`)
+        .gte("created_at", weekStartISO)
+        .gt("duration_sec", 0);
+
+      // Fetch all calls involving the viewed user this week
+      const { data: friendCalls } = await supabase
+        .from("calls")
+        .select("caller_id, receiver_id, duration_sec, created_at")
+        .or(`caller_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .gte("created_at", weekStartISO)
+        .gt("duration_sec", 0);
+
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const dayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+      const aggregateByDay = (calls: typeof myCalls) => {
+        const map: Record<string, number> = {};
+        dayOrder.forEach(d => map[d] = 0);
+        (calls || []).forEach(c => {
+          const d = dayNames[new Date(c.created_at).getDay()];
+          map[d] = (map[d] || 0) + Math.round((c.duration_sec || 0) / 60);
+        });
+        return dayOrder.map(day => ({ day, minutes: map[day] }));
+      };
+
+      setMyWeeklyReal(aggregateByDay(myCalls));
+      setFriendWeeklyReal(aggregateByDay(friendCalls));
+
+      // Mutual calls = calls between me and this user
+      let mutual = 0;
+      (myCalls || []).forEach(c => {
+        if (
+          (c.caller_id === myProfile.id && c.receiver_id === user.id) ||
+          (c.caller_id === user.id && c.receiver_id === myProfile.id)
+        ) {
+          mutual += Math.round((c.duration_sec || 0) / 60);
+        }
+      });
+      setMutualMinutes(mutual);
+    };
+    fetchCallStats();
+  }, [user?.id, myProfile?.id]);
+
   // Fetch user bio
   useEffect(() => {
     if (!user?.id) return;
@@ -309,8 +372,8 @@ export default function UserProfilePage() {
 
   const dayLabelsArr = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const emptyWeekData = dayLabelsArr.map(day => ({ day, minutes: 0 }));
-  const defaultMyData = user.myWeeklyData || emptyWeekData;
-  const defaultFriendData = user.weeklyData || emptyWeekData;
+  const graphMyData = myWeeklyReal.length > 0 ? myWeeklyReal : emptyWeekData;
+  const graphFriendData = friendWeeklyReal.length > 0 ? friendWeeklyReal : emptyWeekData;
 
   return (
     <div className="min-h-screen bg-background">
@@ -464,9 +527,9 @@ export default function UserProfilePage() {
             <span className="text-sm font-semibold text-foreground">Speaking Comparison</span>
           </div>
           {(() => {
-            const myTotal = (user.myWeeklyData || defaultMyData).reduce((s, d) => s + d.minutes, 0);
-            const partnerTotal = defaultFriendData.reduce((s, d) => s + d.minutes, 0);
-            const safeMutual = 0;
+            const myTotal = graphMyData.reduce((s, d) => s + d.minutes, 0);
+            const partnerTotal = graphFriendData.reduce((s, d) => s + d.minutes, 0);
+            const safeMutual = Math.min(mutualMinutes, myTotal, partnerTotal);
             return (
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="bg-[hsl(0,0%,90%)]/60 dark:bg-[hsl(0,0%,25%)]/40 rounded-lg px-2 py-1 text-center">
@@ -489,10 +552,10 @@ export default function UserProfilePage() {
             );
           })()}
           <CompareGraphInline
-            userName={user.name}
-            friendName={user.myName || "You"}
-            myData={defaultFriendData}
-            friendData={user.myWeeklyData || defaultMyData}
+            userName={myProfile?.username || "You"}
+            friendName={user.name}
+            myData={graphMyData}
+            friendData={graphFriendData}
           />
         </div>
 
