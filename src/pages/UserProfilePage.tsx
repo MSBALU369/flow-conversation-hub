@@ -180,40 +180,38 @@ export default function UserProfilePage() {
       weekStart.setHours(0, 0, 0, 0);
       const weekStartISO = weekStart.toISOString();
 
-      // Fetch all MY calls this week (RLS allows this)
-      const { data: myCalls } = await supabase
-        .from("calls")
-        .select("caller_id, receiver_id, duration_sec, created_at")
-        .or(`caller_id.eq.${myProfile.id},receiver_id.eq.${myProfile.id}`)
-        .gte("created_at", weekStartISO)
-        .gt("duration_sec", 0);
-
-      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       const dayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-      const aggregateByDay = (calls: typeof myCalls) => {
+      const aggregateByDay = (calls: any[]) => {
         const map: Record<string, number> = {};
         dayOrder.forEach(d => map[d] = 0);
-        (calls || []).forEach(c => {
+        calls.forEach(c => {
           const d = dayNames[new Date(c.created_at).getDay()];
-          map[d] = (map[d] || 0) + (c.duration_sec || 0) / 60;
+          map[d] = (map[d] || 0) + (c.duration || 0) / 60;
         });
         return dayOrder.map(day => ({ day, minutes: map[day] }));
       };
 
-      // My total weekly speaking
-      setMyWeeklyReal(aggregateByDay(myCalls));
+      // Fetch MY call_history this week
+      const { data: myCalls } = await supabase
+        .from("call_history")
+        .select("partner_name, duration, created_at")
+        .eq("user_id", myProfile.id)
+        .gte("created_at", weekStartISO);
 
-      // Mutual calls = calls between me and this specific user
-      const mutualCalls = (myCalls || []).filter(c =>
-        (c.caller_id === myProfile.id && c.receiver_id === user.id) ||
-        (c.caller_id === user.id && c.receiver_id === myProfile.id)
-      );
+      setMyWeeklyReal(aggregateByDay(myCalls || []));
+
+      // Fetch the OPPONENT's username to match partner_name
+      const opponentName = user.name;
+
+      // Mutual calls = my calls where partner is this user
+      const mutualCalls = (myCalls || []).filter(c => c.partner_name === opponentName);
       setFriendWeeklyReal(aggregateByDay(mutualCalls));
 
       let mutual = 0;
       mutualCalls.forEach(c => {
-        mutual += (c.duration_sec || 0) / 60;
+        mutual += (c.duration || 0) / 60;
       });
       setMutualMinutes(mutual);
     };
