@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Users, Copy, Check, LogOut } from "lucide-react";
+import { ArrowLeft, Send, Users, Copy, Check, LogOut, ShieldBan, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
@@ -50,6 +50,11 @@ export default function RoomDiscussion() {
   const [copiedCode, setCopiedCode] = useState(false);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [members, setMembers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
+  const [mutedMembers, setMutedMembers] = useState<Set<string>>(new Set());
+  const [showMembers, setShowMembers] = useState(false);
+
+  const isHost = room?.host_id === user?.id;
 
   // Fetch room info
   useEffect(() => {
@@ -74,20 +79,51 @@ export default function RoomDiscussion() {
     fetchRoom();
   }, [roomCode]);
 
-  // Fetch member count
+  // Fetch members with profiles
   useEffect(() => {
     if (!room) return;
 
     const fetchMembers = async () => {
-      const { count } = await supabase
+      const { data, count } = await supabase
         .from("room_members")
-        .select("*", { count: "exact", head: true })
+        .select("user_id", { count: "exact" })
         .eq("room_id", room.id);
       setMemberCount(count ?? 0);
+
+      if (data && data.length > 0) {
+        const userIds = data.map(m => m.user_id);
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, username, avatar_url")
+          .in("id", userIds);
+        setMembers((profiles || []).map(p => ({ user_id: p.id, username: p.username || "Unknown", avatar_url: p.avatar_url })));
+      }
     };
 
     fetchMembers();
   }, [room]);
+
+  const handleKickMember = async (targetUserId: string) => {
+    if (!room || !isHost) return;
+    await supabase.from("room_members").delete().eq("room_id", room.id).eq("user_id", targetUserId);
+    setMembers(prev => prev.filter(m => m.user_id !== targetUserId));
+    setMemberCount(prev => Math.max(0, prev - 1));
+    toast({ title: "User kicked from room" });
+  };
+
+  const handleToggleMute = (targetUserId: string) => {
+    setMutedMembers(prev => {
+      const next = new Set(prev);
+      if (next.has(targetUserId)) {
+        next.delete(targetUserId);
+        toast({ title: "User unmuted" });
+      } else {
+        next.add(targetUserId);
+        toast({ title: "User muted" });
+      }
+      return next;
+    });
+  };
 
   // Clean up room membership on tab close / unmount (prevent ghost members)
   useEffect(() => {
@@ -290,6 +326,11 @@ export default function RoomDiscussion() {
             {copiedCode ? <Check className="w-3 h-3 text-primary" /> : <Copy className="w-3 h-3" />}
             <span className="font-mono">{room.room_code}</span>
           </button>
+          {isHost && (
+            <button onClick={() => setShowMembers(!showMembers)} className="p-1.5 rounded-full hover:bg-muted text-muted-foreground transition-colors" title="Manage members">
+              <Users className="w-4 h-4" />
+            </button>
+          )}
           <button onClick={handleLeaveRoom} className="p-1.5 rounded-full hover:bg-destructive/10 text-destructive transition-colors" title="Leave room">
             <LogOut className="w-4 h-4" />
           </button>
@@ -298,6 +339,34 @@ export default function RoomDiscussion() {
           </button>
         </div>
       </div>
+
+      {/* Host Members Panel */}
+      {showMembers && isHost && (
+        <div className="bg-card border-b border-border px-4 py-2 space-y-1.5 shrink-0">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Members ({memberCount})</p>
+          {members.filter(m => m.user_id !== user?.id).map(m => (
+            <div key={m.user_id} className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-full bg-muted overflow-hidden shrink-0">
+                  {m.avatar_url ? <img src={m.avatar_url} alt="" className="w-full h-full object-cover rounded-full" /> : <span className="text-xs flex items-center justify-center h-full">👤</span>}
+                </div>
+                <span className="text-xs text-foreground truncate">{m.username}</span>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <button onClick={() => handleToggleMute(m.user_id)} className={`p-1 rounded hover:bg-muted transition-colors ${mutedMembers.has(m.user_id) ? "text-destructive" : "text-muted-foreground"}`} title={mutedMembers.has(m.user_id) ? "Unmute" : "Mute"}>
+                  <VolumeX className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => handleKickMember(m.user_id)} className="p-1 rounded hover:bg-destructive/10 text-destructive transition-colors" title="Kick">
+                  <ShieldBan className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+          {members.filter(m => m.user_id !== user?.id).length === 0 && (
+            <p className="text-[10px] text-muted-foreground text-center py-1">No other members</p>
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4 py-3">
