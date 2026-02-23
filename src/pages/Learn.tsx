@@ -1,4 +1,4 @@
-import { BookOpen, Globe, Laptop, Building, Lock, ArrowRight, ArrowLeft } from "lucide-react";
+import { BookOpen, Globe, Laptop, Building, Lock, ArrowRight, ArrowLeft, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -105,17 +105,57 @@ export default function Learn() {
           ))}
         </div>
 
-        {/* Featured placeholder */}
-        <h2 className="text-lg font-semibold text-foreground mt-8 mb-4">Featured Courses</h2>
-        <div className="grid grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="glass-card p-4 opacity-50">
-              <div className="w-full aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center">
-                <Lock className="w-6 h-6 text-muted-foreground" />
+        {/* Recommended Books */}
+        <h2 className="text-lg font-semibold text-foreground mt-8 mb-4">📚 Recommended Books</h2>
+        <div className="space-y-3">
+          {[
+            { title: "Word Power Made Easy", author: "Norman Lewis", url: "https://www.amazon.in/dp/110187385X", desc: "The #1 vocabulary builder worldwide" },
+            { title: "English Grammar in Use", author: "Raymond Murphy", url: "https://www.amazon.in/dp/1108457657", desc: "Best-selling grammar reference & practice" },
+          ].map((book) => (
+            <a
+              key={book.title}
+              href={book.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glass-card p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                <BookOpen className="w-6 h-6 text-primary" />
               </div>
-              <div className="h-4 bg-muted rounded w-3/4 mb-2" />
-              <div className="h-3 bg-muted rounded w-1/2" />
-            </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-foreground text-sm">{book.title}</h3>
+                <p className="text-xs text-muted-foreground">by {book.author}</p>
+                <p className="text-xs text-primary mt-0.5">{book.desc}</p>
+              </div>
+              <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+            </a>
+          ))}
+        </div>
+
+        {/* Recommended Courses */}
+        <h2 className="text-lg font-semibold text-foreground mt-8 mb-4">🎓 Top Courses</h2>
+        <div className="space-y-3 mb-8">
+          {[
+            { title: "Complete English Course", platform: "Udemy", url: "https://www.udemy.com/course/the-complete-english-language-course/", desc: "Beginner to Advanced — all-in-one" },
+            { title: "Learn English Specialization", platform: "Coursera", url: "https://www.coursera.org/specializations/learn-english", desc: "University-backed English programme" },
+          ].map((course) => (
+            <a
+              key={course.title}
+              href={course.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glass-card p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
+                <Globe className="w-6 h-6 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-foreground text-sm">{course.title}</h3>
+                <p className="text-xs text-muted-foreground">{course.platform}</p>
+                <p className="text-xs text-accent mt-0.5">{course.desc}</p>
+              </div>
+              <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-accent shrink-0 transition-colors" />
+            </a>
           ))}
         </div>
       </main>
