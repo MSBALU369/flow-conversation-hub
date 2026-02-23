@@ -382,7 +382,7 @@ export default function Profile() {
         name,
         avatar: fp?.avatar_url || null,
         allTimeMinutes: Math.round(d.totalMin),
-        data: dayLabels.map((day, i) => ({ day, minutes: Math.round(d.weeklyBuckets[i]) })),
+        data: dayLabels.map((day, i) => ({ day, minutes: d.weeklyBuckets[i] })),
       };
     });
 
@@ -422,7 +422,7 @@ export default function Profile() {
     });
     setWeeklyData(dayLabels.map((day, i) => ({
       day,
-      minutes: Math.round(perDay[i])
+      minutes: perDay[i]
     })));
     setTotalWeekMinutes(perDay.reduce((a, b) => a + b, 0));
 
@@ -539,13 +539,15 @@ export default function Profile() {
 
   // Smart Y-axis ticks
   const generateYTicks = (max: number) => {
+    if (max <= 0.5) return [0, 0.1, 0.2, 0.3, 0.4, 0.5];
+    if (max <= 1) return [0, 0.25, 0.5, 0.75, 1];
     if (max <= 5) return [0, 1, 2, 3, 4, 5];
     const rawStep = max / 4;
     const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
     const candidates = [1, 2, 5, 10].map(m => m * magnitude);
     const step = candidates.find(s => s >= rawStep) || candidates[candidates.length - 1];
     const ticks: number[] = [];
-    for (let v = 0; v <= max + step * 0.5; v += step) ticks.push(Math.round(v));
+    for (let v = 0; v <= max + step * 0.5; v += step) ticks.push(Math.round(v * 100) / 100);
     return ticks;
   };
   const yTicks = generateYTicks(maxMinutes);
@@ -896,7 +898,7 @@ export default function Profile() {
               <svg width={chartWidth} height={chartHeight + 30} className="overflow-visible">
                 {yTicks.map((val) => {
                   const y = chartHeight - paddingBottom - (val / yMax) * plotHeight;
-                  const label = val >= 60 ? `${Math.round(val / 60)}h` : `${val}m`;
+                  const label = val >= 60 ? `${Math.round(val / 60)}h` : val < 1 && val > 0 ? `${Math.round(val * 60)}s` : `${Math.round(val)}m`;
                   return (
                     <g key={val}>
                       <line x1={paddingLeft} y1={y} x2={chartWidth - paddingRight} y2={y} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.12} />

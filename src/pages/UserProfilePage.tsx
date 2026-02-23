@@ -58,7 +58,7 @@ function CompareGraphInline({
               <g key={pct}>
                 <line x1={pL} y1={y} x2={cW - pR} y2={y} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} />
                 <text x={pL - 5} y={y + 3} textAnchor="end" fontSize={9} fontWeight="bold" fill="hsl(var(--foreground))">
-                  {Math.round(pct * maxMin)}m
+                  {pct * maxMin < 1 && pct > 0 ? `${Math.round(pct * maxMin * 60)}s` : `${Math.round(pct * maxMin)}m`}
                 </text>
               </g>
             );
@@ -196,7 +196,7 @@ export default function UserProfilePage() {
         dayOrder.forEach(d => map[d] = 0);
         (calls || []).forEach(c => {
           const d = dayNames[new Date(c.created_at).getDay()];
-          map[d] = (map[d] || 0) + Math.round((c.duration_sec || 0) / 60);
+          map[d] = (map[d] || 0) + (c.duration_sec || 0) / 60;
         });
         return dayOrder.map(day => ({ day, minutes: map[day] }));
       };
@@ -213,7 +213,7 @@ export default function UserProfilePage() {
 
       let mutual = 0;
       mutualCalls.forEach(c => {
-        mutual += Math.round((c.duration_sec || 0) / 60);
+        mutual += (c.duration_sec || 0) / 60;
       });
       setMutualMinutes(mutual);
     };
