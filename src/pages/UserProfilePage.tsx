@@ -107,22 +107,30 @@ export default function UserProfilePage() {
   });
   const locationHook = useLocation();
   const stateUser = locationHook.state as UserState | null;
-  const [user, setUser] = useState<UserState | null>(stateUser);
-  const [profileLoading, setProfileLoading] = useState(!stateUser);
+  const [user, setUser] = useState<UserState | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const { toast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
   // Fetch profile from DB if no state was passed
+  // Always fetch real profile + real counts from friendships table
   useEffect(() => {
-    if (stateUser || !id) return;
+    if (!id) return;
     setProfileLoading(true);
     const fetchProfile = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, username, avatar_url, level, is_online, unique_id, created_at, followers_count, following_count, country, region, location_city, description")
+        .select("id, username, avatar_url, level, is_online, unique_id, created_at, country, region, location_city, description")
         .eq("id", id)
         .maybeSingle();
+
+      // Compute real counts from friendships table
+      const [{ count: followingCount }, { count: followersCount }] = await Promise.all([
+        supabase.from("friendships").select("*", { count: "exact", head: true }).eq("user_id", id).eq("status", "accepted"),
+        supabase.from("friendships").select("*", { count: "exact", head: true }).eq("friend_id", id).eq("status", "accepted"),
+      ]);
+
       if (data) {
         setUser({
           id: data.id,
@@ -132,8 +140,8 @@ export default function UserProfilePage() {
           isOnline: data.is_online ?? false,
           uniqueId: data.unique_id ?? undefined,
           createdAt: data.created_at,
-          followersCount: data.followers_count ?? 0,
-          followingCount: data.following_count ?? 0,
+          followersCount: followersCount ?? 0,
+          followingCount: followingCount ?? 0,
           location: [data.location_city, data.region, data.country].filter(Boolean).join(", ") || undefined,
         });
         setUserBio(data.description || null);
@@ -141,7 +149,7 @@ export default function UserProfilePage() {
       setProfileLoading(false);
     };
     fetchProfile();
-  }, [id, stateUser]);
+  }, [id]);
   const [showTalentsModal, setShowTalentsModal] = useState(false);
   const [talents, setTalents] = useState<{ id: string; title: string | null; language: string; likes_count: number; plays_count: number; duration_sec: number | null; created_at: string }[]>([]);
   const [loadingTalents, setLoadingTalents] = useState(false);
@@ -172,19 +180,11 @@ export default function UserProfilePage() {
       weekStart.setHours(0, 0, 0, 0);
       const weekStartISO = weekStart.toISOString();
 
-      // Fetch all calls involving me this week
+      // Fetch all MY calls this week (RLS allows this)
       const { data: myCalls } = await supabase
         .from("calls")
         .select("caller_id, receiver_id, duration_sec, created_at")
         .or(`caller_id.eq.${myProfile.id},receiver_id.eq.${myProfile.id}`)
-        .gte("created_at", weekStartISO)
-        .gt("duration_sec", 0);
-
-      // Fetch all calls involving the viewed user this week
-      const { data: friendCalls } = await supabase
-        .from("calls")
-        .select("caller_id, receiver_id, duration_sec, created_at")
-        .or(`caller_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .gte("created_at", weekStartISO)
         .gt("duration_sec", 0);
 
@@ -201,18 +201,19 @@ export default function UserProfilePage() {
         return dayOrder.map(day => ({ day, minutes: map[day] }));
       };
 
+      // My total weekly speaking
       setMyWeeklyReal(aggregateByDay(myCalls));
-      setFriendWeeklyReal(aggregateByDay(friendCalls));
 
-      // Mutual calls = calls between me and this user
+      // Mutual calls = calls between me and this specific user
+      const mutualCalls = (myCalls || []).filter(c =>
+        (c.caller_id === myProfile.id && c.receiver_id === user.id) ||
+        (c.caller_id === user.id && c.receiver_id === myProfile.id)
+      );
+      setFriendWeeklyReal(aggregateByDay(mutualCalls));
+
       let mutual = 0;
-      (myCalls || []).forEach(c => {
-        if (
-          (c.caller_id === myProfile.id && c.receiver_id === user.id) ||
-          (c.caller_id === user.id && c.receiver_id === myProfile.id)
-        ) {
-          mutual += Math.round((c.duration_sec || 0) / 60);
-        }
+      mutualCalls.forEach(c => {
+        mutual += Math.round((c.duration_sec || 0) / 60);
       });
       setMutualMinutes(mutual);
     };
@@ -481,17 +482,15 @@ export default function UserProfilePage() {
               setIsFollowing(newState);
               if (newState) {
                 await supabase.from("friendships").insert({ user_id: myProfile.id, friend_id: user.id, status: "accepted" });
-                // Increment followers_count on target
-                await supabase.from("profiles").update({ followers_count: (user.followersCount || 0) + 1 }).eq("id", user.id);
-                // Increment following_count on self
-                await supabase.from("profiles").update({ following_count: (myProfile.following_count ?? 0) + 1 }).eq("id", myProfile.id);
-                setUser(prev => prev ? { ...prev, followersCount: prev.followersCount + 1 } : prev);
               } else {
                 await supabase.from("friendships").delete().eq("user_id", myProfile.id).eq("friend_id", user.id);
-                await supabase.from("profiles").update({ followers_count: Math.max(0, (user.followersCount || 1) - 1) }).eq("id", user.id);
-                await supabase.from("profiles").update({ following_count: Math.max(0, (myProfile.following_count ?? 1) - 1) }).eq("id", myProfile.id);
-                setUser(prev => prev ? { ...prev, followersCount: Math.max(0, prev.followersCount - 1) } : prev);
               }
+              // Refetch real counts from friendships
+              const [{ count: newFollowing }, { count: newFollowers }] = await Promise.all([
+                supabase.from("friendships").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "accepted"),
+                supabase.from("friendships").select("*", { count: "exact", head: true }).eq("friend_id", user.id).eq("status", "accepted"),
+              ]);
+              setUser(prev => prev ? { ...prev, followersCount: newFollowers ?? 0, followingCount: newFollowing ?? 0 } : prev);
             }}
             variant={isFollowing ? "outline" : "default"}
             size="sm"
@@ -553,7 +552,7 @@ export default function UserProfilePage() {
           })()}
           <CompareGraphInline
             userName={myProfile?.username || "You"}
-            friendName={user.name}
+            friendName={"With " + user.name}
             myData={graphMyData}
             friendData={graphFriendData}
           />
