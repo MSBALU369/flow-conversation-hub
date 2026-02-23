@@ -1036,21 +1036,6 @@ export default function Profile() {
             )}
           </div>
 
-          {/* GDPR Delete Account */}
-          <div className="glass-card w-full px-4 py-3 mb-2">
-            <button
-              onClick={() => setShowDeleteAccount(true)}
-              className="w-full flex items-center gap-3 text-left"
-            >
-              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                <Trash2 className="w-5 h-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-destructive">Delete My Account</p>
-                <p className="text-[10px] text-muted-foreground">Permanently remove all your data</p>
-              </div>
-            </button>
-          </div>
 
           {/* Profile Visitors Button */}
           <button
