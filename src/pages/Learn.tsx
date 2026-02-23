@@ -1,4 +1,5 @@
-import { BookOpen, Globe, Laptop, Building, Lock, ArrowRight, ArrowLeft, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { BookOpen, Globe, Laptop, Building, Lock, ArrowRight, ArrowLeft, ExternalLink, ShoppingBag, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -37,9 +38,19 @@ const categories = [
   },
 ];
 
+const affiliateResources = [
+  { title: "Word Power Made Easy", author: "Norman Lewis", url: "https://www.amazon.in/dp/110187385X", desc: "The #1 vocabulary builder", type: "book" as const },
+  { title: "English Grammar in Use", author: "Raymond Murphy", url: "https://www.amazon.in/dp/1108457657", desc: "Best-selling grammar reference", type: "book" as const },
+  { title: "Atomic Habits", author: "James Clear", url: "https://www.amazon.in/dp/0735211299", desc: "Build better learning habits", type: "book" as const },
+  { title: "Complete English Course", platform: "Udemy", url: "https://www.udemy.com/course/the-complete-english-language-course/", desc: "Beginner to Advanced", type: "course" as const },
+  { title: "Learn English Specialization", platform: "Coursera", url: "https://www.coursera.org/specializations/learn-english", desc: "University-backed programme", type: "course" as const },
+  { title: "English for Career Development", platform: "Coursera", url: "https://www.coursera.org/learn/english-for-career-development", desc: "Professional English skills", type: "course" as const },
+];
+
 export default function Learn() {
   const navigate = useNavigate();
   const { profile } = useProfile();
+  const [activeTab, setActiveTab] = useState<"learn" | "affiliate">("learn");
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -53,6 +64,24 @@ export default function Learn() {
         <button onClick={() => navigate(-1)} className="mb-3 p-2 rounded-full hover:bg-muted transition-colors">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
+        {/* Tab Switcher */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setActiveTab("learn")}
+            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === "learn" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+          >
+            <GraduationCap className="w-4 h-4 inline mr-1" /> Learn Hub
+          </button>
+          <button
+            onClick={() => setActiveTab("affiliate")}
+            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === "affiliate" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+          >
+            <ShoppingBag className="w-4 h-4 inline mr-1" /> Affiliate Store
+          </button>
+        </div>
+
+        {activeTab === "learn" && (
+          <>
         {/* Hero */}
         <div className="glass-card-glow p-6 mb-6 text-center">
           <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-primary/20 flex items-center justify-center">
@@ -158,6 +187,70 @@ export default function Learn() {
             </a>
           ))}
         </div>
+          </>
+        )}
+
+        {activeTab === "affiliate" && (
+          <div className="space-y-4">
+            <div className="glass-card-glow p-5 text-center">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-accent/20 flex items-center justify-center">
+                <ShoppingBag className="w-7 h-7 text-accent" />
+              </div>
+              <h2 className="text-lg font-bold text-foreground mb-1">Affiliate Resources</h2>
+              <p className="text-sm text-muted-foreground">Curated books & courses to boost your English</p>
+            </div>
+
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-primary" /> Books
+            </h3>
+            <div className="space-y-2">
+              {affiliateResources.filter(r => r.type === "book").map(item => (
+                <a
+                  key={item.title}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="glass-card p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                    <BookOpen className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-foreground text-sm">{item.title}</h4>
+                    <p className="text-[10px] text-muted-foreground">by {"author" in item ? item.author : ""}</p>
+                    <p className="text-[10px] text-primary">{item.desc}</p>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
+                </a>
+              ))}
+            </div>
+
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 mt-4">
+              <GraduationCap className="w-4 h-4 text-accent" /> Courses
+            </h3>
+            <div className="space-y-2 mb-8">
+              {affiliateResources.filter(r => r.type === "course").map(item => (
+                <a
+                  key={item.title}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="glass-card p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
+                    <Globe className="w-5 h-5 text-accent" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-foreground text-sm">{item.title}</h4>
+                    <p className="text-[10px] text-muted-foreground">{"platform" in item ? item.platform : ""}</p>
+                    <p className="text-[10px] text-accent">{item.desc}</p>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-accent shrink-0" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       <BottomNav />

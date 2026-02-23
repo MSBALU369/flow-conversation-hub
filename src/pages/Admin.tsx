@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Users, DollarSign, Database, Phone, Mail, Crown,
   AlertTriangle, Zap, Activity, Shield, Rocket, CreditCard, Globe,
-  Search, Trash2, Ban,
+  Search, Trash2, Ban, Ticket, CheckCircle2, Gift,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ToolMetricsModal } from "@/components/admin/ToolMetricsModal";
@@ -69,6 +69,8 @@ export default function Admin() {
   const [userSearch, setUserSearch] = useState("");
   const [selectedTool, setSelectedTool] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [grantingPremium, setGrantingPremium] = useState<string | null>(null);
 
   // Guard
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function Admin() {
     if (!user || !isAdminOrRoot(user.email)) return;
     setLoading(true);
 
-    const [usersRes, todayTxRes, monthTxRes, callsRes, roomsRes, talentsRes, reportsRes] = await Promise.all([
+    const [usersRes, todayTxRes, monthTxRes, callsRes, roomsRes, talentsRes, reportsRes, ticketsRes] = await Promise.all([
       supabase.from("profiles").select("id, username, email, energy_bars, coins, created_at, is_premium, is_banned").order("created_at", { ascending: false }).limit(500),
       (() => {
         const todayStart = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).toISOString();
@@ -95,6 +97,7 @@ export default function Admin() {
       supabase.from("rooms").select("*", { count: "exact", head: true }),
       supabase.from("talent_uploads").select("*", { count: "exact", head: true }),
       supabase.from("reports").select("*").order("created_at", { ascending: false }).limit(50),
+      supabase.from("support_tickets" as any).select("*").order("created_at", { ascending: false }).limit(100),
     ]);
 
     const usersData = (usersRes.data as UserRow[]) || [];
@@ -107,10 +110,23 @@ export default function Admin() {
     setTotalRooms(roomsRes.count || 0);
     setTotalTalents(talentsRes.count || 0);
     setReports((reportsRes.data as ReportRow[]) || []);
+    setTickets((ticketsRes as any).data || []);
     setLoading(false);
   };
 
   useEffect(() => { fetchAll(); }, [user]);
+
+  // Realtime sync for tickets & coin_transactions
+  useEffect(() => {
+    if (!user || !isAdminOrRoot(user.email)) return;
+    const channel = supabase
+      .channel("admin-realtime")
+      .on("postgres_changes" as any, { event: "*", schema: "public", table: "support_tickets" }, () => fetchAll())
+      .on("postgres_changes" as any, { event: "*", schema: "public", table: "coin_transactions" }, () => fetchAll())
+      .on("postgres_changes" as any, { event: "*", schema: "public", table: "profiles" }, () => fetchAll())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   if (!user || !isAdminOrRoot(user.email)) return null;
 
@@ -215,18 +231,26 @@ export default function Admin() {
 
       <div className="px-4 mt-4">
         <Tabs defaultValue="health" className="w-full">
-          <TabsList className="w-full grid grid-cols-4 h-10 bg-muted/50">
+          <TabsList className="w-full grid grid-cols-5 h-10 bg-muted/50">
             <TabsTrigger value="health" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
-              <Activity className="w-3.5 h-3.5 mr-1" /> Health
+              <Activity className="w-3.5 h-3.5 mr-0.5" /> Health
             </TabsTrigger>
             <TabsTrigger value="users" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
-              <Users className="w-3.5 h-3.5 mr-1" /> Users
+              <Users className="w-3.5 h-3.5 mr-0.5" /> Users
+            </TabsTrigger>
+            <TabsTrigger value="tickets" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary relative">
+              <Ticket className="w-3.5 h-3.5 mr-0.5" /> Tickets
+              {tickets.filter((t: any) => t.status === "open").length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[8px] rounded-full flex items-center justify-center">
+                  {tickets.filter((t: any) => t.status === "open").length}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="moderation" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
-              <Shield className="w-3.5 h-3.5 mr-1" /> Mod
+              <Shield className="w-3.5 h-3.5 mr-0.5" /> Mod
             </TabsTrigger>
             <TabsTrigger value="future" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
-              <Rocket className="w-3.5 h-3.5 mr-1" /> Lab
+              <Rocket className="w-3.5 h-3.5 mr-0.5" /> Lab
             </TabsTrigger>
           </TabsList>
 
@@ -371,6 +395,110 @@ export default function Admin() {
                     </TableBody>
                   </Table>
                 </div>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* TAB: SUPPORT TICKETS */}
+          <TabsContent value="tickets" className="space-y-4 mt-4">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <Ticket className="w-4 h-4 text-primary" /> Payment Support Tickets ({tickets.length})
+            </h3>
+            {tickets.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle2 className="w-8 h-8 text-primary/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No support tickets</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                {tickets.map((ticket: any) => {
+                  const ticketUser = users.find(u => u.id === ticket.user_id);
+                  return (
+                    <div key={ticket.id} className={cn(
+                      "p-3 rounded-xl border bg-muted/30",
+                      ticket.status === "open" ? "border-destructive/30" : "border-border"
+                    )}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className={cn(
+                              "text-[8px] px-1.5 py-0.5 rounded-full font-medium uppercase",
+                              ticket.status === "open" ? "bg-destructive/20 text-destructive" :
+                              ticket.status === "resolved" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                            )}>
+                              {ticket.status}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground">
+                              {new Date(ticket.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="text-xs font-medium text-foreground">{ticket.subject}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            by {ticketUser?.username || ticketUser?.email || "Unknown"}
+                          </p>
+                          {ticket.description && (
+                            <p className="text-[10px] text-muted-foreground mt-1">{ticket.description}</p>
+                          )}
+                          {ticket.admin_note && (
+                            <p className="text-[10px] text-primary mt-1 italic">Admin: {ticket.admin_note}</p>
+                          )}
+                        </div>
+                        {ticket.status === "open" && (
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <Button
+                              size="sm"
+                              className="text-[9px] h-6 px-2 gap-1"
+                              disabled={grantingPremium === ticket.id}
+                              onClick={async () => {
+                                setGrantingPremium(ticket.id);
+                                // Force grant premium + 50 bonus coins
+                                const { data, error } = await supabase.rpc("admin_grant_premium" as any, {
+                                  p_target_user_id: ticket.user_id,
+                                  p_duration_days: 30,
+                                  p_bonus_coins: 50,
+                                });
+                                if (!error) {
+                                  // Mark ticket resolved
+                                  await supabase.from("support_tickets" as any).update({
+                                    status: "resolved",
+                                    admin_note: "Force-granted 30 days Premium + 50 bonus coins",
+                                    resolved_by: user.id,
+                                  } as any).eq("id", ticket.id);
+                                  fetchAll();
+                                }
+                                setGrantingPremium(null);
+                              }}
+                            >
+                              {grantingPremium === ticket.id ? (
+                                <div className="w-3 h-3 border border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <>
+                                  <Gift className="w-3 h-3" />
+                                  Grant Premium
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-[9px] h-6 px-2"
+                              onClick={async () => {
+                                await supabase.from("support_tickets" as any).update({
+                                  status: "closed",
+                                  admin_note: "Closed by admin",
+                                  resolved_by: user.id,
+                                } as any).eq("id", ticket.id);
+                                fetchAll();
+                              }}
+                            >
+                              Close
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </TabsContent>

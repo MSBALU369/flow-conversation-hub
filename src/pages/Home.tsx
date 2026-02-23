@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap, Users, BadgeCheck, Coins } from "lucide-react";
+import { AdBanner } from "@/components/AdBanner";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
 import { LevelsModal } from "@/components/LevelsModal";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -371,6 +372,13 @@ export default function Home() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Ad Banner for non-premium */}
+          {!isPremium && (
+            <div className="mt-3">
+              <AdBanner variant="compact" />
             </div>
           )}
         </main>
