@@ -25,7 +25,7 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
   const features = [
     { icon: Users, text: "Filter by Female or Male" },
     { icon: Zap, text: "Unlimited Daily Calls" },
-    { icon: ShieldCheck, text: "Priority Matching" },
+    { icon: ShieldCheck, text: "Priority Matching + Gift Coins 🪙" },
   ];
 
   return (

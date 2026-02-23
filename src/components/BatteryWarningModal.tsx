@@ -72,7 +72,8 @@ export function BatteryWarningModal() {
               : `Battery low — ${energyBars} bar${energyBars !== 1 ? "s" : ""} remaining`}
           </p>
           <p className="text-xs text-muted-foreground mb-4">
-            Watch a 30s ad for +1 bar, or use {coinRechargeCoast} coins for a full recharge
+            Watch a 30s ad for +1 bar, or use {coinRechargeCoast} coins for a full recharge.
+            You can also earn coins by watching ads!
           </p>
 
           {adPlaying ? (

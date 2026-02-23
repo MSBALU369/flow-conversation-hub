@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, ArrowUp, ArrowDown, CheckCircle2, XCircle } from "lucide-react";
+import { Clock, ArrowUp, ArrowDown, Crown, Play, Gift, Zap, Send, ArrowDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -15,6 +15,15 @@ interface Transaction {
   sender_name?: string;
   receiver_name?: string;
 }
+
+const typeBadges: Record<string, { label: string; icon: typeof Crown; color: string }> = {
+  premium_bonus: { label: "Premium Gift", icon: Crown, color: "bg-primary/20 text-primary" },
+  ad_reward: { label: "Ad Reward", icon: Play, color: "bg-accent/20 text-accent" },
+  send: { label: "Transfer", icon: Send, color: "bg-muted text-muted-foreground" },
+  request: { label: "Request", icon: ArrowDownLeft, color: "bg-muted text-muted-foreground" },
+  daily_login: { label: "Daily Login", icon: Gift, color: "bg-primary/20 text-primary" },
+  energy_recharge: { label: "Energy", icon: Zap, color: "bg-destructive/20 text-destructive" },
+};
 
 export function CoinTransactionLog({ userId }: { userId: string }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -40,7 +49,7 @@ export function CoinTransactionLog({ userId }: { userId: string }) {
         const nameMap = new Map((profiles || []).map(p => [p.id, p.username || "User"]));
         setTransactions(data.map(t => ({
           ...t,
-          sender_name: nameMap.get(t.sender_id) || "User",
+          sender_name: nameMap.get(t.sender_id) || "System",
           receiver_name: nameMap.get(t.receiver_id) || "User",
         })));
       } else {
@@ -87,24 +96,35 @@ export function CoinTransactionLog({ userId }: { userId: string }) {
       <div className="space-y-1 max-h-40 overflow-y-auto">
         {transactions.map(t => {
           const isSender = t.sender_id === userId;
-          const isSpent = isSender && t.type === "send";
+          const isSelfTransaction = t.sender_id === t.receiver_id;
+          const isSpent = isSender && t.type === "send" && !isSelfTransaction;
+          const badge = typeBadges[t.type] || typeBadges.send;
+          const BadgeIcon = badge.icon;
+
+          const label = (() => {
+            if (t.type === "premium_bonus") return "Premium Gift 🎁";
+            if (t.type === "ad_reward") return "Ad Reward 🎬";
+            if (t.type === "daily_login") return "Daily Login";
+            if (t.type === "energy_recharge") return "Energy Recharge";
+            if (t.type === "request") return isSender ? `Requested from ${t.receiver_name}` : `${t.sender_name} requested`;
+            return isSpent ? `Sent to ${t.receiver_name}` : `From ${t.sender_name}`;
+          })();
+
           return (
             <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/30">
-              <div className={cn(
-                "w-6 h-6 rounded-full flex items-center justify-center",
-                isSpent ? "bg-destructive/20" : "bg-primary/20"
-              )}>
-                {isSpent ? <ArrowUp className="w-3 h-3 text-destructive" /> : <ArrowDown className="w-3 h-3 text-primary" />}
+              <div className={cn("w-6 h-6 rounded-full flex items-center justify-center", badge.color)}>
+                <BadgeIcon className="w-3 h-3" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium text-foreground truncate">
-                  {t.type === "request"
-                    ? (isSender ? `Requested from ${t.receiver_name}` : `${t.sender_name} requested`)
-                    : (isSpent ? `Sent to ${t.receiver_name}` : `From ${t.sender_name}`)}
-                </p>
-                <p className="text-[9px] text-muted-foreground">
-                  {new Date(t.created_at).toLocaleDateString()} · {t.status}
-                </p>
+                <p className="text-[11px] font-medium text-foreground truncate">{label}</p>
+                <div className="flex items-center gap-1">
+                  <span className={cn("text-[7px] px-1 py-0.5 rounded-full font-medium", badge.color)}>
+                    {badge.label}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground">
+                    {new Date(t.created_at).toLocaleDateString()} · {t.status}
+                  </span>
+                </div>
               </div>
               <span className={cn("text-xs font-bold", isSpent ? "text-destructive" : "text-primary")}>
                 {isSpent ? "-" : "+"}{t.amount}

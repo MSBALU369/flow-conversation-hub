@@ -778,6 +778,60 @@ export type Database = {
           },
         ]
       }
+      support_tickets: {
+        Row: {
+          admin_note: string | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          resolved_by: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          resolved_by?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          resolved_by?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_likes: {
         Row: {
           created_at: string
@@ -923,6 +977,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_grant_premium: {
+        Args: {
+          p_bonus_coins?: number
+          p_duration_days?: number
+          p_target_user_id: string
+        }
+        Returns: Json
+      }
       check_premium_expiration: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -970,6 +1032,10 @@ export type Database = {
         Returns: undefined
       }
       leave_matchmaking: { Args: { p_user_id: string }; Returns: undefined }
+      process_premium_purchase: {
+        Args: { p_bonus_coins?: number; p_duration: string; p_user_id: string }
+        Returns: Json
+      }
       sync_test_role: { Args: never; Returns: Json }
       transfer_coins: {
         Args: { p_amount: number; p_receiver_id: string; p_sender_id: string }
