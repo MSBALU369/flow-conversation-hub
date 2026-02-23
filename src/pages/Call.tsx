@@ -46,6 +46,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useNetworkStrength } from "@/hooks/useNetworkStrength";
 import { useCallState } from "@/hooks/useCallState";
 import { useToast } from "@/hooks/use-toast";
+import { useEnergySystem } from "@/hooks/useEnergySystem";
 import { cn, isInAppBrowser } from "@/lib/utils";
 import { GameListModal } from "@/components/games/GameListModal";
 import { QuizBetModal } from "@/components/games/QuizBetModal";
@@ -151,6 +152,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const { toast } = useToast();
   const localNetworkState = useNetworkStrength();
   const { startCall, endCall, updateCallSeconds } = useCallState();
+  const { isLowEnergy, isEmptyEnergy, energyBars, isPremium: isPremiumEnergy } = useEnergySystem({ isDraining: true });
 
   const remoteNetworkStatus: { signalLevel: SignalLevel; isOffline: boolean } = {
     signalLevel: 2,
@@ -351,6 +353,15 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   useEffect(() => {
     if (seconds === WARNING_TIME && !showWarning) setShowWarning(true);
   }, [seconds, showWarning]);
+
+  // Energy empty: auto-end call and redirect home
+  useEffect(() => {
+    if (isEmptyEnergy && !isPremiumEnergy) {
+      toast({ title: "⚡ Low Energy", description: "Your battery is empty. Call ended." });
+      handleEndCall(true);
+      setTimeout(() => navigate("/"), 500);
+    }
+  }, [isEmptyEnergy, isPremiumEnergy]);
 
   const formatTime = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
+import { useEnergySystem } from "@/hooks/useEnergySystem";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,6 +34,15 @@ export default function RoomDiscussion() {
   const { toast } = useToast();
   const { profile } = useProfile();
   const { user } = useAuth();
+  const { isEmptyEnergy, isPremium: isPremiumEnergy } = useEnergySystem({ isDraining: true });
+
+  // Energy empty: auto-leave room
+  useEffect(() => {
+    if (isEmptyEnergy && !isPremiumEnergy) {
+      toast({ title: "⚡ Low Energy", description: "Your battery is empty. Leaving room." });
+      navigate("/rooms");
+    }
+  }, [isEmptyEnergy, isPremiumEnergy]);
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
