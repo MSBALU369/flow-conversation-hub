@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { startOfWeek, getDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown, Pause, Play, Pencil, X } from "lucide-react";
+import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown, Pause, Play, Pencil, X, ShieldAlert, Ban } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useProfile } from "@/hooks/useProfile";
 import { useCallState } from "@/hooks/useCallState";
@@ -942,6 +942,50 @@ export default function Chat() {
               <DropdownMenuItem onClick={() => setShowCompareGraph(true)}>
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Compare Graph
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={async () => {
+                  if (!selectedFriend || !profile?.id) return;
+                  // Block user: upsert friendship as 'blocked'
+                  const { error } = await supabase
+                    .from("friendships")
+                    .upsert(
+                      { user_id: profile.id, friend_id: selectedFriend.id, status: "blocked", updated_at: new Date().toISOString() },
+                      { onConflict: "user_id,friend_id" }
+                    );
+                  if (!error) {
+                    toast({ title: `Blocked ${selectedFriend.name}`, description: "They can no longer contact or match with you." });
+                    setSelectedFriend(null);
+                    setChatFriends(prev => prev.filter(f => f.id !== selectedFriend.id));
+                  } else {
+                    toast({ title: "Block failed", variant: "destructive" });
+                  }
+                }}
+              >
+                <Ban className="w-4 h-4 mr-2" />
+                Block User
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={async () => {
+                  if (!selectedFriend || !profile?.id) return;
+                  const reason = prompt("Reason for reporting this user:");
+                  if (!reason) return;
+                  const { error } = await supabase.from("reports").insert({
+                    reporter_id: profile.id,
+                    reported_user_id: selectedFriend.id,
+                    reason,
+                  });
+                  if (!error) {
+                    toast({ title: "Report submitted", description: "Our team will review this user." });
+                  } else {
+                    toast({ title: "Report failed", variant: "destructive" });
+                  }
+                }}
+              >
+                <ShieldAlert className="w-4 h-4 mr-2" />
+                Report User
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
