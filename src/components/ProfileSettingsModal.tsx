@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ShieldOff, 
@@ -7,10 +7,14 @@ import {
   LogOut, 
   Trash2, 
   ChevronRight,
-  AlertTriangle
+  AlertTriangle,
+  Ghost,
+  Lock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useProfile } from "@/hooks/useProfile";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -37,8 +41,15 @@ interface ProfileSettingsModalProps {
 export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModalProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { profile } = useProfile();
   const [showBlockedList, setShowBlockedList] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [ghostMode, setGhostMode] = useState(false);
+  const [appLockEnabled, setAppLockEnabled] = useState(() => localStorage.getItem("app_lock_enabled") === "true");
+
+  useEffect(() => {
+    if (profile) setGhostMode(!!(profile as any).is_ghost_mode);
+  }, [profile]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -133,6 +144,42 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
           <DialogHeader>
             <DialogTitle className="text-foreground">Settings</DialogTitle>
           </DialogHeader>
+
+          {/* Tiny Ghost Mode & App Lock toggles */}
+          <div className="flex items-center gap-3 px-1 pb-2">
+            {profile?.is_premium && (
+              <button
+                onClick={async () => {
+                  const newVal = !ghostMode;
+                  setGhostMode(newVal);
+                  await supabase.from("profiles").update({ is_ghost_mode: newVal, is_online: !newVal } as any).eq("id", profile.id);
+                  toast({ title: newVal ? "Ghost Mode On 👻" : "Ghost Mode Off" });
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors border",
+                  ghostMode ? "bg-primary/15 border-primary/30 text-primary" : "bg-muted/50 border-border text-muted-foreground"
+                )}
+              >
+                <Ghost className="w-3.5 h-3.5" />
+                Ghost
+              </button>
+            )}
+            <button
+              onClick={() => {
+                const newVal = !appLockEnabled;
+                setAppLockEnabled(newVal);
+                localStorage.setItem("app_lock_enabled", newVal.toString());
+                toast({ title: newVal ? "App Lock Enabled 🔒" : "App Lock Disabled" });
+              }}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors border",
+                appLockEnabled ? "bg-primary/15 border-primary/30 text-primary" : "bg-muted/50 border-border text-muted-foreground"
+              )}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              Lock
+            </button>
+          </div>
 
           <div className="py-2 space-y-1">
             {menuItems.map((item) => (

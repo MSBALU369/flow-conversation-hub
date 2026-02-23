@@ -1,20 +1,26 @@
-import { Home, MessageCircle, Crown, Mic, BookOpen } from "lucide-react";
+import { Home, MessageCircle, Crown, Mic, BookOpen, ShieldCheck } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-const navItems = [
-  { icon: Home, label: "Connect", path: "/" },
-  { icon: MessageCircle, label: "Chat", path: "/chat" },
-  { icon: Crown, label: "Premium", path: "/premium" },
-  { icon: Mic, label: "Talent", path: "/talent" },
-  { icon: BookOpen, label: "Learn", path: "/learn" },
-];
+import { useAuth } from "@/hooks/useAuth";
+import { isAdminOrRoot } from "@/pages/Admin";
 
 export function BottomNav() {
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
+  const { user } = useAuth();
+  const showAdmin = isAdminOrRoot(user?.email);
+
+  const navItems = [
+    { icon: Home, label: "Connect", path: "/" },
+    { icon: MessageCircle, label: "Chat", path: "/chat" },
+    ...(showAdmin
+      ? [{ icon: ShieldCheck, label: "Admin", path: "/admin" }]
+      : [{ icon: Crown, label: "Premium", path: "/premium" }]),
+    { icon: Mic, label: "Talent", path: "/talent" },
+    { icon: BookOpen, label: "Learn", path: "/learn" },
+  ];
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -31,7 +37,6 @@ export function BottomNav() {
 
       setUnreadCount(count ?? 0);
 
-      // Realtime subscription for new/updated messages
       channel = supabase
         .channel("unread-badge")
         .on("postgres_changes", {
@@ -40,7 +45,6 @@ export function BottomNav() {
           table: "chat_messages",
           filter: `receiver_id=eq.${user.id}`,
         }, () => {
-          // Re-fetch count on any change
           supabase
             .from("chat_messages")
             .select("*", { count: "exact", head: true })
