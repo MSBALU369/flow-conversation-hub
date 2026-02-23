@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { TrustScoreModal } from "@/components/TrustScoreModal";
 import { CoinExchangeModal } from "@/components/CoinExchangeModal";
 import { ReferralTreeModal } from "@/components/ReferralTreeModal";
+import { CoinTransactionLog } from "@/components/CoinTransactionLog";
 import { formatDuration, calculateTogetherTotal, type CompareUser } from "@/lib/mockData";
 import { useRole } from "@/hooks/useRole";
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -1170,7 +1171,31 @@ export default function Profile() {
               {/* Coins count */}
               <div className="text-center py-2">
                 <p className="text-3xl font-bold text-[hsl(45,100%,50%)]">{profile?.coins ?? 0}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Total Coins Earned</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Total Coins</p>
+
+                {/* Daily Login Bonus */}
+                <button
+                  onClick={async () => {
+                    if (!profile?.id) return;
+                    const lastLogin = localStorage.getItem(`daily_login_${profile.id}`);
+                    const today = new Date().toDateString();
+                    if (lastLogin === today) {
+                      toast({ title: "Already claimed!", description: "Come back tomorrow for more coins." });
+                      return;
+                    }
+                    const bonus = Math.random() > 0.5 ? 2 : 1;
+                    const { error } = await supabase.from("profiles").update({ coins: (profile.coins ?? 0) + bonus }).eq("id", profile.id);
+                    if (!error) {
+                      localStorage.setItem(`daily_login_${profile.id}`, today);
+                      updateProfile({ coins: (profile.coins ?? 0) + bonus });
+                      toast({ title: `+${bonus} Daily Bonus!`, description: "Login tomorrow for more!" });
+                      if (navigator.vibrate) navigator.vibrate(20);
+                    }
+                  }}
+                  className="mt-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary text-[10px] font-bold hover:bg-primary/30 transition-colors"
+                >
+                  🎁 Claim Daily Bonus
+                </button>
 
                 {/* Send & Request Buttons */}
                 <div className="flex gap-2 mt-2 justify-center">
@@ -1192,6 +1217,9 @@ export default function Profile() {
                   </Button>
                 </div>
               </div>
+
+              {/* Coin Transaction History (Master Log) */}
+              <CoinTransactionLog userId={profile?.id || ""} />
 
               {/* Watch Ad for Coins */}
               <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-muted/30 border border-border/50">
@@ -1244,18 +1272,16 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Referral Stats */}
+              {/* Referral Stats — Merged "Refer & Join" */}
               <div className="flex gap-2">
-                <div className="flex-1 bg-muted/50 rounded-lg p-2 text-center cursor-pointer hover:scale-105 transition-transform">
+                <button
+                  onClick={() => { setShowCoinsModal(false); setShowReferralTree(true); }}
+                  className="flex-1 bg-muted/50 rounded-lg p-2 text-center cursor-pointer hover:scale-105 transition-transform"
+                >
                   <UserPlus className="w-3.5 h-3.5 text-primary mx-auto mb-0.5" />
                   <p className="text-base font-bold text-foreground">{referrals.length}</p>
-                  <p className="text-[9px] text-muted-foreground">Referred</p>
-                </div>
-                <div className="flex-1 bg-muted/50 rounded-lg p-2 text-center cursor-pointer hover:scale-105 transition-transform">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(var(--ef-online))] mx-auto mb-0.5" />
-                  <p className="text-base font-bold text-foreground">{referrals.length}</p>
-                  <p className="text-[9px] text-muted-foreground">Joined</p>
-                </div>
+                  <p className="text-[9px] text-muted-foreground">Refer & Join</p>
+                </button>
               </div>
 
               {/* Referral Tree Button */}

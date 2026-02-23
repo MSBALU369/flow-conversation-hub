@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { startOfWeek, getDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown, Pause, Play, Pencil, X, ShieldAlert, Ban } from "lucide-react";
+import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown, Pause, Play, Pencil, X, ShieldAlert, Ban, Copy } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useProfile } from "@/hooks/useProfile";
 import { useCallState } from "@/hooks/useCallState";
@@ -55,7 +55,30 @@ interface Message {
   deletedForEveryone?: boolean;
   replyToId?: string | null;
   replyToContent?: string | null;
+  reactions?: Record<string, string[]>;
 }
+
+const REACTION_EMOJIS = ["👍", "😂", "❤️", "😮", "😢", "🙏"];
+
+// Client-side image compression
+const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<Blob> => {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      let w = img.width, h = img.height;
+      if (w > maxWidth) { h = (maxWidth / w) * h; w = maxWidth; }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob) => resolve(blob || file), "image/jpeg", quality);
+    };
+    img.src = url;
+  });
+};
 
 // No more mock data — friends and messages are fetched from Supabase
 
@@ -136,6 +159,8 @@ export default function Chat() {
   const [msgSwipeOffsets, setMsgSwipeOffsets] = useState<Record<string, number>>({});
   const msgTouchStartRef = useRef<{ x: number; y: number; id: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [showReactionsFor, setShowReactionsFor] = useState<string | null>(null);
+  const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
 
   // Load muted users from Supabase on mount
   useEffect(() => {
@@ -356,6 +381,7 @@ export default function Chat() {
         deletedFor: (msg as any).deleted_for || [],
         deletedForEveryone: (msg as any).deleted_for_everyone || false,
         replyToId: (msg as any).reply_to_id || null,
+        reactions: (msg as any).reactions || {},
       }));
       // Resolve reply content for messages that have reply_to_id
       const replyIds = mapped.filter(m => m.replyToId).map(m => m.replyToId!);
@@ -653,6 +679,8 @@ export default function Chat() {
       console.error("Failed to send message:", error);
       toast({ title: "Message failed", description: "Could not send message.", variant: "destructive" });
     }
+    // Haptic feedback on send
+    if (navigator.vibrate) navigator.vibrate(15);
   };
 
   const startRecording = () => {
@@ -769,7 +797,53 @@ export default function Chat() {
     if (message.type !== "text") return false;
     if (message.deletedForEveryone) return false;
     const hoursDiff = (Date.now() - message.timestamp.getTime()) / (1000 * 60 * 60);
-    return hoursDiff <= 3;
+    return hoursDiff <= 12;
+  };
+
+  const canDeleteForEveryone = (message: Message) => {
+    if (message.senderId !== "me") return false;
+    if (message.deletedForEveryone) return false;
+    const hoursDiff = (Date.now() - message.timestamp.getTime()) / (1000 * 60 * 60);
+    return hoursDiff <= 24;
+  };
+
+  const handleReaction = async (messageId: string, emoji: string) => {
+    if (!profile?.id) return;
+    const msg = messages.find(m => m.id === messageId);
+    if (!msg) return;
+    const reactions = { ...(msg.reactions || {}) };
+    const users = reactions[emoji] || [];
+    if (users.includes(profile.id)) {
+      reactions[emoji] = users.filter(u => u !== profile.id);
+      if (reactions[emoji].length === 0) delete reactions[emoji];
+    } else {
+      reactions[emoji] = [...users, profile.id];
+    }
+    // Optimistic update
+    setMessages(prev => prev.map(m => m.id === messageId ? { ...m, reactions } : m));
+    setShowReactionsFor(null);
+    // Persist
+    await supabase.from("chat_messages").update({ reactions } as any).eq("id", messageId);
+    // Haptic
+    if (navigator.vibrate) navigator.vibrate(10);
+  };
+
+  const handleCopyMessage = (message: Message) => {
+    navigator.clipboard.writeText(message.content);
+    toast({ title: "Copied to clipboard" });
+    if (navigator.vibrate) navigator.vibrate(10);
+  };
+
+  const handleForwardMessage = async (friendId: string) => {
+    if (!profile?.id || !forwardingMessage) return;
+    await supabase.from("chat_messages").insert({
+      sender_id: profile.id,
+      receiver_id: friendId,
+      content: `↪️ ${forwardingMessage.content}`,
+    });
+    toast({ title: "Message forwarded!" });
+    setForwardingMessage(null);
+    if (navigator.vibrate) navigator.vibrate(15);
   };
 
   // Delete message
@@ -788,6 +862,12 @@ export default function Chat() {
 
   const handleDeleteForBoth = async () => {
     if (!deleteTarget || !profile?.id) return;
+    if (!canDeleteForEveryone(deleteTarget)) {
+      toast({ title: "Too late", description: "Delete for everyone is only available within 24 hours.", variant: "destructive" });
+      setShowDeleteDialog(false);
+      setDeleteTarget(null);
+      return;
+    }
     await supabase
       .from("chat_messages")
       .update({ deleted_for_everyone: true } as any)
@@ -823,6 +903,14 @@ export default function Chat() {
       return;
     }
 
+    // Client-side image compression
+    let uploadFile: Blob = file;
+    if (file.type.startsWith("image/") && file.size > 200 * 1024) {
+      try {
+        uploadFile = await compressImage(file);
+      } catch { uploadFile = file; }
+    }
+
     // Optimistic local update
     const tempId = Date.now().toString();
     const imageMessage: Message = {
@@ -836,12 +924,12 @@ export default function Chat() {
     };
     setMessages(prev => [...prev, imageMessage]);
 
-    // Upload to Supabase Storage
-    const ext = file.name.split(".").pop() || "jpg";
+    // Upload compressed image to Supabase Storage
+    const ext = "jpg";
     const fileName = `${profile.id}/img_${Date.now()}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from("chat_media")
-      .upload(fileName, file, { upsert: true });
+      .upload(fileName, uploadFile, { upsert: true, contentType: "image/jpeg" });
 
     if (uploadError) {
       toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
@@ -1103,7 +1191,7 @@ export default function Chat() {
                 <div key={message.id} className={cn("flex", isMe ? "justify-end" : "justify-start")}>
                   <div className="max-w-[75%] px-4 py-2 rounded-2xl bg-muted/30 border border-border/50">
                     <p className="text-sm text-muted-foreground italic">
-                      🚫 {deletedByMe ? "You deleted this message for both" : `${selectedFriend?.name || "User"} deleted this message`}
+                      🚫 {deletedByMe ? "You deleted this message" : `Deleted by ${selectedFriend?.name || "User"}`}
                     </p>
                     <div className="flex items-center gap-1 mt-1">
                       <span className="text-[10px] text-muted-foreground">{formatTime(message.timestamp)}</span>
@@ -1265,11 +1353,62 @@ export default function Chat() {
                       {isMe && getStatusIcon(message.status)}
                     </div>
                   </div>
-                  {/* Action buttons on hover */}
+                  {/* Reactions display */}
+                  {message.reactions && Object.keys(message.reactions).length > 0 && (
+                    <div className={cn("flex flex-wrap gap-1 mt-1", isMe ? "justify-end" : "justify-start")}>
+                      {Object.entries(message.reactions).map(([emoji, users]) => (
+                        <button
+                          key={emoji}
+                          onClick={() => handleReaction(message.id, emoji)}
+                          className={cn(
+                            "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-colors",
+                            (users as string[]).includes(profile?.id || "") ? "bg-primary/20 border-primary/40" : "bg-muted/50 border-border/50"
+                          )}
+                        >
+                          <span>{emoji}</span>
+                          <span className="text-[10px] text-muted-foreground">{(users as string[]).length}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/* Reaction picker popup */}
+                  {showReactionsFor === message.id && (
+                    <div className={cn("absolute -top-8 z-20 flex gap-1 px-2 py-1 rounded-full bg-popover border border-border shadow-lg", isMe ? "right-0" : "left-0")}>
+                      {REACTION_EMOJIS.map(emoji => (
+                        <button key={emoji} onClick={() => handleReaction(message.id, emoji)} className="text-lg hover:scale-125 transition-transform">
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/* Action buttons on hover/tap */}
                   <div className={cn(
                     "absolute top-1/2 -translate-y-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity",
-                    isMe ? "-left-16" : "-right-16"
+                    isMe ? "-left-24" : "-right-24"
                   )}>
+                    <button
+                      onClick={() => setShowReactionsFor(showReactionsFor === message.id ? null : message.id)}
+                      className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted"
+                      title="React"
+                    >
+                      <span className="text-xs">😊</span>
+                    </button>
+                    {message.type === "text" && (
+                      <button
+                        onClick={() => handleCopyMessage(message)}
+                        className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted"
+                        title="Copy"
+                      >
+                        <Copy className="w-3 h-3 text-muted-foreground" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setForwardingMessage(message)}
+                      className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted"
+                      title="Forward"
+                    >
+                      <Send className="w-3 h-3 text-muted-foreground" />
+                    </button>
                     {canEditMessage(message) && (
                       <button
                         onClick={() => handleStartEdit(message)}
@@ -1289,6 +1428,7 @@ export default function Chat() {
               </div>
             );
           })}
+
           {/* Typing Indicator */}
           {isPartnerTyping && (
             <div className="flex items-center gap-2 px-2 py-1">
@@ -1649,7 +1789,7 @@ export default function Chat() {
               >
                 Delete for me
               </Button>
-              {deleteTarget?.senderId === "me" && (
+              {deleteTarget?.senderId === "me" && canDeleteForEveryone(deleteTarget) && (
                 <Button
                   variant="destructive"
                   className="w-full justify-start"
@@ -1658,12 +1798,42 @@ export default function Chat() {
                   Delete for everyone
                 </Button>
               )}
+              {deleteTarget?.senderId === "me" && !canDeleteForEveryone(deleteTarget) && (
+                <p className="text-xs text-muted-foreground italic px-1">Delete for everyone expired (24h limit)</p>
+              )}
             </div>
             <DialogFooter>
               <Button variant="ghost" className="w-full" onClick={() => { setShowDeleteDialog(false); setDeleteTarget(null); }}>
                 Cancel
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Forward Message Dialog */}
+        <Dialog open={!!forwardingMessage} onOpenChange={(open) => !open && setForwardingMessage(null)}>
+          <DialogContent className="glass-card border-border max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-foreground text-sm">Forward to</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-1 max-h-60 overflow-y-auto">
+              {mutualFollowers.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No contacts to forward to</p>
+              ) : (
+                mutualFollowers.map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => handleForwardMessage(f.id)}
+                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                      {f.avatar ? <img src={f.avatar} alt="" className="w-full h-full object-cover" /> : <span className="text-xs">{f.name[0].toUpperCase()}</span>}
+                    </div>
+                    <span className="text-sm font-medium text-foreground">{f.name}</span>
+                  </button>
+                ))
+              )}
+            </div>
           </DialogContent>
         </Dialog>
 

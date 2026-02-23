@@ -104,6 +104,7 @@ export type Database = {
           id: string
           is_read: boolean
           media_url: string | null
+          reactions: Json | null
           receiver_id: string
           reply_to_id: string | null
           sender_id: string
@@ -117,6 +118,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           media_url?: string | null
+          reactions?: Json | null
           receiver_id: string
           reply_to_id?: string | null
           sender_id: string
@@ -130,6 +132,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           media_url?: string | null
+          reactions?: Json | null
           receiver_id?: string
           reply_to_id?: string | null
           sender_id?: string
