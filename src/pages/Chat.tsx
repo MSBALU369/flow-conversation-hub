@@ -47,7 +47,7 @@ interface Message {
   senderId: string;
   timestamp: Date;
   status: "sent" | "delivered" | "read";
-  type: "text" | "image" | "voice";
+  type: "text" | "image" | "voice" | "gift";
   viewOnce?: boolean;
   mediaUrl?: string;
   editedAt?: string | null;
@@ -56,9 +56,17 @@ interface Message {
   replyToId?: string | null;
   replyToContent?: string | null;
   reactions?: Record<string, string[]>;
+  isPinned?: boolean;
 }
 
 const REACTION_EMOJIS = ["👍", "😂", "❤️", "😮", "😢", "🙏"];
+const GIFT_EMOJIS = [
+  { emoji: "🌹", name: "Rose", cost: 5 },
+  { emoji: "💎", name: "Diamond", cost: 20 },
+  { emoji: "🎁", name: "Gift Box", cost: 10 },
+  { emoji: "⭐", name: "Star", cost: 3 },
+  { emoji: "🔥", name: "Fire", cost: 8 },
+];
 
 // Client-side image compression
 const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<Blob> => {
@@ -161,6 +169,8 @@ export default function Chat() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showReactionsFor, setShowReactionsFor] = useState<string | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
+  const [pinnedMessage, setPinnedMessage] = useState<Message | null>(null);
+  const [showGiftPicker, setShowGiftPicker] = useState(false);
 
   // Load muted users from Supabase on mount
   useEffect(() => {
@@ -846,6 +856,47 @@ export default function Chat() {
     if (navigator.vibrate) navigator.vibrate(15);
   };
 
+  // Pin message handler
+  const handlePinMessage = async (message: Message) => {
+    if (!profile?.id) return;
+    // Unpin previous
+    if (pinnedMessage) {
+      await supabase.from("chat_messages").update({ is_pinned: false } as any).eq("id", pinnedMessage.id);
+    }
+    await supabase.from("chat_messages").update({ is_pinned: true } as any).eq("id", message.id);
+    setPinnedMessage(message);
+    setMessages(prev => prev.map(m => ({ ...m, isPinned: m.id === message.id })));
+    toast({ title: "📌 Message pinned!" });
+  };
+
+  // Send gift handler
+  const handleSendGift = async (gift: typeof GIFT_EMOJIS[0]) => {
+    if (!profile?.id || !selectedFriend) return;
+    if ((profile.coins ?? 0) < gift.cost) {
+      toast({ title: "Not enough coins!", description: `You need ${gift.cost} coins.`, variant: "destructive" });
+      return;
+    }
+    // Deduct coins via RPC
+    const { data, error } = await supabase.rpc("transfer_coins", {
+      p_sender_id: profile.id,
+      p_receiver_id: selectedFriend.id,
+      p_amount: gift.cost,
+    });
+    if (error) {
+      toast({ title: "Gift failed", variant: "destructive" });
+      return;
+    }
+    // Send gift message
+    await supabase.from("chat_messages").insert({
+      sender_id: profile.id,
+      receiver_id: selectedFriend.id,
+      content: `🎁 ${gift.emoji} ${gift.name} gift!`,
+    });
+    setShowGiftPicker(false);
+    toast({ title: `${gift.emoji} Sent!`, description: `-${gift.cost} coins` });
+    if (navigator.vibrate) navigator.vibrate(20);
+  };
+
   // Delete message
   const handleDeleteForMe = async () => {
     if (!deleteTarget || !profile?.id) return;
@@ -1164,6 +1215,17 @@ export default function Chat() {
           </DropdownMenu>
         </header>
 
+        {/* Pinned Message Bar */}
+        {pinnedMessage && (
+          <div className="px-4 py-2 bg-muted/50 border-b border-border flex items-center gap-2">
+            <span className="text-xs">📌</span>
+            <p className="text-xs text-foreground flex-1 truncate">{pinnedMessage.content}</p>
+            <button onClick={() => setPinnedMessage(null)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+
         {/* Messages */}
         <main className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
           {/* Top sentinel for infinite scroll */}
@@ -1409,6 +1471,13 @@ export default function Chat() {
                     >
                       <Send className="w-3 h-3 text-muted-foreground" />
                     </button>
+                    <button
+                      onClick={() => handlePinMessage(message)}
+                      className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted"
+                      title="Pin"
+                    >
+                      <span className="text-[10px]">📌</span>
+                    </button>
                     {canEditMessage(message) && (
                       <button
                         onClick={() => handleStartEdit(message)}
@@ -1549,6 +1618,15 @@ export default function Chat() {
               >
                 <Image className="w-5 h-5" />
               </button>
+
+              {/* Gift Button */}
+              <button
+                onClick={() => setShowGiftPicker(!showGiftPicker)}
+                className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground"
+                title="Send Gift"
+              >
+                <span className="text-lg">🎁</span>
+              </button>
               
               {/* Mic Button - Voice Recording */}
               <button 
@@ -1576,6 +1654,29 @@ export default function Chat() {
             </div>
           )}
         </div>
+
+        {/* Gift Picker Popup */}
+        {showGiftPicker && (
+          <div className="px-4 pb-2">
+            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-xl border border-border">
+              <span className="text-xs text-muted-foreground">Send gift:</span>
+              {GIFT_EMOJIS.map(gift => (
+                <button
+                  key={gift.emoji}
+                  onClick={() => handleSendGift(gift)}
+                  className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
+                  title={`${gift.name} (${gift.cost} coins)`}
+                >
+                  <span className="text-lg">{gift.emoji}</span>
+                  <span className="text-[8px] text-muted-foreground">{gift.cost}🪙</span>
+                </button>
+              ))}
+              <button onClick={() => setShowGiftPicker(false)} className="ml-auto p-1">
+                <X className="w-3 h-3 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Image Options Dialog */}
         <Dialog open={showImageOptions} onOpenChange={setShowImageOptions}>

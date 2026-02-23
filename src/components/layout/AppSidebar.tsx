@@ -21,6 +21,8 @@ import {
   X,
   Coins,
   Phone,
+  Ghost,
+  Lock,
 } from "lucide-react";
 import {
   Sheet,
@@ -55,10 +57,17 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
   const [trustScoreModalOpen, setTrustScoreModalOpen] = useState(false);
   const [speakWithOpen, setSpeakWithOpen] = useState(false);
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
-  const { profile } = useProfile();
+  const { profile, updateProfile } = useProfile();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [ghostMode, setGhostMode] = useState(false);
+  const [appLockEnabled, setAppLockEnabled] = useState(() => localStorage.getItem("app_lock_enabled") === "true");
+
+  // Sync ghost mode from profile
+  useEffect(() => {
+    if (profile) setGhostMode(!!(profile as any).is_ghost_mode);
+  }, [profile]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -223,6 +232,56 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
               </button>
             </div>
           </SheetHeader>
+
+          {/* Ghost Mode (Premium Only) */}
+          {profile?.is_premium && (
+            <div className="px-4 py-1">
+              <div className="w-full flex items-center justify-between p-2 rounded-xl border border-border bg-card shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Ghost className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">Ghost Mode</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    const newVal = !ghostMode;
+                    setGhostMode(newVal);
+                    await supabase.from("profiles").update({ is_ghost_mode: newVal, is_online: !newVal } as any).eq("id", profile.id);
+                    toast({ title: newVal ? "Ghost Mode On 👻" : "Ghost Mode Off", description: newVal ? "You are now invisible" : "You are visible again" });
+                  }}
+                  className={cn(
+                    "relative w-11 h-6 rounded-full transition-colors duration-200 border",
+                    ghostMode ? "bg-primary border-primary" : "bg-muted border-border"
+                  )}
+                >
+                  <span className={cn("absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow transition-transform duration-200 bg-background", ghostMode ? "translate-x-5" : "translate-x-0")} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* App Lock Toggle */}
+          <div className="px-4 py-1">
+            <div className="w-full flex items-center justify-between p-2 rounded-xl border border-border bg-card shadow-sm">
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">App Lock</span>
+              </div>
+              <button
+                onClick={() => {
+                  const newVal = !appLockEnabled;
+                  setAppLockEnabled(newVal);
+                  localStorage.setItem("app_lock_enabled", newVal.toString());
+                  toast({ title: newVal ? "App Lock Enabled 🔒" : "App Lock Disabled", description: newVal ? "PIN required on next open" : "No lock on open" });
+                }}
+                className={cn(
+                  "relative w-11 h-6 rounded-full transition-colors duration-200 border",
+                  appLockEnabled ? "bg-primary border-primary" : "bg-muted border-border"
+                )}
+              >
+                <span className={cn("absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow transition-transform duration-200 bg-background", appLockEnabled ? "translate-x-5" : "translate-x-0")} />
+              </button>
+            </div>
+          </div>
 
           <Separator className="bg-border" />
 

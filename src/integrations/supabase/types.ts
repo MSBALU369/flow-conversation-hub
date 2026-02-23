@@ -102,6 +102,7 @@ export type Database = {
           deleted_for_everyone: boolean | null
           edited_at: string | null
           id: string
+          is_pinned: boolean | null
           is_read: boolean
           media_url: string | null
           reactions: Json | null
@@ -116,6 +117,7 @@ export type Database = {
           deleted_for_everyone?: boolean | null
           edited_at?: string | null
           id?: string
+          is_pinned?: boolean | null
           is_read?: boolean
           media_url?: string | null
           reactions?: Json | null
@@ -130,6 +132,7 @@ export type Database = {
           deleted_for_everyone?: boolean | null
           edited_at?: string | null
           id?: string
+          is_pinned?: boolean | null
           is_read?: boolean
           media_url?: string | null
           reactions?: Json | null
@@ -440,6 +443,27 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_views: {
+        Row: {
+          created_at: string
+          id: string
+          viewed_user_id: string
+          viewer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          viewed_user_id: string
+          viewer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          viewed_user_id?: string
+          viewer_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -458,6 +482,7 @@ export type Database = {
           gender_locked: boolean | null
           id: string
           is_banned: boolean | null
+          is_ghost_mode: boolean | null
           is_online: boolean | null
           is_premium: boolean | null
           last_avatar_change: string | null
@@ -471,6 +496,7 @@ export type Database = {
           referred_by: string | null
           region: string | null
           reports_count: number | null
+          status_message: string | null
           streak_count: number | null
           unique_id: string | null
           username: string | null
@@ -494,6 +520,7 @@ export type Database = {
           gender_locked?: boolean | null
           id: string
           is_banned?: boolean | null
+          is_ghost_mode?: boolean | null
           is_online?: boolean | null
           is_premium?: boolean | null
           last_avatar_change?: string | null
@@ -507,6 +534,7 @@ export type Database = {
           referred_by?: string | null
           region?: string | null
           reports_count?: number | null
+          status_message?: string | null
           streak_count?: number | null
           unique_id?: string | null
           username?: string | null
@@ -530,6 +558,7 @@ export type Database = {
           gender_locked?: boolean | null
           id?: string
           is_banned?: boolean | null
+          is_ghost_mode?: boolean | null
           is_online?: boolean | null
           is_premium?: boolean | null
           last_avatar_change?: string | null
@@ -543,6 +572,7 @@ export type Database = {
           referred_by?: string | null
           region?: string | null
           reports_count?: number | null
+          status_message?: string | null
           streak_count?: number | null
           unique_id?: string | null
           username?: string | null
@@ -898,6 +928,7 @@ export type Database = {
         Returns: boolean
       }
       check_reference_id: { Args: { ref_id: string }; Returns: boolean }
+      delete_user_account: { Args: { p_user_id: string }; Returns: undefined }
       find_match: { Args: { p_user_id: string }; Returns: Json }
       get_my_role: { Args: never; Returns: string }
       get_public_profile_columns: {

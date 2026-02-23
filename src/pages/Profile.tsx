@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Coins, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2, BadgeCheck } from "lucide-react";
+import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Coins, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2, BadgeCheck, Trash2, AlertTriangle, Trophy } from "lucide-react";
 import { format, startOfWeek, endOfWeek, getDay } from "date-fns";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -22,6 +22,8 @@ import { ReferralTreeModal } from "@/components/ReferralTreeModal";
 import { CoinTransactionLog } from "@/components/CoinTransactionLog";
 import { formatDuration, calculateTogetherTotal, type CompareUser } from "@/lib/mockData";
 import { useRole } from "@/hooks/useRole";
+import { SmartAppReview } from "@/components/SmartAppReview";
+import { TopTalkersModal } from "@/components/TopTalkersModal";
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export default function Profile() {
   const navigate = useNavigate();
@@ -69,6 +71,11 @@ export default function Profile() {
   const [watchingAd, setWatchingAd] = useState(false);
   const [followActionLoading, setFollowActionLoading] = useState<string | null>(null);
   const [adProgress, setAdProgress] = useState(0);
+  const [showTopTalkers, setShowTopTalkers] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [editingStatus, setEditingStatus] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   // Ad watching effect for coins
   useEffect(() => {
@@ -618,12 +625,47 @@ export default function Profile() {
               <h1 className="text-2xl font-bold text-foreground">
                 {profile?.username || "User"}
               </h1>
+              {/* Self-visible Blue Tick for Premium */}
+              {profile?.is_premium && (
+                <BadgeCheck className="w-5 h-5 text-[hsl(210,100%,50%)]" fill="hsl(210,100%,50%)" />
+              )}
               <button onClick={() => {
               setEditName(profile?.username || "");
               setShowEditModal(true);
             }} className="p-1 hover:bg-muted/50 rounded">
                 <Edit2 className="w-4 h-4 text-muted-foreground" />
               </button>
+            </div>
+
+            {/* Status/Mood Message */}
+            <div className="flex items-center justify-center gap-1 mb-1">
+              {editingStatus ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    value={statusMessage}
+                    onChange={(e) => setStatusMessage(e.target.value.slice(0, 60))}
+                    placeholder="Set your status..."
+                    className="text-xs bg-muted border border-border rounded-lg px-2 py-1 w-48 text-center text-foreground"
+                    autoFocus
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        await supabase.from("profiles").update({ status_message: statusMessage } as any).eq("id", profile?.id);
+                        setEditingStatus(false);
+                        toast({ title: "Status updated!" });
+                      }
+                    }}
+                  />
+                  <button onClick={async () => {
+                    await supabase.from("profiles").update({ status_message: statusMessage } as any).eq("id", profile?.id);
+                    setEditingStatus(false);
+                    toast({ title: "Status updated!" });
+                  }} className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground">✓</button>
+                </div>
+              ) : (
+                <button onClick={() => { setStatusMessage((profile as any)?.status_message || ""); setEditingStatus(true); }} className="text-xs text-muted-foreground italic hover:text-foreground transition-colors">
+                  {(profile as any)?.status_message || "✏️ Tap to set your status"}
+                </button>
+              )}
             </div>
             
             {/* Joining Date */}
@@ -991,6 +1033,38 @@ export default function Profile() {
             )}
           </div>
 
+          {/* GDPR Delete Account */}
+          <div className="glass-card w-full px-4 py-3 mb-2">
+            <button
+              onClick={() => setShowDeleteAccount(true)}
+              className="w-full flex items-center gap-3 text-left"
+            >
+              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-destructive" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-destructive">Delete My Account</p>
+                <p className="text-[10px] text-muted-foreground">Permanently remove all your data</p>
+              </div>
+            </button>
+          </div>
+
+          {/* Top Talkers Button */}
+          <button
+            onClick={() => setShowTopTalkers(true)}
+            className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[hsl(45,100%,50%)]/20 flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-[hsl(45,100%,50%)]" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold text-foreground">🏆 Top Talkers</p>
+                <p className="text-xs text-muted-foreground">Weekly leaderboard</p>
+              </div>
+            </div>
+          </button>
+
         </main>
 
         {/* Edit Name Modal */}
@@ -1016,6 +1090,49 @@ export default function Profile() {
         <TrustScoreModal open={showTrustScore} onOpenChange={setShowTrustScore} />
         <CoinExchangeModal open={showCoinExchange} onOpenChange={setShowCoinExchange} />
         <ReferralTreeModal open={showReferralTree} onOpenChange={setShowReferralTree} />
+        <TopTalkersModal open={showTopTalkers} onOpenChange={setShowTopTalkers} />
+        <SmartAppReview isPremium={!!profile?.is_premium} />
+
+        {/* GDPR Delete Confirmation */}
+        <Dialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount}>
+          <DialogContent className="max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-destructive text-sm flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> Delete Account
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                This will <strong>permanently delete</strong> your account and ALL data including messages, call history, coins, and friends. This cannot be undone.
+              </p>
+              <p className="text-xs text-muted-foreground">Type <strong>DELETE</strong> to confirm:</p>
+              <Input
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder="Type DELETE"
+                className="text-sm"
+              />
+              <Button
+                variant="destructive"
+                className="w-full"
+                disabled={deleteConfirm !== "DELETE"}
+                onClick={async () => {
+                  if (!profile?.id) return;
+                  try {
+                    await (supabase.rpc as any)("delete_user_account", { p_user_id: profile.id });
+                    await supabase.auth.signOut();
+                    navigate("/login");
+                    toast({ title: "Account deleted", description: "All your data has been permanently removed." });
+                  } catch (err: any) {
+                    toast({ title: "Deletion failed", description: err.message, variant: "destructive" });
+                  }
+                }}
+              >
+                Permanently Delete Everything
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Compare User Selection Modal */}
         <Dialog open={showCompareList} onOpenChange={setShowCompareList}>
