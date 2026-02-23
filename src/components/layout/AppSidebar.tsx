@@ -197,7 +197,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
                   <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
                   <span className="text-[10px] font-semibold text-foreground">🪙 My Coins</span>
                 </div>
-                <span className="text-[11px] font-bold text-[hsl(45,100%,50%)]">{profile?.coins ?? 0}</span>
+                <span className="text-[11px] font-bold text-[hsl(45,100%,55%)] drop-shadow-[0_0_4px_hsl(45,100%,50%)]">{profile?.coins ?? 0}</span>
               </button>
             </div>
 
