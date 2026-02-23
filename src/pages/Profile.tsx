@@ -933,55 +933,6 @@ export default function Profile() {
             <p className="text-center text-xs text-muted-foreground mt-3">Weekly speaking time comparison</p>
           </div>
 
-          {/* Email Card */}
-          <div className="glass-card px-2.5 py-1.5 mb-2 flex items-center gap-2 w-full">
-            <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center">
-              <Mail className="w-3 h-3 text-primary" />
-            </div>
-            <div>
-              <p className="text-[7px] text-muted-foreground uppercase tracking-wider">
-                Email (Private)
-              </p>
-              <p className="text-[10px] text-foreground leading-tight">{user?.email || "Not set"}</p>
-            </div>
-          </div>
-
-          {/* Coins Button */}
-          <button
-            onClick={() => setShowCoinsModal(true)}
-            className="glass-card px-4 py-3 mb-4 w-full flex items-center justify-between hover:bg-muted/60 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[hsl(45,100%,50%)]/20 flex items-center justify-center">
-                <Coins className="w-5 h-5 text-[hsl(45,100%,50%)]" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-foreground">My Coins</p>
-                <p className="text-xs text-muted-foreground">Earn coins to unlock a Mega Mystery Reward! 🎁</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-xl font-bold text-[hsl(45,100%,50%)]">{profile?.coins ?? 0}</span>
-              <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
-            </div>
-          </button>
-
-          {/* Trust Score Button */}
-          <button
-            onClick={() => setShowTrustScore(true)}
-            className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-blue-500" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-foreground">🛡️ Trust Score</p>
-                <p className="text-xs text-muted-foreground">View your account health & feedback</p>
-              </div>
-            </div>
-          </button>
-
           {/* About Me - Editable */}
           <div className="glass-card w-full px-4 py-3 mb-2">
             <div className="flex items-center justify-between mb-2">
@@ -1035,6 +986,56 @@ export default function Profile() {
               </p>
             )}
           </div>
+
+          {/* Email Card */}
+          <div className="glass-card px-2.5 py-1.5 mb-2 flex items-center gap-2 w-full">
+            <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center">
+              <Mail className="w-3 h-3 text-primary" />
+            </div>
+            <div>
+              <p className="text-[7px] text-muted-foreground uppercase tracking-wider">
+                Email (Private)
+              </p>
+              <p className="text-[10px] text-foreground leading-tight">{user?.email || "Not set"}</p>
+            </div>
+          </div>
+
+          {/* Coins Button */}
+          <button
+            onClick={() => setShowCoinsModal(true)}
+            className="glass-card px-4 py-3 mb-4 w-full flex items-center justify-between hover:bg-muted/60 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[hsl(45,100%,50%)]/20 flex items-center justify-center">
+                <Coins className="w-5 h-5 text-[hsl(45,100%,50%)]" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold text-foreground">My Coins</p>
+                <p className="text-xs text-muted-foreground">Earn coins to unlock a Mega Mystery Reward! 🎁</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xl font-bold text-[hsl(45,100%,50%)]">{profile?.coins ?? 0}</span>
+              <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            </div>
+          </button>
+
+          {/* Trust Score Button */}
+          <button
+            onClick={() => setShowTrustScore(true)}
+            className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-blue-500" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold text-foreground">🛡️ Trust Score</p>
+                <p className="text-xs text-muted-foreground">View your account health & feedback</p>
+              </div>
+            </div>
+          </button>
+
 
 
           {/* Profile Visitors Button */}
