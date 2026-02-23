@@ -1163,6 +1163,10 @@ export default function Chat() {
                   <><Volume2 className="w-4 h-4 mr-2" />Mute User</>
                 )}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowGiftPicker(!showGiftPicker)}>
+                <span className="mr-2">🎁</span>
+                Send Gift
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShowCompareGraph(true)}>
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Compare Graph
@@ -1619,15 +1623,6 @@ export default function Chat() {
                 <Image className="w-5 h-5" />
               </button>
 
-              {/* Gift Button */}
-              <button
-                onClick={() => setShowGiftPicker(!showGiftPicker)}
-                className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground"
-                title="Send Gift"
-              >
-                <span className="text-lg">🎁</span>
-              </button>
-              
               {/* Mic Button - Voice Recording */}
               <button 
                 onClick={startRecording}
