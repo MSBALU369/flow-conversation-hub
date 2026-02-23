@@ -23,6 +23,7 @@ import {
   Phone,
   Ghost,
   Lock,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sheet,
@@ -43,6 +44,7 @@ import { TrustScoreModal } from "@/components/TrustScoreModal";
 import { EFLogo } from "@/components/ui/EFLogo";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
 import { PremiumModal } from "@/components/PremiumModal";
+import { isAdminOrRoot } from "@/pages/Admin";
 
 interface AppSidebarProps {
   onHistoryClick?: () => void;
@@ -135,6 +137,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
     { icon: Trophy, label: "Levels", action: handleLevelsClick, badge: `Lv.${profile?.level ?? 1}` },
     { icon: Clock, label: "History", action: handleHistoryClick },
     { icon: Shield, label: "Trust Score", action: handleTrustScoreClick },
+    ...(isAdminOrRoot(user?.email) ? [{ icon: ShieldCheck, label: "Admin Dashboard", path: "/admin" }] : []),
   ];
 
   const supportItems = [

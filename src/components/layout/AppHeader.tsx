@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bell, Play, Search, X, Flame, Crown } from "lucide-react";
+import { Bell, Play, Search, X, Flame, Crown, ShieldCheck } from "lucide-react";
 import { EFLogo } from "@/components/ui/EFLogo";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
 import { LevelBadge } from "@/components/ui/LevelBadge";
 import { supabase } from "@/integrations/supabase/client";
+import { isAdminOrRoot } from "@/pages/Admin";
 import {
   Popover,
   PopoverContent,
@@ -55,8 +57,10 @@ export function AppHeader({
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const { profile } = useProfile();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const showAdmin = isAdminOrRoot(user?.email);
 
   const userLevel = profile?.level ?? level;
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -282,6 +286,17 @@ export function AppHeader({
       </div>
       {/* Right: Streak + Search + Bell */}
       <div className="flex items-center gap-2">
+        {/* Admin Dashboard Button */}
+        {showAdmin && (
+          <button
+            onClick={() => navigate("/admin")}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/15 hover:bg-primary/25 transition-colors"
+          >
+            <ShieldCheck className="w-4 h-4 text-primary" />
+            <span className="text-[10px] font-bold text-primary hidden sm:inline">Admin</span>
+          </button>
+        )}
+
         {/* Streak Badge */}
         <div className="flex items-center gap-0.5">
           <Flame className="w-4 h-4 text-[hsl(var(--ef-streak))] streak-fire" />
