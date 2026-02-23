@@ -988,15 +988,15 @@ export default function Profile() {
           </div>
 
           {/* Email Card */}
-          <div className="glass-card px-2.5 py-1.5 mb-2 flex items-center gap-2 w-full">
-            <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center">
-              <Mail className="w-3 h-3 text-primary" />
+          <div className="glass-card px-3 py-2.5 mb-2 flex items-center gap-3 w-full">
+            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
+              <Mail className="w-4.5 h-4.5 text-primary" />
             </div>
             <div>
-              <p className="text-[7px] text-muted-foreground uppercase tracking-wider">
+              <p className="text-[8px] text-muted-foreground uppercase tracking-wider">
                 Email (Private)
               </p>
-              <p className="text-[10px] text-foreground leading-tight">{user?.email || "Not set"}</p>
+              <p className="text-xs text-foreground leading-tight">{user?.email || "Not set"}</p>
             </div>
           </div>
 
