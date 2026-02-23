@@ -191,7 +191,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
               {/* Coins Button */}
               <button
                 onClick={() => handleNavigate("/profile")}
-                className="w-full flex items-center justify-between px-2 py-1 rounded-lg border border-[hsl(45,100%,50%)]/20 bg-[hsl(45,100%,50%)]/10 hover:bg-[hsl(45,100%,50%)]/20 transition-colors"
+                className="w-full flex items-center justify-between px-2 py-1 rounded-lg border border-[hsl(45,100%,50%)]/20 transition-colors"
               >
                 <div className="flex items-center gap-1.5">
                   <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
