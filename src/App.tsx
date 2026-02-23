@@ -33,6 +33,7 @@ import FAQ from "./pages/FAQ";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import LegalInfo from "./pages/LegalInfo";
 import ContactUs from "./pages/ContactUs";
+import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,7 @@ function AppRoutes() {
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/legal" element={<LegalInfo />} />
       <Route path="/contact" element={<ContactUs />} />
+      <Route path="/admin" element={<Admin />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
