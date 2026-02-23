@@ -105,6 +105,7 @@ export type Database = {
           is_read: boolean
           media_url: string | null
           receiver_id: string
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
@@ -117,6 +118,7 @@ export type Database = {
           is_read?: boolean
           media_url?: string | null
           receiver_id: string
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
@@ -129,6 +131,7 @@ export type Database = {
           is_read?: boolean
           media_url?: string | null
           receiver_id?: string
+          reply_to_id?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -137,6 +140,13 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
             referencedColumns: ["id"]
           },
           {
@@ -450,6 +460,7 @@ export type Database = {
           last_avatar_change: string | null
           last_location_change: string | null
           last_refill_time: string | null
+          last_seen: string | null
           last_username_change: string | null
           level: number | null
           location_city: string | null
@@ -485,6 +496,7 @@ export type Database = {
           last_avatar_change?: string | null
           last_location_change?: string | null
           last_refill_time?: string | null
+          last_seen?: string | null
           last_username_change?: string | null
           level?: number | null
           location_city?: string | null
@@ -520,6 +532,7 @@ export type Database = {
           last_avatar_change?: string | null
           last_location_change?: string | null
           last_refill_time?: string | null
+          last_seen?: string | null
           last_username_change?: string | null
           level?: number | null
           location_city?: string | null
