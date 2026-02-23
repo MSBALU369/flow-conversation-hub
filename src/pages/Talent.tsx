@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Mic, Play, Pause, Heart, MessageCircle, Star, Upload, Clock, Share2, Users, ArrowLeft, MoreVertical, EyeOff, Eye, Trash2, Flag, Send, Link, UserPlus, Reply, FolderOpen, ListMusic, Plus, Check, ThumbsDown, X, Lock, Globe } from "lucide-react";
+import { Mic, Play, Pause, Heart, MessageCircle, Star, Upload, Clock, Share2, Users, ArrowLeft, MoreVertical, EyeOff, Eye, Trash2, Flag, Send, Link, UserPlus, Reply, FolderOpen, ListMusic, Plus, Check, ThumbsDown, X, Lock, Globe, Coins } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -479,6 +479,42 @@ export default function Talent() {
                       <span className={post.isLiked ? "text-destructive" : "text-muted-foreground"}>
                         {post.likes}
                       </span>
+                    </button>
+
+                    {/* Tip Button */}
+                    <button
+                      onClick={async () => {
+                        if (!profile?.id) return;
+                        if ((profile.coins ?? 0) < 5) {
+                          toast({ title: "Not enough coins", description: "You need at least 5 coins to tip.", variant: "destructive" });
+                          return;
+                        }
+                        // Find talent creator's user_id
+                        const { data: talent } = await supabase
+                          .from("talent_uploads")
+                          .select("user_id")
+                          .eq("id", post.id)
+                          .single();
+                        if (!talent || talent.user_id === profile.id) {
+                          toast({ title: "Can't tip yourself" });
+                          return;
+                        }
+                        const { error } = await supabase.rpc("transfer_coins", {
+                          p_sender_id: profile.id,
+                          p_receiver_id: talent.user_id,
+                          p_amount: 5,
+                        });
+                        if (!error) {
+                          toast({ title: `💰 Tipped ${post.username}!`, description: "-5 coins" });
+                          if (navigator.vibrate) navigator.vibrate(15);
+                        } else {
+                          toast({ title: "Tip failed", variant: "destructive" });
+                        }
+                      }}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[hsl(45,100%,50%)] transition-colors"
+                    >
+                      <Coins className="w-3.5 h-3.5" />
+                      <span>Tip</span>
                     </button>
 
                     <button onClick={() => setCommentOpenId(commentOpenId === post.id ? null : post.id)} className="flex items-center gap-1 text-xs text-muted-foreground">
