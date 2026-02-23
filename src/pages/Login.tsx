@@ -22,6 +22,9 @@ export default function Login() {
   const [signUpBlink, setSignUpBlink] = useState(false);
   const [referenceIdValid, setReferenceIdValid] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -271,9 +274,17 @@ export default function Login() {
             <p className="text-destructive text-xs text-center mt-2">{loginError}</p>
           )}
         </form>
+        {!isSignUp && (
+          <button
+            onClick={() => { setForgotEmail(email); setShowForgotPassword(true); }}
+            className="w-full mt-2 text-primary/70 text-xs hover:text-primary hover:underline transition-colors"
+          >
+            Forgot Password?
+          </button>
+        )}
         <button
           onClick={() => setIsSignUp(!isSignUp)}
-          className={`w-full mt-4 text-primary text-base font-semibold py-3 rounded-full border border-primary/30 hover:bg-primary/10 transition-all ${signUpBlink ? "animate-shake-zoom bg-primary/15 ring-2 ring-primary/50" : ""}`}
+          className={`w-full mt-3 text-primary text-base font-semibold py-3 rounded-full border border-primary/30 hover:bg-primary/10 transition-all ${signUpBlink ? "animate-shake-zoom bg-primary/15 ring-2 ring-primary/50" : ""}`}
         >
           {isSignUp ? "Already have an account? Sign In" : "New here? Create Account"}
         </button>
@@ -282,6 +293,53 @@ export default function Login() {
           Your identity is always safe & private 🔒
         </p>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setShowForgotPassword(false)}>
+          <div className="w-full max-w-sm glass-card p-6 animate-scale-in" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowForgotPassword(false)} className="flex items-center gap-1 text-muted-foreground text-sm mb-4 hover:text-foreground">
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <div className="flex flex-col items-center mb-4">
+              <EFLogo size="lg" className="mb-3" />
+              <h1 className="text-xl font-bold text-foreground">Reset Password</h1>
+              <p className="text-xs text-muted-foreground mt-1 text-center">
+                Enter your email and we'll send a password reset link.
+              </p>
+            </div>
+            <Input
+              type="email"
+              placeholder="Email"
+              value={forgotEmail}
+              onChange={e => setForgotEmail(e.target.value)}
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground mb-3"
+            />
+            <Button
+              onClick={async () => {
+                if (!forgotEmail.trim()) return;
+                setForgotLoading(true);
+                try {
+                  const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+                    redirectTo: window.location.origin,
+                  });
+                  if (error) throw error;
+                  toast({ title: "Reset link sent! ✉️", description: "Check your email for the password reset link." });
+                  setShowForgotPassword(false);
+                } catch (err: any) {
+                  toast({ title: "Error", description: err.message, variant: "destructive" });
+                } finally {
+                  setForgotLoading(false);
+                }
+              }}
+              disabled={forgotLoading || !forgotEmail.trim()}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6"
+            >
+              {forgotLoading ? "Sending..." : "Send Reset Link"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

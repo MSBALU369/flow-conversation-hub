@@ -32,12 +32,13 @@ interface Notification {
 }
 
 interface SearchResult {
-  type: "user" | "talent";
+  type: "user" | "talent" | "room";
   id: string;
   title: string;
   subtitle: string;
   avatar?: string | null;
   userId?: string;
+  roomCode?: string;
 }
 
 export function AppHeader({ 
@@ -117,7 +118,7 @@ export function AppHeader({
     }
     setSearching(true);
     try {
-      const [usersRes, talentRes] = await Promise.all([
+      const [usersRes, talentRes, roomsRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("id, username, unique_id, avatar_url, level, country, location_city")
@@ -127,6 +128,11 @@ export function AppHeader({
           .from("talent_uploads")
           .select("id, title, description, user_id, language")
           .or(`title.ilike.%${query}%,description.ilike.%${query}%,language.ilike.%${query}%`)
+          .limit(10),
+        supabase
+          .from("rooms")
+          .select("id, room_code, title, language, is_private")
+          .or(`title.ilike.%${query}%,room_code.ilike.%${query}%`)
           .limit(10),
       ]);
 
@@ -153,6 +159,16 @@ export function AppHeader({
         });
       });
 
+      (roomsRes.data || []).forEach((r) => {
+        results.push({
+          type: "room",
+          id: r.id,
+          title: r.title,
+          subtitle: `${r.is_private ? "🔒 Private" : "🌐 Public"} • ${r.language} • Code: ${r.room_code}`,
+          roomCode: r.room_code,
+        });
+      });
+
       setSearchResults(results);
     } catch (err) {
       console.error("Search error:", err);
@@ -172,8 +188,9 @@ export function AppHeader({
     setShowSearch(false);
     setSearchQuery("");
     setSearchResults([]);
-    // Navigate to profile for users, or talent user's profile for talent
-    if (result.userId) {
+    if (result.type === "room" && result.roomCode) {
+      navigate(`/room/${result.roomCode}`);
+    } else if (result.userId) {
       navigate(`/profile`); // TODO: navigate to /profile/:id when public profiles exist
     }
   };
@@ -221,7 +238,7 @@ export function AppHeader({
                 {result.type === "user" && result.avatar ? (
                   <img src={result.avatar} alt="" className="w-full h-full object-cover rounded-full" />
                 ) : (
-                  <span className="text-sm">{result.type === "user" ? "👤" : "🎙️"}</span>
+                  <span className="text-sm">{result.type === "user" ? "👤" : result.type === "room" ? "🏠" : "🎙️"}</span>
                 )}
               </div>
               <div className="min-w-0 flex-1">

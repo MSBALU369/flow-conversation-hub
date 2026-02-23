@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Coins, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2, BadgeCheck, Trash2, AlertTriangle, Trophy } from "lucide-react";
+import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Coins, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2, BadgeCheck, Trash2, AlertTriangle, Trophy, Eye, Lock } from "lucide-react";
 import { format, startOfWeek, endOfWeek, getDay } from "date-fns";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -73,6 +73,9 @@ export default function Profile() {
   const [adProgress, setAdProgress] = useState(0);
   const [showTopTalkers, setShowTopTalkers] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [showVisitors, setShowVisitors] = useState(false);
+  const [visitors, setVisitors] = useState<{ id: string; viewer_id: string; created_at: string; viewer_username?: string; viewer_avatar?: string | null }[]>([]);
+  const [visitorsLoading, setVisitorsLoading] = useState(false);
   const [editingStatus, setEditingStatus] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -1049,6 +1052,49 @@ export default function Profile() {
             </button>
           </div>
 
+          {/* Profile Visitors Button */}
+          <button
+            onClick={async () => {
+              setShowVisitors(true);
+              setVisitorsLoading(true);
+              if (profile?.id) {
+                const { data } = await supabase
+                  .from("profile_views")
+                  .select("id, viewer_id, created_at")
+                  .eq("viewed_user_id", profile.id)
+                  .order("created_at", { ascending: false })
+                  .limit(30);
+                if (data && data.length > 0) {
+                  const viewerIds = [...new Set(data.map(v => v.viewer_id))];
+                  const { data: profiles } = await supabase
+                    .from("profiles")
+                    .select("id, username, avatar_url")
+                    .in("id", viewerIds);
+                  const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+                  setVisitors(data.map(v => ({
+                    ...v,
+                    viewer_username: profileMap.get(v.viewer_id)?.username || "Unknown",
+                    viewer_avatar: profileMap.get(v.viewer_id)?.avatar_url,
+                  })));
+                } else {
+                  setVisitors([]);
+                }
+              }
+              setVisitorsLoading(false);
+            }}
+            className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                <Eye className="w-5 h-5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold text-foreground">👁️ Profile Visitors</p>
+                <p className="text-xs text-muted-foreground">{profile?.is_premium ? "See who viewed your profile" : "Upgrade to see visitors"}</p>
+              </div>
+            </div>
+          </button>
+
           {/* Top Talkers Button */}
           <button
             onClick={() => setShowTopTalkers(true)}
@@ -1092,6 +1138,56 @@ export default function Profile() {
         <ReferralTreeModal open={showReferralTree} onOpenChange={setShowReferralTree} />
         <TopTalkersModal open={showTopTalkers} onOpenChange={setShowTopTalkers} />
         <SmartAppReview isPremium={!!profile?.is_premium} />
+
+        {/* Profile Visitors Modal */}
+        <Dialog open={showVisitors} onOpenChange={setShowVisitors}>
+          <DialogContent className="max-w-sm max-h-[70vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-foreground text-base flex items-center gap-2">
+                <Eye className="w-4 h-4 text-primary" /> Profile Visitors
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              {visitorsLoading ? (
+                <p className="text-xs text-muted-foreground text-center py-8">Loading...</p>
+              ) : visitors.length === 0 ? (
+                <div className="text-center py-8">
+                  <Eye className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No visitors yet</p>
+                </div>
+              ) : visitors.map((v) => (
+                <div key={v.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className={`w-9 h-9 rounded-full bg-muted flex items-center justify-center overflow-hidden ${!profile?.is_premium ? "blur-sm" : ""}`}>
+                    {v.viewer_avatar ? (
+                      <img src={v.viewer_avatar} alt="" className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      <span className="text-sm">👤</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium text-foreground truncate ${!profile?.is_premium ? "blur-sm select-none" : ""}`}>
+                      {v.viewer_username}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(v.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {!profile?.is_premium && (
+                    <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  )}
+                </div>
+              ))}
+              {!profile?.is_premium && visitors.length > 0 && (
+                <button
+                  onClick={() => { setShowVisitors(false); navigate("/premium"); }}
+                  className="w-full mt-2 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+                >
+                  🔓 Upgrade to Premium to see visitors
+                </button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* GDPR Delete Confirmation */}
         <Dialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount}>
