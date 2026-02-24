@@ -1234,6 +1234,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 export default function Call() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { endCall } = useCallState();
   const livekitToken = (location.state as any)?.livekitToken || null;
   const roomId = (location.state as any)?.roomId || null;
 
@@ -1252,7 +1254,6 @@ export default function Call() {
         <Button
           onClick={() => {
             navigator.clipboard.writeText(window.location.origin);
-            // simple feedback
             const el = document.getElementById("copy-feedback");
             if (el) el.textContent = "✅ Link Copied!";
           }}
@@ -1274,6 +1275,17 @@ export default function Call() {
     return <CallRoomUI lk={noLiveKit} />;
   }
 
+  const handleLiveKitError = (error: Error) => {
+    console.error("[LiveKit] Connection error:", error);
+    toast({ title: "LiveKit connection failed", description: error.message || "Could not connect to the call server.", variant: "destructive" });
+  };
+
+  const handleLiveKitDisconnected = () => {
+    console.warn("[LiveKit] Room disconnected");
+  };
+
+  console.log("[LiveKit] Connecting to room:", roomId, "with token length:", livekitToken?.length);
+
   // key={livekitToken} forces full remount on token change (call-waiting transition)
   return (
     <LiveKitRoom
@@ -1284,6 +1296,8 @@ export default function Call() {
       audio={true}
       video={false}
       style={{ height: "100%" }}
+      onError={handleLiveKitError}
+      onDisconnected={handleLiveKitDisconnected}
     >
       <SafeAudioConference />
       <RoomAudioRenderer />

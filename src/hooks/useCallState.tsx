@@ -169,12 +169,14 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
             const participantName = profile?.username || "User";
 
             try {
+              console.log("[DirectCall] Caller generating token for room:", roomId);
               const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
                 body: { room_id: roomId, participant_name: participantName },
               });
 
               if (error || !data?.token) {
-                toast({ title: "Connection Error", description: "Could not establish call.", variant: "destructive" });
+                console.error("[DirectCall] Token generation failed:", error, data);
+                toast({ title: "Failed to fetch token", description: "Could not establish call. Check your connection.", variant: "destructive" });
                 setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
                 return;
               }
@@ -334,11 +336,11 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
 
       setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
       toast({
-        title: "No Answer",
-        description: "The user didn't pick up.",
+        title: "User Unavailable",
+        description: "User unavailable or network error. Try again later.",
         variant: "destructive",
       });
-    }, 60_000);
+    }, 30_000);
 
     return () => {
       if (outgoingTimeoutRef.current) {
@@ -467,6 +469,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
       const participantName = profile?.username || "User";
       const roomId = `direct_${current.callId}`;
 
+      console.log("[DirectCall] Receiver generating token for room:", roomId);
       const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
         body: { room_id: roomId, participant_name: participantName },
       });
@@ -474,7 +477,8 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
       setIncomingCall({ active: false, callerName: null, callerAvatar: null, callId: null, roomId: null, callerId: null });
 
       if (error || !data?.token) {
-        toast({ title: "Connection Error", description: "Could not join call.", variant: "destructive" });
+        console.error("[DirectCall] Receiver token generation failed:", error, data);
+        toast({ title: "Failed to fetch token", description: "Could not join call. Check your connection.", variant: "destructive" });
         return;
       }
 
@@ -494,6 +498,8 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
           matchedUserId: current.callerId,
           partnerName: current.callerName,
           partnerAvatar: current.callerAvatar,
+          directCallId: current.callId,
+          callerId: current.callerId,
         },
       });
     } else {
