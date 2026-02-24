@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Ghost,
   Lock,
+  CreditCard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BlockedListManager } from "./BlockedListManager";
+import { PaymentHistoryModal } from "./PaymentHistoryModal";
 
 interface ProfileSettingsModalProps {
   open: boolean;
@@ -44,6 +46,7 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
   const { profile } = useProfile();
   const [showBlockedList, setShowBlockedList] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [ghostMode, setGhostMode] = useState(false);
   const [appLockEnabled, setAppLockEnabled] = useState(() => localStorage.getItem("app_lock_enabled") === "true");
 
@@ -97,6 +100,13 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
   };
 
   const menuItems = [
+    ...(profile?.is_premium ? [{
+      icon: CreditCard,
+      label: "Payment History",
+      description: "View premium payments",
+      onClick: () => setShowPaymentHistory(true),
+      color: "text-primary",
+    }] : []),
     {
       icon: ShieldOff,
       label: "Blocked List",
@@ -212,6 +222,9 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
 
       {/* Blocked List Manager */}
       <BlockedListManager open={showBlockedList} onOpenChange={setShowBlockedList} />
+
+      {/* Payment History */}
+      <PaymentHistoryModal open={showPaymentHistory} onOpenChange={setShowPaymentHistory} />
 
       {/* Delete Account Confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
