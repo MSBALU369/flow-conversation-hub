@@ -289,8 +289,9 @@ export default function Chat() {
       const unreadCounts = new Map<string, number>();
       (recentMessages || []).forEach(msg => {
         const partnerId = msg.sender_id === profile.id ? msg.receiver_id : msg.sender_id;
-        // Count unread messages from partner
-        if (msg.sender_id !== profile.id && !msg.is_read) {
+        // Count unread messages from partner — skip call log system messages
+        const isCallLog = (msg.content || "").startsWith("📞 ");
+        if (msg.sender_id !== profile.id && !msg.is_read && !isCallLog) {
           unreadCounts.set(partnerId, (unreadCounts.get(partnerId) || 0) + 1);
         }
         if (!friendMap.has(partnerId)) {
@@ -2349,7 +2350,12 @@ export default function Chat() {
                         </div>
                         <span className="text-xs text-muted-foreground">{friend.time}</span>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className={cn(
+                        "text-sm truncate",
+                        friend.lastMessage.includes("📞 Missed Call") ? "text-destructive" :
+                        friend.lastMessage.startsWith("📞 ") ? "text-green-600" :
+                        "text-muted-foreground"
+                      )}>
                         {friend.lastMessage}
                       </p>
                     </div>

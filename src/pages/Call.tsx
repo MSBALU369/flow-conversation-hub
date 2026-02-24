@@ -450,6 +450,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           sender_id: user.id,
           receiver_id: effectivePartnerId,
           content: callLabel,
+          is_read: true,
         }).then(() => {});
       }
     }
