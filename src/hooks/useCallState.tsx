@@ -167,11 +167,12 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
             // Receiver accepted — BOTH sides now join the room
             const roomId = `direct_${row.id}`;
             const participantName = profile?.username || "User";
+            const participantId = user?.id;
 
             try {
-              console.log("[DirectCall] Caller generating token for room:", roomId);
+              console.log("[DirectCall] Caller generating token for room:", roomId, "identity:", participantId);
               const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
-                body: { room_id: roomId, participant_name: participantName },
+                body: { room_id: roomId, participant_name: participantName, participant_id: participantId },
               });
 
               if (error || !data?.token) {
@@ -354,10 +355,11 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     const participantName = profile?.username || "User";
+    const participantId = user?.id;
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
-        body: { room_id: roomId, participant_name: participantName },
+        body: { room_id: roomId, participant_name: participantName, participant_id: participantId },
       });
 
       if (error || !data?.token) {
@@ -467,11 +469,12 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         .eq("id", current.callId);
 
       const participantName = profile?.username || "User";
+      const participantId = user?.id;
       const roomId = `direct_${current.callId}`;
 
-      console.log("[DirectCall] Receiver generating token for room:", roomId);
+      console.log("[DirectCall] Receiver generating token for room:", roomId, "identity:", participantId);
       const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
-        body: { room_id: roomId, participant_name: participantName },
+        body: { room_id: roomId, participant_name: participantName, participant_id: participantId },
       });
 
       setIncomingCall({ active: false, callerName: null, callerAvatar: null, callId: null, roomId: null, callerId: null });
