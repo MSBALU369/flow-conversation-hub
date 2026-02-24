@@ -424,23 +424,16 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       const callerId = (location.state as any)?.callerId;
       const isCallerOrInitiator = !directCallId || callerId === undefined || user.id === callerId;
       const effectivePartnerId = partnerId || stateMatchedUserId;
-      if (isCallerOrInitiator) {
-        // Caller logs outgoing
-        supabase.from("call_history").insert({
-          user_id: user.id,
-          duration: callDuration,
-          partner_name: partnerProfile?.username || "Partner",
-          status: "outgoing",
+      if (isCallerOrInitiator && effectivePartnerId) {
+        // Log call history for BOTH parties via secure RPC
+        supabase.rpc("log_call_for_both" as any, {
+          p_caller_id: user.id,
+          p_receiver_id: effectivePartnerId,
+          p_caller_name: profile?.username || "Partner",
+          p_receiver_name: partnerProfile?.username || "Partner",
+          p_duration: callDuration,
+          p_status: "completed",
         }).then(() => {});
-        // Receiver logs incoming
-        if (effectivePartnerId) {
-          supabase.from("call_history").insert({
-            user_id: effectivePartnerId,
-            duration: callDuration,
-            partner_name: profile?.username || "Partner",
-            status: "incoming",
-          }).then(() => {});
-        }
       }
       supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
 
