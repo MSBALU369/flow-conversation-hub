@@ -454,30 +454,28 @@ export default function Chat() {
     fetchMessages();
 
     // Realtime subscription for new messages + updates in this conversation
+    // Use two filtered channels to only receive events for this conversation
+    const channelKey = `chat-${[profile.id, selectedFriend.id].sort().join("-")}`;
     const channel = supabase
-      .channel(`chat-${[profile.id, selectedFriend.id].sort().join("-")}`)
+      .channel(channelKey)
       .on(
         "postgres_changes" as any,
         {
           event: "INSERT",
           schema: "public",
           table: "chat_messages",
+          filter: `sender_id=eq.${selectedFriend.id}`,
         },
         async (payload: any) => {
           const msg = payload.new;
-          if (!msg) return;
-          // Only add messages that belong to this conversation
-          const isRelevant =
-            (msg.sender_id === profile.id && msg.receiver_id === selectedFriend.id) ||
-            (msg.sender_id === selectedFriend.id && msg.receiver_id === profile.id);
-          if (!isRelevant) return;
+          if (!msg || msg.receiver_id !== profile.id) return;
 
           const newMsg: Message = {
             id: msg.id,
             content: msg.content || "📷 Media",
-            senderId: msg.sender_id === profile.id ? "me" : msg.sender_id,
+            senderId: msg.sender_id,
             timestamp: new Date(msg.created_at),
-            status: msg.is_read ? "read" as const : "delivered" as const,
+            status: "read" as const,
             type: msg.media_url ? (msg.content?.startsWith("🎤") ? "voice" as const : "image" as const) : "text" as const,
             mediaUrl: msg.media_url || undefined,
             editedAt: (msg as any).edited_at || null,
@@ -485,25 +483,16 @@ export default function Chat() {
             deletedForEveryone: (msg as any).deleted_for_everyone || false,
           };
 
-          // If incoming from friend, mark as read immediately (we have the chat open)
-          if (msg.sender_id === selectedFriend.id && !msg.is_read) {
-            supabase
-              .from("chat_messages")
-              .update({ is_read: true })
-              .eq("id", msg.id)
-              .then(() => {});
-            newMsg.status = "read";
-          }
+          // Mark as read immediately (we have the chat open)
+          supabase
+            .from("chat_messages")
+            .update({ is_read: true })
+            .eq("id", msg.id)
+            .then(() => {});
 
-          // Avoid duplicates (from optimistic update)
+          // Deduplicate by id
           setMessages(prev => {
             if (prev.some(m => m.id === msg.id)) return prev;
-            // Remove optimistic message if this is our own message — mark as "delivered"
-            if (msg.sender_id === profile.id) {
-              newMsg.status = msg.is_read ? "read" : "delivered";
-              const withoutOptimistic = prev.filter(m => !(m.senderId === "me" && m.content === msg.content && m.id.match(/^\d+$/)));
-              return [...withoutOptimistic, newMsg];
-            }
             return [...prev, newMsg];
           });
         }
@@ -514,21 +503,40 @@ export default function Chat() {
           event: "UPDATE",
           schema: "public",
           table: "chat_messages",
+          filter: `sender_id=eq.${selectedFriend.id}`,
         },
         (payload: any) => {
           const msg = payload.new;
           if (!msg) return;
-          const isRelevant =
-            (msg.sender_id === profile.id && msg.receiver_id === selectedFriend.id) ||
-            (msg.sender_id === selectedFriend.id && msg.receiver_id === profile.id);
-          if (!isRelevant) return;
-
           setMessages(prev => prev.map(m => {
             if (m.id !== msg.id) return m;
             return {
               ...m,
               status: msg.is_read ? "read" as const : m.status,
               content: msg.content || m.content,
+              editedAt: (msg as any).edited_at || m.editedAt,
+              deletedFor: (msg as any).deleted_for || m.deletedFor,
+              deletedForEveryone: (msg as any).deleted_for_everyone || m.deletedForEveryone,
+            };
+          }));
+        }
+      )
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "chat_messages",
+          filter: `sender_id=eq.${profile.id}`,
+        },
+        (payload: any) => {
+          const msg = payload.new;
+          if (!msg || msg.receiver_id !== selectedFriend.id) return;
+          setMessages(prev => prev.map(m => {
+            if (m.id !== msg.id) return m;
+            return {
+              ...m,
+              status: msg.is_read ? "read" as const : m.status,
               editedAt: (msg as any).edited_at || m.editedAt,
               deletedFor: (msg as any).deleted_for || m.deletedFor,
               deletedForEveryone: (msg as any).deleted_for_everyone || m.deletedForEveryone,
@@ -722,10 +730,14 @@ export default function Chat() {
     };
     if (replyId) insertPayload.reply_to_id = replyId;
 
-    const { error } = await supabase.from("chat_messages").insert(insertPayload);
+    const { data: inserted, error } = await supabase.from("chat_messages").insert(insertPayload).select().single();
     if (error) {
       console.error("Failed to send message:", error);
       toast({ title: "Message failed", description: "Could not send message.", variant: "destructive" });
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+    } else if (inserted) {
+      // Replace optimistic message with the real one
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: inserted.id, status: "delivered" as const } : m));
     }
     // Haptic feedback on send
     if (navigator.vibrate) navigator.vibrate(15);
