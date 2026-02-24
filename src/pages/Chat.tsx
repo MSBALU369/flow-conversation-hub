@@ -1331,14 +1331,14 @@ export default function Chat() {
                 callColor = "text-destructive";
               } else if (isMe) {
                 const duration = message.content.replace("📞 Outgoing Call - ", "");
-                callIcon = <PhoneOutgoing className="w-3.5 h-3.5 text-blue-500" />;
+                callIcon = <PhoneOutgoing className="w-3.5 h-3.5 text-green-600" />;
                 callText = `You called · ${duration}`;
-                callColor = "text-blue-500";
+                callColor = "text-green-600";
               } else {
                 const duration = message.content.replace("📞 Outgoing Call - ", "");
-                callIcon = <PhoneIncoming className="w-3.5 h-3.5 text-green-500" />;
+                callIcon = <PhoneIncoming className="w-3.5 h-3.5 text-blue-500" />;
                 callText = `${selectedFriend?.name || "Unknown"} called · ${duration}`;
-                callColor = "text-green-500";
+                callColor = "text-blue-500";
               }
 
               return (

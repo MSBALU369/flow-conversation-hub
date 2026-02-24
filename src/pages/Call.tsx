@@ -434,8 +434,9 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       }
 
       // Instagram-style: log call as system message in chat_messages for friend calls
+      // Only the caller/initiator inserts the log to prevent duplicates
       const effectivePartnerId = partnerId || stateMatchedUserId;
-      if (isFriendCall && effectivePartnerId) {
+      if (isFriendCall && effectivePartnerId && isCallerOrInitiator) {
         const mins = Math.floor(callDuration / 60);
         const secs = callDuration % 60;
         const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
