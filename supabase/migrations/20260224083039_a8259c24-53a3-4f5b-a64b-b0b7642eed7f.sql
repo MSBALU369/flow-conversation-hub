@@ -1,0 +1,2 @@
+ALTER TABLE public.calls DROP CONSTRAINT calls_status_check;
+ALTER TABLE public.calls ADD CONSTRAINT calls_status_check CHECK (status = ANY (ARRAY['pending','connected','ended','missed','declined','ringing','accepted']));
