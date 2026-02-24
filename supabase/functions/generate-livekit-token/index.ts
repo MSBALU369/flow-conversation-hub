@@ -12,8 +12,10 @@ serve(async (req) => {
 
   try {
     const { room_id, participant_name } = await req.json();
+    console.log("[generate-livekit-token] Request:", { room_id, participant_name });
 
     if (!room_id || !participant_name) {
+      console.error("[generate-livekit-token] Missing params:", { room_id, participant_name });
       return new Response(
         JSON.stringify({ error: "room_id and participant_name are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -24,7 +26,7 @@ serve(async (req) => {
     const apiSecret = Deno.env.get("LIVEKIT_API_SECRET");
 
     if (!apiKey || !apiSecret) {
-      console.error("LIVEKIT_API_KEY or LIVEKIT_API_SECRET not configured");
+      console.error("[generate-livekit-token] LIVEKIT_API_KEY or LIVEKIT_API_SECRET not configured");
       return new Response(
         JSON.stringify({ error: "LiveKit credentials not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -45,6 +47,7 @@ serve(async (req) => {
     });
 
     const token = await at.toJwt();
+    console.log("[generate-livekit-token] Token generated for room:", room_id, "participant:", participant_name);
 
     return new Response(
       JSON.stringify({ token }),
