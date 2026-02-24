@@ -1238,6 +1238,10 @@ export default function Call() {
   const { endCall } = useCallState();
   const livekitToken = (location.state as any)?.livekitToken || null;
   const roomId = (location.state as any)?.roomId || null;
+  const directCallId = (location.state as any)?.directCallId || null;
+  const callMode = directCallId ? "direct" : livekitToken ? "matched" : "none";
+
+  console.log("[Call] Call Mode:", callMode, "| roomId:", roomId, "| hasToken:", !!livekitToken, "| directCallId:", directCallId);
 
   const noLiveKit: LiveKitState = { room: null, participants: [], localParticipant: null };
 
