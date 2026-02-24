@@ -179,13 +179,21 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
               }).then(() => {});
             }
 
-            // Log missed call in call_history
+            // Log missed call in call_history for BOTH caller and receiver
             supabase.from("call_history").insert({
               user_id: user.id,
               partner_name: currentOutgoing.receiverName || "Unknown",
               duration: 0,
               status: "missed",
             }).then(() => {});
+            if (currentOutgoing.receiverId) {
+              supabase.from("call_history").insert({
+                user_id: currentOutgoing.receiverId,
+                partner_name: profile?.username || "Unknown",
+                duration: 0,
+                status: "missed",
+              }).then(() => {});
+            }
           } else if (row.status === "accepted") {
             // Receiver accepted — BOTH sides now join the room
             const roomId = `direct_${row.id}`;
@@ -377,6 +385,15 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         duration: 0,
         status: "missed",
       }).then(() => {});
+      // Also log for the receiver
+      if (outgoingCall.receiverId) {
+        supabase.from("call_history").insert({
+          user_id: outgoingCall.receiverId,
+          partner_name: profile?.username || "Unknown",
+          duration: 0,
+          status: "missed",
+        }).then(() => {});
+      }
 
       setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
       toast({

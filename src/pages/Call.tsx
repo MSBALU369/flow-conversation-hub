@@ -423,13 +423,24 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       const directCallId = (location.state as any)?.directCallId;
       const callerId = (location.state as any)?.callerId;
       const isCallerOrInitiator = !directCallId || callerId === undefined || user.id === callerId;
+      const effectivePartnerId = partnerId || stateMatchedUserId;
       if (isCallerOrInitiator) {
+        // Caller logs outgoing
         supabase.from("call_history").insert({
           user_id: user.id,
           duration: callDuration,
           partner_name: partnerProfile?.username || "Partner",
           status: "outgoing",
         }).then(() => {});
+        // Receiver logs incoming
+        if (effectivePartnerId) {
+          supabase.from("call_history").insert({
+            user_id: effectivePartnerId,
+            duration: callDuration,
+            partner_name: profile?.username || "Partner",
+            status: "incoming",
+          }).then(() => {});
+        }
       }
       supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
 
@@ -440,15 +451,15 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 
       // Instagram-style: log call as system message in chat_messages for friend calls
       // Only the caller/initiator inserts the log to prevent duplicates
-      const effectivePartnerId = partnerId || stateMatchedUserId;
-      if (isFriendCall && effectivePartnerId && isCallerOrInitiator) {
+      const chatPartnerId = partnerId || stateMatchedUserId;
+      if (isFriendCall && chatPartnerId && isCallerOrInitiator) {
         const mins = Math.floor(callDuration / 60);
         const secs = callDuration % 60;
         const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
         const callLabel = callDuration < 5 ? "📞 Missed Call" : `📞 Outgoing Call - ${durationStr}`;
         supabase.from("chat_messages").insert({
           sender_id: user.id,
-          receiver_id: effectivePartnerId,
+          receiver_id: chatPartnerId,
           content: callLabel,
           is_read: true,
         }).then(() => {});
