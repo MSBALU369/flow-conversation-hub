@@ -68,6 +68,7 @@ const CALL_DURATION_LIMIT = 60;
 const WARNING_TIME = 30;
 
 
+
 const reportReasons = [
   { id: "no_signal", label: "No signal / Not speaking" },
   { id: "noise", label: "Noise Disturbance" },
@@ -210,6 +211,20 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       localParticipant.setMicrophoneEnabled(!isMuted);
     }
   }, [isMuted, localParticipant, room?.state]);
+
+  // Speaker toggle: control volume of all remote audio elements
+  useEffect(() => {
+    const vol = isSpeaker ? 1.0 : 0.15;
+    const applyVolume = () => {
+      document.querySelectorAll('audio').forEach((el) => {
+        (el as HTMLAudioElement).volume = vol;
+      });
+    };
+    applyVolume();
+    // Re-apply as LiveKit may add new audio elements dynamically
+    const interval = setInterval(applyVolume, 500);
+    return () => clearInterval(interval);
+  }, [isSpeaker]);
 
   // LiveKit: detect real speaking via audio level events
   useEffect(() => {
@@ -809,7 +824,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             </button>
 
             <button
-              onClick={() => setIsSpeaker(!isSpeaker)}
+              onClick={() => setIsSpeaker(prev => !prev)}
               className={`call-control-pill ${isSpeaker ? 'active-primary' : ''}`}
             >
               <Volume2 className={`w-4 h-4 ${isSpeaker ? 'text-primary' : 'text-foreground'}`} />
