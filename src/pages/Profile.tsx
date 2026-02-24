@@ -995,7 +995,7 @@ export default function Profile() {
               <Mail className="w-4.5 h-4.5 text-primary" />
             </div>
             <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <p className="text-xs font-bold text-foreground uppercase tracking-wider">
                 Email
               </p>
               <p className="text-xs text-foreground leading-tight">{user?.email || "Not set"}</p>
