@@ -1170,7 +1170,7 @@ export default function Chat() {
       case "delivered":
         return <DoubleTick color="hsl(var(--muted-foreground))" />;
       case "read":
-        return <DoubleTick color="hsl(var(--primary))" />;
+        return <DoubleTick color="hsl(210, 100%, 56%)" />;
     }
   };
 
