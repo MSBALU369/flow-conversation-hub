@@ -602,9 +602,12 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 
         <button
           onClick={() => setShowGameModal(true)}
-          className="w-12 h-12 rounded-2xl glass-button flex items-center justify-center hover:bg-muted transition-colors"
+          className="flex flex-col items-center gap-0.5"
         >
-          <Gamepad2 className="w-6 h-6 text-foreground" />
+          <div className="w-12 h-12 rounded-2xl glass-button flex items-center justify-center hover:bg-muted transition-colors">
+            <Gamepad2 className="w-6 h-6 text-foreground" />
+          </div>
+          <span className="text-[10px] text-muted-foreground font-medium">Games</span>
         </button>
       </header>
 
