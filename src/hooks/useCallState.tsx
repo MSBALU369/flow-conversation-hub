@@ -322,14 +322,36 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
       clearTimeout(outgoingTimeoutRef.current);
       outgoingTimeoutRef.current = null;
     }
-    if (outgoingCall.callId) {
+    const currentOutgoing = outgoingCallRef.current;
+    if (currentOutgoing.callId) {
       await supabase
         .from("calls")
         .update({ status: "missed" })
-        .eq("id", outgoingCall.callId);
+        .eq("id", currentOutgoing.callId);
     }
+
+    // Log missed call in call_history for BOTH via RPC
+    if (user?.id && currentOutgoing.receiverId) {
+      supabase.rpc("log_call_for_both" as any, {
+        p_caller_id: user.id,
+        p_receiver_id: currentOutgoing.receiverId,
+        p_caller_name: profile?.username || "Unknown",
+        p_receiver_name: currentOutgoing.receiverName || "Unknown",
+        p_duration: 0,
+        p_status: "missed",
+      }).then(() => {});
+
+      // Log missed call in chat_messages
+      supabase.from("chat_messages").insert({
+        sender_id: user.id,
+        receiver_id: currentOutgoing.receiverId,
+        content: "📞 Missed Call",
+        is_read: true,
+      }).then(() => {});
+    }
+
     setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
-  }, [outgoingCall.callId]);
+  }, [outgoingCall.callId, user?.id, profile?.username]);
 
   // ─── 60-second auto-timeout for outgoing calls ───
   useEffect(() => {
