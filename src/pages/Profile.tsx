@@ -47,7 +47,7 @@ export default function Profile() {
   const [weeklyData, setWeeklyData] = useState<{
     day: string;
     minutes: number;
-  }[]>(dayLabels.map(d => ({
+  }[]>(dayLabels.map((d) => ({
     day: d,
     minutes: 0
   })));
@@ -55,12 +55,12 @@ export default function Profile() {
   const [totalAllTimeMinutes, setTotalAllTimeMinutes] = useState(0);
   const [showUsersList, setShowUsersList] = useState<"following" | "followers" | "fans" | null>(null);
   const [showCoinsModal, setShowCoinsModal] = useState(false);
-  const [referrals, setReferrals] = useState<{ id: string; referred_user_id: string; created_at: string; profile?: { username: string | null; avatar_url: string | null } }[]>([]);
+  const [referrals, setReferrals] = useState<{id: string;referred_user_id: string;created_at: string;profile?: {username: string | null;avatar_url: string | null;};}[]>([]);
   const [referralsLoading, setReferralsLoading] = useState(false);
   const [followingCount, setFollowingCount] = useState(0);
   const [followersCount, setFollowersCount] = useState(0);
   const [fansCount, setFansCount] = useState(0);
-  const [listUsers, setListUsers] = useState<{ id: string; username: string | null; avatar_url: string | null; level: number | null; is_online: boolean | null; location_city: string | null; unique_id: string | null; created_at: string; followers_count: number | null; following_count: number | null }[]>([]);
+  const [listUsers, setListUsers] = useState<{id: string;username: string | null;avatar_url: string | null;level: number | null;is_online: boolean | null;location_city: string | null;unique_id: string | null;created_at: string;followers_count: number | null;following_count: number | null;}[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [followedBackIds, setFollowedBackIds] = useState<Set<string>>(new Set());
   const [showTrustScore, setShowTrustScore] = useState(false);
@@ -74,7 +74,7 @@ export default function Profile() {
   const [showTopTalkers, setShowTopTalkers] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [showVisitors, setShowVisitors] = useState(false);
-  const [visitors, setVisitors] = useState<{ id: string; viewer_id: string; created_at: string; viewer_username?: string; viewer_avatar?: string | null }[]>([]);
+  const [visitors, setVisitors] = useState<{id: string;viewer_id: string;created_at: string;viewer_username?: string;viewer_avatar?: string | null;}[]>([]);
   const [visitorsLoading, setVisitorsLoading] = useState(false);
   const [editingStatus, setEditingStatus] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
@@ -91,12 +91,12 @@ export default function Profile() {
           // Award 5 coins — strict backend-first
           if (profile) {
             (async () => {
-              const { data, error } = await supabase
-                .from("profiles")
-                .update({ coins: (profile.coins ?? 0) + 5 })
-                .eq("id", profile.id)
-                .select("coins")
-                .single();
+              const { data, error } = await supabase.
+              from("profiles").
+              update({ coins: (profile.coins ?? 0) + 5 }).
+              eq("id", profile.id).
+              select("coins").
+              single();
               if (!error && data) {
                 updateProfile({ coins: data.coins });
                 toast({ title: "+5 Coins!", description: "Coins added for watching the ad." });
@@ -107,7 +107,7 @@ export default function Profile() {
           }
           return 100;
         }
-        return prev + (100 / 30); // 30 seconds
+        return prev + 100 / 30; // 30 seconds
       });
     }, 1000);
     return () => clearInterval(interval);
@@ -117,33 +117,33 @@ export default function Profile() {
   const fetchCounts = useCallback(async () => {
     if (!profile?.id) return;
 
-    const { count: followingC } = await supabase
-      .from("friendships")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", profile.id)
-      .eq("status", "accepted");
+    const { count: followingC } = await supabase.
+    from("friendships").
+    select("*", { count: "exact", head: true }).
+    eq("user_id", profile.id).
+    eq("status", "accepted");
 
-    const { count: followersC } = await supabase
-      .from("friendships")
-      .select("*", { count: "exact", head: true })
-      .eq("friend_id", profile.id)
-      .eq("status", "accepted");
+    const { count: followersC } = await supabase.
+    from("friendships").
+    select("*", { count: "exact", head: true }).
+    eq("friend_id", profile.id).
+    eq("status", "accepted");
 
-    const { data: iFollow } = await supabase
-      .from("friendships")
-      .select("friend_id")
-      .eq("user_id", profile.id)
-      .eq("status", "accepted");
+    const { data: iFollow } = await supabase.
+    from("friendships").
+    select("friend_id").
+    eq("user_id", profile.id).
+    eq("status", "accepted");
 
-    const { data: followMe } = await supabase
-      .from("friendships")
-      .select("user_id")
-      .eq("friend_id", profile.id)
-      .eq("status", "accepted");
+    const { data: followMe } = await supabase.
+    from("friendships").
+    select("user_id").
+    eq("friend_id", profile.id).
+    eq("status", "accepted");
 
-    const iFollowSet = new Set((iFollow || []).map(f => f.friend_id));
-    const followMeIds = (followMe || []).map(f => f.user_id);
-    const fans = followMeIds.filter(id => !iFollowSet.has(id));
+    const iFollowSet = new Set((iFollow || []).map((f) => f.friend_id));
+    const followMeIds = (followMe || []).map((f) => f.user_id);
+    const fans = followMeIds.filter((id) => !iFollowSet.has(id));
 
     setFollowingCount(followingC || 0);
     setFollowersCount(followersC || 0);
@@ -165,32 +165,32 @@ export default function Profile() {
       let userIds: string[] = [];
 
       if (showUsersList === "following") {
-        const { data } = await supabase
-          .from("friendships")
-          .select("friend_id")
-          .eq("user_id", profile.id)
-          .eq("status", "accepted");
-        userIds = (data || []).map(f => f.friend_id);
+        const { data } = await supabase.
+        from("friendships").
+        select("friend_id").
+        eq("user_id", profile.id).
+        eq("status", "accepted");
+        userIds = (data || []).map((f) => f.friend_id);
       } else if (showUsersList === "followers") {
-        const { data } = await supabase
-          .from("friendships")
-          .select("user_id")
-          .eq("friend_id", profile.id)
-          .eq("status", "accepted");
-        userIds = (data || []).map(f => f.user_id);
+        const { data } = await supabase.
+        from("friendships").
+        select("user_id").
+        eq("friend_id", profile.id).
+        eq("status", "accepted");
+        userIds = (data || []).map((f) => f.user_id);
       } else if (showUsersList === "fans") {
-        const { data: iFollow } = await supabase
-          .from("friendships")
-          .select("friend_id")
-          .eq("user_id", profile.id)
-          .eq("status", "accepted");
-        const { data: followMe } = await supabase
-          .from("friendships")
-          .select("user_id")
-          .eq("friend_id", profile.id)
-          .eq("status", "accepted");
-        const iFollowSet = new Set((iFollow || []).map(f => f.friend_id));
-        userIds = (followMe || []).map(f => f.user_id).filter(id => !iFollowSet.has(id));
+        const { data: iFollow } = await supabase.
+        from("friendships").
+        select("friend_id").
+        eq("user_id", profile.id).
+        eq("status", "accepted");
+        const { data: followMe } = await supabase.
+        from("friendships").
+        select("user_id").
+        eq("friend_id", profile.id).
+        eq("status", "accepted");
+        const iFollowSet = new Set((iFollow || []).map((f) => f.friend_id));
+        userIds = (followMe || []).map((f) => f.user_id).filter((id) => !iFollowSet.has(id));
       }
 
       if (userIds.length === 0) {
@@ -199,10 +199,10 @@ export default function Profile() {
         return;
       }
 
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, username, avatar_url, level, is_online, location_city, unique_id, created_at, followers_count, following_count")
-        .in("id", userIds);
+      const { data: profiles } = await supabase.
+      from("profiles").
+      select("id, username, avatar_url, level, is_online, location_city, unique_id, created_at, followers_count, following_count").
+      in("id", userIds);
 
       setListUsers(profiles || []);
       setListLoading(false);
@@ -214,16 +214,16 @@ export default function Profile() {
     if (!profile?.id || followActionLoading) return;
     setFollowActionLoading(targetUserId);
     // Optimistic UI update
-    setFollowingCount(prev => Math.max(0, prev - 1));
-    setListUsers(prev => prev.filter(u => u.id !== targetUserId));
-    
-    const { error } = await supabase
-      .from("friendships")
-      .delete()
-      .eq("user_id", profile.id)
-      .eq("friend_id", targetUserId)
-      .eq("status", "accepted");
-    
+    setFollowingCount((prev) => Math.max(0, prev - 1));
+    setListUsers((prev) => prev.filter((u) => u.id !== targetUserId));
+
+    const { error } = await supabase.
+    from("friendships").
+    delete().
+    eq("user_id", profile.id).
+    eq("friend_id", targetUserId).
+    eq("status", "accepted");
+
     if (error) {
       fetchCounts();
       toast({ title: "Failed to unfollow", variant: "destructive" });
@@ -236,16 +236,16 @@ export default function Profile() {
   const handleRemoveFollower = async (targetUserId: string) => {
     if (!profile?.id || followActionLoading) return;
     setFollowActionLoading(targetUserId);
-    setFollowersCount(prev => Math.max(0, prev - 1));
-    setListUsers(prev => prev.filter(u => u.id !== targetUserId));
-    
-    const { error } = await supabase
-      .from("friendships")
-      .delete()
-      .eq("user_id", targetUserId)
-      .eq("friend_id", profile.id)
-      .eq("status", "accepted");
-    
+    setFollowersCount((prev) => Math.max(0, prev - 1));
+    setListUsers((prev) => prev.filter((u) => u.id !== targetUserId));
+
+    const { error } = await supabase.
+    from("friendships").
+    delete().
+    eq("user_id", targetUserId).
+    eq("friend_id", profile.id).
+    eq("status", "accepted");
+
     if (error) {
       fetchCounts();
       toast({ title: "Failed to remove follower", variant: "destructive" });
@@ -258,10 +258,10 @@ export default function Profile() {
   const handleFollowBack = async (targetUserId: string) => {
     if (!profile?.id || followActionLoading) return;
     setFollowActionLoading(targetUserId);
-    await supabase
-      .from("friendships")
-      .insert({ user_id: profile.id, friend_id: targetUserId, status: "accepted" });
-    setFollowedBackIds(prev => new Set(prev).add(targetUserId));
+    await supabase.
+    from("friendships").
+    insert({ user_id: profile.id, friend_id: targetUserId, status: "accepted" });
+    setFollowedBackIds((prev) => new Set(prev).add(targetUserId));
     fetchCounts();
     toast({ title: "Followed", description: "You are now following this user." });
     setFollowActionLoading(null);
@@ -270,12 +270,12 @@ export default function Profile() {
   const handleUnfollowBack = async (targetUserId: string) => {
     if (!profile?.id || followActionLoading) return;
     setFollowActionLoading(targetUserId);
-    await supabase
-      .from("friendships")
-      .delete()
-      .eq("user_id", profile.id)
-      .eq("friend_id", targetUserId);
-    setFollowedBackIds(prev => {
+    await supabase.
+    from("friendships").
+    delete().
+    eq("user_id", profile.id).
+    eq("friend_id", targetUserId);
+    setFollowedBackIds((prev) => {
       const next = new Set(prev);
       next.delete(targetUserId);
       return next;
@@ -290,20 +290,20 @@ export default function Profile() {
     if (!showCoinsModal || !profile?.id) return;
     const fetchReferrals = async () => {
       setReferralsLoading(true);
-      const { data } = await supabase
-        .from("referrals")
-        .select("id, referred_user_id, created_at")
-        .eq("referrer_id", profile.id)
-        .order("created_at", { ascending: false });
+      const { data } = await supabase.
+      from("referrals").
+      select("id, referred_user_id, created_at").
+      eq("referrer_id", profile.id).
+      order("created_at", { ascending: false });
 
       if (data && data.length > 0) {
-        const userIds = data.map(r => r.referred_user_id);
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, username, avatar_url")
-          .in("id", userIds);
-        const profileMap = new Map((profiles || []).map(p => [p.id, p]));
-        setReferrals(data.map(r => ({ ...r, profile: profileMap.get(r.referred_user_id) || undefined })));
+        const userIds = data.map((r) => r.referred_user_id);
+        const { data: profiles } = await supabase.
+        from("profiles").
+        select("id, username, avatar_url").
+        in("id", userIds);
+        const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+        setReferrals(data.map((r) => ({ ...r, profile: profileMap.get(r.referred_user_id) || undefined })));
       } else {
         setReferrals([]);
       }
@@ -322,44 +322,44 @@ export default function Profile() {
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
 
     // Step 1: Get mutual friends (both directions accepted)
-    const { data: iFollow } = await supabase
-      .from("friendships")
-      .select("friend_id")
-      .eq("user_id", profile.id)
-      .eq("status", "accepted");
-    const { data: followMe } = await supabase
-      .from("friendships")
-      .select("user_id")
-      .eq("friend_id", profile.id)
-      .eq("status", "accepted");
+    const { data: iFollow } = await supabase.
+    from("friendships").
+    select("friend_id").
+    eq("user_id", profile.id).
+    eq("status", "accepted");
+    const { data: followMe } = await supabase.
+    from("friendships").
+    select("user_id").
+    eq("friend_id", profile.id).
+    eq("status", "accepted");
 
-    const iFollowSet = new Set((iFollow || []).map(f => f.friend_id));
-    const mutualFriendIds = (followMe || []).map(f => f.user_id).filter(id => iFollowSet.has(id));
+    const iFollowSet = new Set((iFollow || []).map((f) => f.friend_id));
+    const mutualFriendIds = (followMe || []).map((f) => f.user_id).filter((id) => iFollowSet.has(id));
 
-    if (mutualFriendIds.length === 0) { setCompareUsers([]); return; }
+    if (mutualFriendIds.length === 0) {setCompareUsers([]);return;}
 
     // Step 2: Get mutual friends' profiles
-    const { data: friendProfiles } = await supabase
-      .from("profiles")
-      .select("id, username, avatar_url")
-      .in("id", mutualFriendIds);
+    const { data: friendProfiles } = await supabase.
+    from("profiles").
+    select("id, username, avatar_url").
+    in("id", mutualFriendIds);
 
-    const friendProfileMap = new Map((friendProfiles || []).map(p => [p.username, p]));
-    const friendUsernameSet = new Set((friendProfiles || []).map(p => p.username).filter(Boolean));
+    const friendProfileMap = new Map((friendProfiles || []).map((p) => [p.username, p]));
+    const friendUsernameSet = new Set((friendProfiles || []).map((p) => p.username).filter(Boolean));
 
     // Step 3: Get call history and filter to only mutual friends
-    const { data: calls } = await supabase
-      .from("call_history")
-      .select("partner_name, duration, created_at")
-      .eq("user_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(500);
+    const { data: calls } = await supabase.
+    from("call_history").
+    select("partner_name, duration, created_at").
+    eq("user_id", profile.id).
+    order("created_at", { ascending: false }).
+    limit(500);
 
-    if (!calls || calls.length === 0) { setCompareUsers([]); return; }
+    if (!calls || calls.length === 0) {setCompareUsers([]);return;}
 
     // Group by partner name, only if they are a mutual friend
-    const partnerMap = new Map<string, { totalMin: number; weeklyBuckets: number[] }>();
-    calls.forEach(c => {
+    const partnerMap = new Map<string, {totalMin: number;weeklyBuckets: number[];}>();
+    calls.forEach((c) => {
       const name = c.partner_name || "Anonymous";
       if (!friendUsernameSet.has(name)) return; // STRICT: skip non-friends
       if (!partnerMap.has(name)) partnerMap.set(name, { totalMin: 0, weeklyBuckets: new Array(7).fill(0) });
@@ -373,7 +373,7 @@ export default function Profile() {
       }
     });
 
-    if (partnerMap.size === 0) { setCompareUsers([]); return; }
+    if (partnerMap.size === 0) {setCompareUsers([]);return;}
 
     const users: CompareUser[] = [...partnerMap.entries()].map(([name, d]) => {
       const fp = friendProfileMap.get(name);
@@ -382,14 +382,14 @@ export default function Profile() {
         name,
         avatar: fp?.avatar_url || null,
         allTimeMinutes: Math.round(d.totalMin),
-        data: dayLabels.map((day, i) => ({ day, minutes: d.weeklyBuckets[i] })),
+        data: dayLabels.map((day, i) => ({ day, minutes: d.weeklyBuckets[i] }))
       };
     });
 
     setCompareUsers(users);
   }, [profile?.id]);
 
-  useEffect(() => { fetchCompareUsers(); }, [fetchCompareUsers]);
+  useEffect(() => {fetchCompareUsers();}, [fetchCompareUsers]);
 
   const fetchCallStats = useCallback(async () => {
     const {
@@ -413,7 +413,7 @@ export default function Profile() {
 
     // Aggregate per day (Mon=0 ... Sun=6)
     const perDay = new Array(7).fill(0);
-    (weekCalls || []).forEach(call => {
+    (weekCalls || []).forEach((call) => {
       const d = new Date(call.created_at);
       // getDay: 0=Sun,1=Mon...6=Sat -> convert to Mon=0...Sun=6
       const jsDay = getDay(d);
@@ -472,7 +472,7 @@ export default function Profile() {
     }
     const { error } = await updateProfile({
       username: editName,
-      last_username_change: new Date().toISOString(),
+      last_username_change: new Date().toISOString()
     } as any);
     if (error) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });
@@ -534,7 +534,7 @@ export default function Profile() {
       setUploadingAvatar(false);
     }
   };
-  const allData = [...weeklyData.map(d => d.minutes), ...(showCompare ? sampleCompareData.map(d => d.minutes) : [])];
+  const allData = [...weeklyData.map((d) => d.minutes), ...(showCompare ? sampleCompareData.map((d) => d.minutes) : [])];
   const maxMinutes = Math.max(...allData, 1);
 
   // Smart Y-axis ticks
@@ -544,8 +544,8 @@ export default function Profile() {
     if (max <= 5) return [0, 1, 2, 3, 4, 5];
     const rawStep = max / 4;
     const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
-    const candidates = [1, 2, 5, 10].map(m => m * magnitude);
-    const step = candidates.find(s => s >= rawStep) || candidates[candidates.length - 1];
+    const candidates = [1, 2, 5, 10].map((m) => m * magnitude);
+    const step = candidates.find((s) => s >= rawStep) || candidates[candidates.length - 1];
     const ticks: number[] = [];
     for (let v = 0; v <= max + step * 0.5; v += step) ticks.push(Math.round(v * 100) / 100);
     return ticks;
@@ -562,17 +562,17 @@ export default function Profile() {
   const plotWidth = chartWidth - paddingLeft - paddingRight;
   const plotHeight = chartHeight - paddingTop - paddingBottom;
 
-  const toPoint = (data: { day: string; minutes: number }, index: number, total: number) => ({
-    x: paddingLeft + (index / (total - 1)) * plotWidth,
-    y: chartHeight - paddingBottom - (data.minutes / yMax) * plotHeight,
-    data,
+  const toPoint = (data: {day: string;minutes: number;}, index: number, total: number) => ({
+    x: paddingLeft + index / (total - 1) * plotWidth,
+    y: chartHeight - paddingBottom - data.minutes / yMax * plotHeight,
+    data
   });
 
   const points = weeklyData.map((d, i) => toPoint(d, i, weeklyData.length));
-  const linePath = points.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ");
+  const linePath = points.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(" ");
 
   const comparePoints = sampleCompareData.map((d, i) => toPoint(d, i, sampleCompareData.length));
-  const compareLinePath = comparePoints.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ");
+  const compareLinePath = comparePoints.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(" ");
 
   const myTotal = Math.round(totalWeekMinutes);
   const compareTotal = showCompare ? sampleCompareData.reduce((s, d) => s + d.minutes, 0) : 0;
@@ -601,16 +601,16 @@ export default function Profile() {
               <div className="relative">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1">
                   <LevelBadge level={profile?.level ?? 1} size="sm" />
-                  {profile?.is_premium && (
-                    <>
+                  {profile?.is_premium &&
+                <>
                       <Crown className="w-6 h-6 text-[hsl(45,100%,50%)]" fill="url(#gold-gradient)" style={{ filter: 'drop-shadow(0 0 4px hsl(45,100%,55%)) drop-shadow(0 0 8px hsl(40,100%,45%))' }} />
                       <svg width="0" height="0"><defs><linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="hsl(50,100%,70%)" /><stop offset="50%" stopColor="hsl(45,100%,50%)" /><stop offset="100%" stopColor="hsl(35,100%,40%)" /></linearGradient></defs></svg>
                     </>
-                  )}
+                }
                 </div>
                 <div className={`w-20 h-20 rounded-2xl bg-card border-4 flex items-center justify-center overflow-hidden ${
-                  profile?.is_premium ? 'border-[hsl(45,100%,50%)]' : 'border-background'
-                }`}>
+              profile?.is_premium ? 'border-[hsl(45,100%,50%)]' : 'border-background'}`
+              }>
                   {profile?.avatar_url ? <img src={profile.avatar_url} alt="Avatar" className="w-full h-full rounded-xl object-cover" /> : <span className="text-3xl text-muted-foreground">👤</span>}
                 </div>
                 <label className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center cursor-pointer">
@@ -631,9 +631,9 @@ export default function Profile() {
                 {profile?.username || "User"}
               </h1>
               {/* Self-visible Blue Tick for Premium */}
-              {profile?.is_premium && (
-                <BadgeCheck className="w-5 h-5 text-[hsl(210,100%,50%)]" fill="hsl(210,100%,50%)" />
-              )}
+              {profile?.is_premium &&
+            <BadgeCheck className="w-5 h-5 text-[hsl(210,100%,50%)]" fill="hsl(210,100%,50%)" />
+            }
               <button onClick={() => {
               setEditName(profile?.username || "");
               setShowEditModal(true);
@@ -644,33 +644,33 @@ export default function Profile() {
 
             {/* Status/Mood Message */}
             <div className="flex items-center justify-center gap-1 mb-1">
-              {editingStatus ? (
-                <div className="flex items-center gap-1">
+              {editingStatus ?
+            <div className="flex items-center gap-1">
                   <input
-                    value={statusMessage}
-                    onChange={(e) => setStatusMessage(e.target.value.slice(0, 60))}
-                    placeholder="Set your status..."
-                    className="text-xs bg-muted border border-border rounded-lg px-2 py-1 w-48 text-center text-foreground"
-                    autoFocus
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter") {
-                        await supabase.from("profiles").update({ status_message: statusMessage } as any).eq("id", profile?.id);
-                        setEditingStatus(false);
-                        toast({ title: "Status updated!" });
-                      }
-                    }}
-                  />
-                  <button onClick={async () => {
+                value={statusMessage}
+                onChange={(e) => setStatusMessage(e.target.value.slice(0, 60))}
+                placeholder="Set your status..."
+                className="text-xs bg-muted border border-border rounded-lg px-2 py-1 w-48 text-center text-foreground"
+                autoFocus
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter") {
                     await supabase.from("profiles").update({ status_message: statusMessage } as any).eq("id", profile?.id);
                     setEditingStatus(false);
                     toast({ title: "Status updated!" });
-                  }} className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground">✓</button>
-                </div>
-              ) : (
-                <button onClick={() => { setStatusMessage((profile as any)?.status_message || ""); setEditingStatus(true); }} className="text-xs text-muted-foreground italic hover:text-foreground transition-colors">
+                  }
+                }} />
+
+                  <button onClick={async () => {
+                await supabase.from("profiles").update({ status_message: statusMessage } as any).eq("id", profile?.id);
+                setEditingStatus(false);
+                toast({ title: "Status updated!" });
+              }} className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground">✓</button>
+                </div> :
+
+            <button onClick={() => {setStatusMessage((profile as any)?.status_message || "");setEditingStatus(true);}} className="text-xs text-muted-foreground italic hover:text-foreground transition-colors">
                   {(profile as any)?.status_message || "✏️ Tap to set your status"}
                 </button>
-              )}
+            }
             </div>
             
             {/* Joining Date */}
@@ -715,8 +715,8 @@ export default function Profile() {
             </div>
 
             {/* Role & Premium Status */}
-            {role && (
-              <div className="mt-3 flex flex-col items-center gap-1.5">
+            {role &&
+          <div className="mt-3 flex flex-col items-center gap-1.5">
                 <div className="flex items-center gap-2 flex-wrap justify-center">
                   <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1 rounded-full">
                     <BadgeCheck className="w-3.5 h-3.5 text-primary" />
@@ -727,26 +727,26 @@ export default function Profile() {
                     <span className="text-xs font-semibold text-accent">{profile?.coins ?? 0} Coins</span>
                   </div>
                 </div>
-                {profile?.is_premium ? (
-                  <div className="flex items-center gap-1.5 bg-[hsl(45,80%,90%)] dark:bg-[hsl(45,60%,20%)] px-3 py-1 rounded-full">
+                {profile?.is_premium ?
+            <div className="flex items-center gap-1.5 bg-[hsl(45,80%,90%)] dark:bg-[hsl(45,60%,20%)] px-3 py-1 rounded-full">
                     <Crown className="w-3.5 h-3.5 text-[hsl(45,100%,40%)]" />
                     <span className="text-xs font-semibold text-[hsl(45,100%,30%)] dark:text-[hsl(45,100%,70%)]">
                       Premium Member
-                      {profile.premium_expires_at && (
-                        <span className="ml-1 font-normal">
+                      {profile.premium_expires_at &&
+                <span className="ml-1 font-normal">
                           {(() => {
-                            const daysLeft = Math.ceil((new Date(profile.premium_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                            return daysLeft > 36000 ? "· Lifetime Access" : `· ${daysLeft}d left`;
-                          })()}
+                    const daysLeft = Math.ceil((new Date(profile.premium_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    return daysLeft > 36000 ? "· Lifetime Access" : `· ${daysLeft}d left`;
+                  })()}
                         </span>
-                      )}
+                }
                     </span>
-                  </div>
-                ) : (
-                  <span className="text-[10px] text-muted-foreground">Free Tier</span>
-                )}
+                  </div> :
+
+            <span className="text-[10px] text-muted-foreground">Free Tier</span>
+            }
               </div>
-            )}
+          }
 
           </div>
 
@@ -794,13 +794,13 @@ export default function Profile() {
                 <h3 className="font-bold text-foreground text-base">Speaking Time</h3>
               </div>
               <button onClick={() => {
-                if (showCompare) {
-                  setShowCompare(false);
-                  setSelectedCompareUser(null);
-                } else {
-                  setShowCompareList(true);
-                }
-              }} className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${showCompare ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary hover:bg-primary/25'}`}>
+              if (showCompare) {
+                setShowCompare(false);
+                setSelectedCompareUser(null);
+              } else {
+                setShowCompareList(true);
+              }
+            }} className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${showCompare ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary hover:bg-primary/25'}`}>
                 <GitCompareArrows className="w-3.5 h-3.5" />
                 {showCompare && selectedCompareUser ? selectedCompareUser.name : 'Compare'}
               </button>
@@ -808,15 +808,15 @@ export default function Profile() {
 
             {/* Stats area - above chart */}
             {showCompare && selectedCompareUser ? (
-              /* COMPARE MODE: 2-row stats grid */
-              <div className="space-y-2 mb-3 mt-2">
+          /* COMPARE MODE: 2-row stats grid */
+          <div className="space-y-2 mb-3 mt-2">
                 {/* Row 1: This Week */}
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">This Week</p>
               {(() => {
-                      const safeMutual = 0;
-                      return (
-                    <div className="grid grid-cols-2 gap-2">
+                const safeMutual = 0;
+                return (
+                  <div className="grid grid-cols-2 gap-2">
                     <div className="bg-[hsl(0,0%,90%)]/60 dark:bg-[hsl(0,0%,25%)]/40 rounded-lg px-2 py-1 text-center">
                       <span className="text-[9px] text-muted-foreground block">You</span>
                       <p className="text-xs font-bold text-[hsl(0,0%,20%)] dark:text-[hsl(0,0%,85%)]">{formatDuration(totalWeekMinutes)}</p>
@@ -833,17 +833,17 @@ export default function Profile() {
                       <span className="text-[9px] text-muted-foreground block">Together Total</span>
                       <p className="text-xs font-bold text-[hsl(0,70%,45%)] dark:text-[hsl(0,70%,60%)]">{formatDuration(totalWeekMinutes + compareTotal)}</p>
                     </div>
-                  </div>
-                      );
-                    })()}
+                  </div>);
+
+              })()}
                 </div>
                 {/* Row 2: All Time */}
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">All Time</p>
               {(() => {
-                      const safeMutual = 0;
-                      return (
-                    <div className="grid grid-cols-2 gap-2">
+                const safeMutual = 0;
+                return (
+                  <div className="grid grid-cols-2 gap-2">
                     <div className="bg-[hsl(0,0%,90%)]/60 dark:bg-[hsl(0,0%,25%)]/40 rounded-lg px-2 py-1 text-center">
                       <span className="text-[9px] text-muted-foreground block">You</span>
                       <p className="text-xs font-bold text-[hsl(0,0%,20%)] dark:text-[hsl(0,0%,85%)]">{formatDuration(totalAllTimeMinutes)}</p>
@@ -860,14 +860,14 @@ export default function Profile() {
                       <span className="text-[9px] text-muted-foreground block">Together Total</span>
                       <p className="text-xs font-bold text-[hsl(0,70%,45%)] dark:text-[hsl(0,70%,60%)]">{formatDuration(totalAllTimeMinutes + selectedCompareUser.allTimeMinutes)}</p>
                     </div>
-                  </div>
-                      );
-                    })()}
+                  </div>);
+
+              })()}
                 </div>
-              </div>
-            ) : (
-              /* NORMAL MODE: Two simple pills */
-              <div className="flex items-center justify-center gap-3 mb-3 mt-2">
+              </div>) : (
+
+          /* NORMAL MODE: Two simple pills */
+          <div className="flex items-center justify-center gap-3 mb-3 mt-2">
                 <div className="bg-muted/50 rounded-lg px-3 py-1.5 text-center">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">This Week</span>
                   <p className="text-sm font-bold text-foreground">{formatDuration(totalWeekMinutes)}</p>
@@ -876,8 +876,8 @@ export default function Profile() {
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">All Time</span>
                   <p className="text-sm font-bold text-foreground">{formatDuration(totalAllTimeMinutes)}</p>
                 </div>
-              </div>
-            )}
+              </div>)
+          }
 
             {/* Legend */}
             <div className="flex items-center justify-center gap-6 mb-4">
@@ -885,49 +885,49 @@ export default function Profile() {
                 <div className="w-3 h-3 rounded-full bg-muted-foreground/60" />
                 <span className="text-xs text-muted-foreground">{profile?.username || "You"}</span>
               </div>
-              {showCompare && selectedCompareUser && (
-                <div className="flex items-center gap-2">
+              {showCompare && selectedCompareUser &&
+            <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ background: "hsl(var(--primary))" }} />
                   <span className="text-xs text-muted-foreground">{selectedCompareUser.name}</span>
                 </div>
-              )}
+            }
             </div>
 
             {/* Chart */}
             <div className="flex justify-center">
               <svg width={chartWidth} height={chartHeight + 30} className="overflow-visible">
                 {yTicks.map((val) => {
-                  const y = chartHeight - paddingBottom - (val / yMax) * plotHeight;
-                  const label = val >= 60 ? `${Math.round(val / 60)}h` : val < 1 && val > 0 ? `${Math.round(val * 60)}s` : `${Math.round(val)}m`;
-                  return (
-                    <g key={val}>
+                const y = chartHeight - paddingBottom - val / yMax * plotHeight;
+                const label = val >= 60 ? `${Math.round(val / 60)}h` : val < 1 && val > 0 ? `${Math.round(val * 60)}s` : `${Math.round(val)}m`;
+                return (
+                  <g key={val}>
                       <line x1={paddingLeft} y1={y} x2={chartWidth - paddingRight} y2={y} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.12} />
                       <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize={11} fontWeight="700" fill="hsl(var(--foreground))">
                         {label}
                       </text>
-                    </g>
-                  );
-                })}
+                    </g>);
+
+              })}
                 <path d={linePath} fill="none" stroke="hsl(var(--muted-foreground))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" />
-                {points.map((p, i) => (
-                  <circle key={`main-${i}`} cx={p.x} cy={p.y} r="3.5" fill="hsl(var(--muted-foreground))" opacity="0.7" />
-                ))}
-                {showCompare && (
-                  <>
+                {points.map((p, i) =>
+              <circle key={`main-${i}`} cx={p.x} cy={p.y} r="3.5" fill="hsl(var(--muted-foreground))" opacity="0.7" />
+              )}
+                {showCompare &&
+              <>
                     <path d={compareLinePath} fill="none" stroke="hsl(var(--primary))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    {comparePoints.map((p, i) => (
-                      <circle key={`cmp-${i}`} cx={p.x} cy={p.y} r="3.5" fill="hsl(var(--primary))" />
-                    ))}
-                  </>
+                    {comparePoints.map((p, i) =>
+                <circle key={`cmp-${i}`} cx={p.x} cy={p.y} r="3.5" fill="hsl(var(--primary))" />
                 )}
+                  </>
+              }
                 {dayLabels.map((day, i) => {
-                  const x = paddingLeft + (i / (dayLabels.length - 1)) * plotWidth;
-                  return (
-                    <text key={day} x={x} y={chartHeight + 18} textAnchor="middle" fontSize={12} fontWeight="700" fill="hsl(var(--foreground))">
+                const x = paddingLeft + i / (dayLabels.length - 1) * plotWidth;
+                return (
+                  <text key={day} x={x} y={chartHeight + 18} textAnchor="middle" fontSize={12} fontWeight="700" fill="hsl(var(--foreground))">
                       {day}
-                    </text>
-                  );
-                })}
+                    </text>);
+
+              })}
               </svg>
             </div>
 
@@ -939,54 +939,54 @@ export default function Profile() {
           <div className="glass-card w-full px-4 py-3 mb-2">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-bold text-foreground">📝 About Me</p>
-              {editingAboutMe ? (
-                <div className="flex gap-1.5">
+              {editingAboutMe ?
+            <div className="flex gap-1.5">
                   <button
-                    onClick={async () => {
-                      await updateProfile({ description: aboutMeText.trim() || "Hello" });
-                      setEditingAboutMe(false);
-                      toast({ title: "Bio updated!" });
-                    }}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold"
-                  >
+                onClick={async () => {
+                  await updateProfile({ description: aboutMeText.trim() || "Hello" });
+                  setEditingAboutMe(false);
+                  toast({ title: "Bio updated!" });
+                }}
+                className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold">
+
                     Save
                   </button>
                   <button
-                    onClick={() => {
-                      setAboutMeText(profile?.description || "Hello");
-                      setEditingAboutMe(false);
-                    }}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold"
-                  >
+                onClick={() => {
+                  setAboutMeText(profile?.description || "Hello");
+                  setEditingAboutMe(false);
+                }}
+                className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold">
+
                     Cancel
                   </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    setAboutMeText(profile?.description || "Hello");
-                    setEditingAboutMe(true);
-                  }}
-                  className="p-1 hover:bg-muted/50 rounded"
-                >
+                </div> :
+
+            <button
+              onClick={() => {
+                setAboutMeText(profile?.description || "Hello");
+                setEditingAboutMe(true);
+              }}
+              className="p-1 hover:bg-muted/50 rounded">
+
                   <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
-              )}
+            }
             </div>
-            {editingAboutMe ? (
-              <textarea
-                value={aboutMeText}
-                onChange={(e) => setAboutMeText(e.target.value)}
-                maxLength={200}
-                rows={3}
-                className="w-full bg-muted border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                autoFocus
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
+            {editingAboutMe ?
+          <textarea
+            value={aboutMeText}
+            onChange={(e) => setAboutMeText(e.target.value)}
+            maxLength={200}
+            rows={3}
+            className="w-full bg-muted border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            autoFocus /> :
+
+
+          <p className="text-sm text-muted-foreground">
                 {profile?.description || "Hello"}
               </p>
-            )}
+          }
           </div>
 
           {/* Email Card */}
@@ -1004,9 +1004,9 @@ export default function Profile() {
 
           {/* Coins Button */}
           <button
-            onClick={() => setShowCoinsModal(true)}
-            className="glass-card px-4 py-3 mb-4 w-full flex items-center justify-between hover:bg-muted/60 transition-colors"
-          >
+          onClick={() => setShowCoinsModal(true)}
+          className="glass-card px-4 py-3 mb-4 w-full flex items-center justify-between hover:bg-muted/60 transition-colors">
+
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-[hsl(45,100%,50%)]/20 flex items-center justify-center">
                 <Coins className="w-5 h-5 text-[hsl(45,100%,50%)]" />
@@ -1024,9 +1024,9 @@ export default function Profile() {
 
           {/* Trust Score Button */}
           <button
-            onClick={() => setShowTrustScore(true)}
-            className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors"
-          >
+          onClick={() => setShowTrustScore(true)}
+          className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors">
+
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
                 <Shield className="w-5 h-5 text-blue-500" />
@@ -1042,36 +1042,36 @@ export default function Profile() {
 
           {/* Profile Visitors Button */}
           <button
-            onClick={async () => {
-              setShowVisitors(true);
-              setVisitorsLoading(true);
-              if (profile?.id) {
-                const { data } = await supabase
-                  .from("profile_views")
-                  .select("id, viewer_id, created_at")
-                  .eq("viewed_user_id", profile.id)
-                  .order("created_at", { ascending: false })
-                  .limit(30);
-                if (data && data.length > 0) {
-                  const viewerIds = [...new Set(data.map(v => v.viewer_id))];
-                  const { data: profiles } = await supabase
-                    .from("profiles")
-                    .select("id, username, avatar_url")
-                    .in("id", viewerIds);
-                  const profileMap = new Map((profiles || []).map(p => [p.id, p]));
-                  setVisitors(data.map(v => ({
-                    ...v,
-                    viewer_username: profileMap.get(v.viewer_id)?.username || "Unknown",
-                    viewer_avatar: profileMap.get(v.viewer_id)?.avatar_url,
-                  })));
-                } else {
-                  setVisitors([]);
-                }
+          onClick={async () => {
+            setShowVisitors(true);
+            setVisitorsLoading(true);
+            if (profile?.id) {
+              const { data } = await supabase.
+              from("profile_views").
+              select("id, viewer_id, created_at").
+              eq("viewed_user_id", profile.id).
+              order("created_at", { ascending: false }).
+              limit(30);
+              if (data && data.length > 0) {
+                const viewerIds = [...new Set(data.map((v) => v.viewer_id))];
+                const { data: profiles } = await supabase.
+                from("profiles").
+                select("id, username, avatar_url").
+                in("id", viewerIds);
+                const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+                setVisitors(data.map((v) => ({
+                  ...v,
+                  viewer_username: profileMap.get(v.viewer_id)?.username || "Unknown",
+                  viewer_avatar: profileMap.get(v.viewer_id)?.avatar_url
+                })));
+              } else {
+                setVisitors([]);
               }
-              setVisitorsLoading(false);
-            }}
-            className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors"
-          >
+            }
+            setVisitorsLoading(false);
+          }}
+          className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors">
+
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                 <Eye className="w-5 h-5 text-primary" />
@@ -1085,9 +1085,9 @@ export default function Profile() {
 
           {/* Top Talkers Button */}
           <button
-            onClick={() => setShowTopTalkers(true)}
-            className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors"
-          >
+          onClick={() => setShowTopTalkers(true)}
+          className="glass-card w-full flex items-center justify-between px-3 py-2.5 mb-4 hover:bg-muted/60 transition-colors">
+
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-[hsl(45,100%,50%)]/20 flex items-center justify-center">
                 <Trophy className="w-5 h-5 text-[hsl(45,100%,50%)]" />
@@ -1111,7 +1111,7 @@ export default function Profile() {
               <p className="text-sm text-muted-foreground mb-4">
                 You can change your name 2 times per week.
               </p>
-              <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Enter your name" className="mb-4 bg-muted border-border" />
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Enter your name" className="mb-4 bg-muted border-border" />
               <Button onClick={handleEditName} className="w-full" disabled={!canEditProfile()}>
                 {canEditProfile() ? "Save Changes" : "Edit Limit Reached"}
               </Button>
@@ -1136,21 +1136,21 @@ export default function Profile() {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-2 py-2">
-              {visitorsLoading ? (
-                <p className="text-xs text-muted-foreground text-center py-8">Loading...</p>
-              ) : visitors.length === 0 ? (
-                <div className="text-center py-8">
+              {visitorsLoading ?
+            <p className="text-xs text-muted-foreground text-center py-8">Loading...</p> :
+            visitors.length === 0 ?
+            <div className="text-center py-8">
                   <Eye className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">No visitors yet</p>
-                </div>
-              ) : visitors.map((v) => (
-                <div key={v.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                </div> :
+            visitors.map((v) =>
+            <div key={v.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className={`w-9 h-9 rounded-full bg-muted flex items-center justify-center overflow-hidden ${!profile?.is_premium ? "blur-sm" : ""}`}>
-                    {v.viewer_avatar ? (
-                      <img src={v.viewer_avatar} alt="" className="w-full h-full object-cover rounded-full" />
-                    ) : (
-                      <span className="text-sm">👤</span>
-                    )}
+                    {v.viewer_avatar ?
+                <img src={v.viewer_avatar} alt="" className="w-full h-full object-cover rounded-full" /> :
+
+                <span className="text-sm">👤</span>
+                }
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium text-foreground truncate ${!profile?.is_premium ? "blur-sm select-none" : ""}`}>
@@ -1160,19 +1160,19 @@ export default function Profile() {
                       {new Date(v.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  {!profile?.is_premium && (
-                    <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  )}
+                  {!profile?.is_premium &&
+              <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              }
                 </div>
-              ))}
-              {!profile?.is_premium && visitors.length > 0 && (
-                <button
-                  onClick={() => { setShowVisitors(false); navigate("/premium"); }}
-                  className="w-full mt-2 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
-                >
+            )}
+              {!profile?.is_premium && visitors.length > 0 &&
+            <button
+              onClick={() => {setShowVisitors(false);navigate("/premium");}}
+              className="w-full mt-2 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
+
                   🔓 Upgrade to Premium to see visitors
                 </button>
-              )}
+            }
             </div>
           </DialogContent>
         </Dialog>
@@ -1191,27 +1191,27 @@ export default function Profile() {
               </p>
               <p className="text-xs text-muted-foreground">Type <strong>DELETE</strong> to confirm:</p>
               <Input
-                value={deleteConfirm}
-                onChange={(e) => setDeleteConfirm(e.target.value)}
-                placeholder="Type DELETE"
-                className="text-sm"
-              />
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder="Type DELETE"
+              className="text-sm" />
+
               <Button
-                variant="destructive"
-                className="w-full"
-                disabled={deleteConfirm !== "DELETE"}
-                onClick={async () => {
-                  if (!profile?.id) return;
-                  try {
-                    await (supabase.rpc as any)("delete_user_account", { p_user_id: profile.id });
-                    await supabase.auth.signOut();
-                    navigate("/login");
-                    toast({ title: "Account deleted", description: "All your data has been permanently removed." });
-                  } catch (err: any) {
-                    toast({ title: "Deletion failed", description: err.message, variant: "destructive" });
-                  }
-                }}
-              >
+              variant="destructive"
+              className="w-full"
+              disabled={deleteConfirm !== "DELETE"}
+              onClick={async () => {
+                if (!profile?.id) return;
+                try {
+                  await (supabase.rpc as any)("delete_user_account", { p_user_id: profile.id });
+                  await supabase.auth.signOut();
+                  navigate("/login");
+                  toast({ title: "Account deleted", description: "All your data has been permanently removed." });
+                } catch (err: any) {
+                  toast({ title: "Deletion failed", description: err.message, variant: "destructive" });
+                }
+              }}>
+
                 Permanently Delete Everything
               </Button>
             </div>
@@ -1225,9 +1225,9 @@ export default function Profile() {
               <DialogTitle className="text-foreground text-sm">Compare with</DialogTitle>
             </DialogHeader>
             <div className="space-y-1 max-h-64 overflow-y-auto">
-              {compareUsers.length === 0 ? (
-                <p className="text-center text-muted-foreground text-sm py-8">No call partners yet. Start speaking to compare!</p>
-              ) : compareUsers.map(user => <button key={user.id} onClick={() => {
+              {compareUsers.length === 0 ?
+            <p className="text-center text-muted-foreground text-sm py-8">No call partners yet. Start speaking to compare!</p> :
+            compareUsers.map((user) => <button key={user.id} onClick={() => {
               setSelectedCompareUser(user);
               setShowCompare(true);
               setShowCompareList(false);
@@ -1253,49 +1253,49 @@ export default function Profile() {
               <DialogTitle className="text-foreground text-sm capitalize">{showUsersList || ""}</DialogTitle>
             </DialogHeader>
             <div className="space-y-1 max-h-72 overflow-y-auto">
-              {listLoading ? (
-                <p className="text-center text-muted-foreground text-sm py-8">Loading...</p>
-              ) : listUsers.length === 0 ? (
-                <p className="text-center text-muted-foreground text-sm py-8">No users yet</p>
-              ) : (
-                listUsers.map(user => (
-                  <div
-                    key={user.id}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors"
-                  >
+              {listLoading ?
+            <p className="text-center text-muted-foreground text-sm py-8">Loading...</p> :
+            listUsers.length === 0 ?
+            <p className="text-center text-muted-foreground text-sm py-8">No users yet</p> :
+
+            listUsers.map((user) =>
+            <div
+              key={user.id}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors">
+
                     <button
-                      className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                      onClick={() => {
-                        setShowUsersList(null);
-                        navigate(`/user/${user.id}`, {
-                          state: {
-                            id: user.id,
-                            name: user.username || "User",
-                            avatar: user.avatar_url,
-                            level: user.level ?? 1,
-                            isOnline: user.is_online ?? false,
-                            location: user.location_city || "",
-                            uniqueId: user.unique_id || "",
-                            createdAt: user.created_at,
-                            followersCount: user.followers_count ?? 0,
-                            followingCount: user.following_count ?? 0,
-                            myName: profile?.username || "You",
-                            myWeeklyData: weeklyData,
-                          },
-                        });
-                      }}
-                    >
+                className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                onClick={() => {
+                  setShowUsersList(null);
+                  navigate(`/user/${user.id}`, {
+                    state: {
+                      id: user.id,
+                      name: user.username || "User",
+                      avatar: user.avatar_url,
+                      level: user.level ?? 1,
+                      isOnline: user.is_online ?? false,
+                      location: user.location_city || "",
+                      uniqueId: user.unique_id || "",
+                      createdAt: user.created_at,
+                      followersCount: user.followers_count ?? 0,
+                      followingCount: user.following_count ?? 0,
+                      myName: profile?.username || "You",
+                      myWeeklyData: weeklyData
+                    }
+                  });
+                }}>
+
                       <div className="relative flex-shrink-0">
                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-foreground overflow-hidden">
-                          {user.avatar_url ? (
-                            <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            (user.username || "U")[0].toUpperCase()
-                          )}
+                          {user.avatar_url ?
+                    <img src={user.avatar_url} alt="" className="w-full h-full object-cover" /> :
+
+                    (user.username || "U")[0].toUpperCase()
+                    }
                         </div>
-                        {user.is_online && (
-                          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
-                        )}
+                        {user.is_online &&
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
+                  }
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{user.username || "User"}</p>
@@ -1304,51 +1304,51 @@ export default function Profile() {
                     </button>
                     {/* Action buttons */}
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      {showUsersList === "following" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs h-7 px-2"
-                          onClick={() => handleUnfollow(user.id)}
-                        >
+                      {showUsersList === "following" &&
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={() => handleUnfollow(user.id)}>
+
                           Unfollow
                         </Button>
-                      )}
-                      {(showUsersList === "followers" || showUsersList === "fans") && (
-                        <>
-                          {followedBackIds.has(user.id) ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs h-7 px-2"
-                              onClick={() => handleUnfollowBack(user.id)}
-                            >
+                }
+                      {(showUsersList === "followers" || showUsersList === "fans") &&
+                <>
+                          {followedBackIds.has(user.id) ?
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-7 px-2"
+                    onClick={() => handleUnfollowBack(user.id)}>
+
                               Unfollow
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs h-7 px-2"
-                              onClick={() => handleFollowBack(user.id)}
-                            >
+                            </Button> :
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-7 px-2"
+                    onClick={() => handleFollowBack(user.id)}>
+
                               Follow
                             </Button>
-                          )}
+                  }
                           <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs h-7 w-7 px-0 text-muted-foreground"
-                            onClick={() => handleRemoveFollower(user.id)}
-                          >
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 w-7 px-0 text-muted-foreground"
+                    onClick={() => handleRemoveFollower(user.id)}>
+
                             ✕
                           </Button>
                         </>
-                      )}
+                }
                     </div>
                   </div>
-                ))
-              )}
+            )
+            }
             </div>
           </DialogContent>
         </Dialog>
@@ -1376,44 +1376,44 @@ export default function Profile() {
 
                 {/* Daily Login Bonus */}
                 <button
-                  onClick={async () => {
-                    if (!profile?.id) return;
-                    const lastLogin = localStorage.getItem(`daily_login_${profile.id}`);
-                    const today = new Date().toDateString();
-                    if (lastLogin === today) {
-                      toast({ title: "Already claimed!", description: "Come back tomorrow for more coins." });
-                      return;
-                    }
-                    const bonus = Math.random() > 0.5 ? 2 : 1;
-                    const { error } = await supabase.from("profiles").update({ coins: (profile.coins ?? 0) + bonus }).eq("id", profile.id);
-                    if (!error) {
-                      localStorage.setItem(`daily_login_${profile.id}`, today);
-                      updateProfile({ coins: (profile.coins ?? 0) + bonus });
-                      toast({ title: `+${bonus} Daily Bonus!`, description: "Login tomorrow for more!" });
-                      if (navigator.vibrate) navigator.vibrate(20);
-                    }
-                  }}
-                  className="mt-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary text-[10px] font-bold hover:bg-primary/30 transition-colors"
-                >
+                onClick={async () => {
+                  if (!profile?.id) return;
+                  const lastLogin = localStorage.getItem(`daily_login_${profile.id}`);
+                  const today = new Date().toDateString();
+                  if (lastLogin === today) {
+                    toast({ title: "Already claimed!", description: "Come back tomorrow for more coins." });
+                    return;
+                  }
+                  const bonus = Math.random() > 0.5 ? 2 : 1;
+                  const { error } = await supabase.from("profiles").update({ coins: (profile.coins ?? 0) + bonus }).eq("id", profile.id);
+                  if (!error) {
+                    localStorage.setItem(`daily_login_${profile.id}`, today);
+                    updateProfile({ coins: (profile.coins ?? 0) + bonus });
+                    toast({ title: `+${bonus} Daily Bonus!`, description: "Login tomorrow for more!" });
+                    if (navigator.vibrate) navigator.vibrate(20);
+                  }
+                }}
+                className="mt-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary text-[10px] font-bold hover:bg-primary/30 transition-colors">
+
                   🎁 Claim Daily Bonus
                 </button>
 
                 {/* Send & Request Buttons */}
                 <div className="flex gap-2 mt-2 justify-center">
                   <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1 text-xs h-8"
-                    onClick={() => { setShowCoinsModal(false); setShowCoinExchange(true); }}
-                  >
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 text-xs h-8"
+                  onClick={() => {setShowCoinsModal(false);setShowCoinExchange(true);}}>
+
                     <Send className="w-3 h-3" /> Send
                   </Button>
                   <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1 text-xs h-8"
-                    onClick={() => { setShowCoinsModal(false); setShowCoinExchange(true); }}
-                  >
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 text-xs h-8"
+                  onClick={() => {setShowCoinsModal(false);setShowCoinExchange(true);}}>
+
                     <ArrowDownLeft className="w-3 h-3" /> Request
                   </Button>
                 </div>
@@ -1423,26 +1423,26 @@ export default function Profile() {
               <CoinTransactionLog userId={profile?.id || ""} />
 
               {/* Watch Ad for Coins */}
-              <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-muted/30 border border-border/50">
-                <span className="text-sm">📺</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground">Watch Ad (+5 Coins)</p>
-                  <p className="text-[9px] text-muted-foreground">30-second ad</p>
-                </div>
-                {watchingAd ? (
-                  <div className="flex items-center gap-1.5">
-                    <Volume2 className="w-3.5 h-3.5 text-primary animate-pulse" />
-                    <span className="text-[9px] text-primary font-medium">{Math.round(adProgress)}%</span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => { setWatchingAd(true); setAdProgress(0); }}
-                    className="shrink-0 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold hover:bg-primary/90 transition-colors"
-                  >
-                    <Play className="w-3 h-3 inline mr-0.5" /> Watch
-                  </button>
-                )}
-              </div>
+              
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
               {/* Refer & Earn */}
               <div className="bg-gradient-to-r from-[hsl(45,100%,50%)]/10 to-[hsl(30,100%,50%)]/10 rounded-lg p-3 border border-[hsl(45,100%,50%)]/20">
@@ -1458,16 +1458,16 @@ export default function Profile() {
                     {profile?.unique_id || "Loading..."}
                   </div>
                   <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0 h-7 w-7 p-0"
-                    onClick={() => {
-                      if (profile?.unique_id) {
-                        navigator.clipboard.writeText(profile.unique_id);
-                        toast({ title: "Copied!", description: "Share this ID with friends" });
-                      }
-                    }}
-                  >
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 h-7 w-7 p-0"
+                  onClick={() => {
+                    if (profile?.unique_id) {
+                      navigator.clipboard.writeText(profile.unique_id);
+                      toast({ title: "Copied!", description: "Share this ID with friends" });
+                    }
+                  }}>
+
                     <Copy className="w-3 h-3" />
                   </Button>
                 </div>
@@ -1476,9 +1476,9 @@ export default function Profile() {
               {/* Referral Stats — Merged "Refer & Join" */}
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setShowCoinsModal(false); setShowReferralTree(true); }}
-                  className="flex-1 bg-muted/50 rounded-lg p-2 text-center cursor-pointer hover:scale-105 transition-transform"
-                >
+                onClick={() => {setShowCoinsModal(false);setShowReferralTree(true);}}
+                className="flex-1 bg-muted/50 rounded-lg p-2 text-center cursor-pointer hover:scale-105 transition-transform">
+
                   <UserPlus className="w-3.5 h-3.5 text-primary mx-auto mb-0.5" />
                   <p className="text-base font-bold text-foreground">{referrals.length}</p>
                   <p className="text-[9px] text-muted-foreground">Refer & Join</p>
@@ -1487,40 +1487,40 @@ export default function Profile() {
 
               {/* Referral Tree Button */}
               <Button
-                variant="outline"
-                className="w-full gap-2 text-xs h-8"
-                onClick={() => { setShowCoinsModal(false); setShowReferralTree(true); }}
-              >
+              variant="outline"
+              className="w-full gap-2 text-xs h-8"
+              onClick={() => {setShowCoinsModal(false);setShowReferralTree(true);}}>
+
                 <GitBranch className="w-3.5 h-3.5" />
                 View Referral Tree
               </Button>
 
               {/* Referred Members (compact) */}
-              {referrals.length > 0 && (
-                <div>
+              {referrals.length > 0 &&
+            <div>
                   <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Referred Members</h4>
                   <div className="space-y-1 max-h-24 overflow-y-auto">
-                    {referrals.map(r => (
-                      <div key={r.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/30">
+                    {referrals.map((r) =>
+                <div key={r.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/30">
                         <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                          {r.profile?.avatar_url ? (
-                            <img src={r.profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-[10px]">👤</span>
-                          )}
+                          {r.profile?.avatar_url ?
+                    <img src={r.profile.avatar_url} alt="" className="w-full h-full object-cover" /> :
+
+                    <span className="text-[10px]">👤</span>
+                    }
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-foreground truncate">{r.profile?.username || "User"}</p>
                         </div>
                         <span className="text-[10px] font-bold text-[hsl(45,100%,50%)]">+50</span>
                       </div>
-                    ))}
+                )}
                   </div>
                 </div>
-              )}
-              {referrals.length === 0 && !referralsLoading && (
-                <p className="text-center text-muted-foreground text-[10px] py-2">No referrals yet. Share your ID to start earning!</p>
-              )}
+            }
+              {referrals.length === 0 && !referralsLoading &&
+            <p className="text-center text-muted-foreground text-[10px] py-2">No referrals yet. Share your ID to start earning!</p>
+            }
 
               {/* Bonus Quests */}
               <div>
@@ -1557,24 +1557,24 @@ export default function Profile() {
               {/* Mystery Vaults */}
               <div className="space-y-1.5">
                 <button
-                  onClick={async () => {
-                    if (!profile) return;
-                    if ((profile.coins ?? 0) < 2000) {
-                      toast({ title: "Not enough coins!", description: "You need 2,000 coins to unlock the Silver Vault.", variant: "destructive" });
-                      return;
-                    }
-                    const newCoins = (profile.coins ?? 0) - 2000;
-                    const newXp = (profile.xp ?? 0) + 500;
-                    const { error } = await supabase.from("profiles").update({ coins: newCoins, xp: newXp }).eq("id", profile.id);
-                    if (!error) {
-                      updateProfile({ coins: newCoins, xp: newXp });
-                      toast({ title: "🎁 Silver Vault Unlocked!", description: "+500 XP awarded! Keep grinding!" });
-                    } else {
-                      toast({ title: "Failed to unlock vault", variant: "destructive" });
-                    }
-                  }}
-                  className="rounded-lg p-2.5 border border-muted-foreground/20 bg-muted/40 w-full text-left hover:bg-muted/60 transition-colors cursor-pointer"
-                >
+                onClick={async () => {
+                  if (!profile) return;
+                  if ((profile.coins ?? 0) < 2000) {
+                    toast({ title: "Not enough coins!", description: "You need 2,000 coins to unlock the Silver Vault.", variant: "destructive" });
+                    return;
+                  }
+                  const newCoins = (profile.coins ?? 0) - 2000;
+                  const newXp = (profile.xp ?? 0) + 500;
+                  const { error } = await supabase.from("profiles").update({ coins: newCoins, xp: newXp }).eq("id", profile.id);
+                  if (!error) {
+                    updateProfile({ coins: newCoins, xp: newXp });
+                    toast({ title: "🎁 Silver Vault Unlocked!", description: "+500 XP awarded! Keep grinding!" });
+                  } else {
+                    toast({ title: "Failed to unlock vault", variant: "destructive" });
+                  }
+                }}
+                className="rounded-lg p-2.5 border border-muted-foreground/20 bg-muted/40 w-full text-left hover:bg-muted/60 transition-colors cursor-pointer">
+
                   <div className="flex items-center gap-2">
                     <span className="text-base">{(profile?.coins ?? 0) >= 2000 ? "🔓" : "🔒"}</span>
                     <div>
@@ -1586,24 +1586,24 @@ export default function Profile() {
                   </div>
                 </button>
                 <button
-                  onClick={async () => {
-                    if (!profile) return;
-                    if ((profile.coins ?? 0) < 5000) {
-                      toast({ title: "Not enough coins!", description: "You need 5,000 coins to unlock the Gold Vault.", variant: "destructive" });
-                      return;
-                    }
-                    const newCoins = (profile.coins ?? 0) - 5000;
-                    const newXp = (profile.xp ?? 0) + 2000;
-                    const { error } = await supabase.from("profiles").update({ coins: newCoins, xp: newXp }).eq("id", profile.id);
-                    if (!error) {
-                      updateProfile({ coins: newCoins, xp: newXp });
-                      toast({ title: "🏆 Super Gold Vault Unlocked!", description: "+2000 XP awarded! You are a legend!" });
-                    } else {
-                      toast({ title: "Failed to unlock vault", variant: "destructive" });
-                    }
-                  }}
-                  className="rounded-lg p-2.5 border border-[hsl(45,100%,50%)]/30 bg-gradient-to-r from-[hsl(280,80%,60%)]/10 to-[hsl(45,100%,50%)]/10 w-full text-left hover:from-[hsl(280,80%,60%)]/20 hover:to-[hsl(45,100%,50%)]/20 transition-colors cursor-pointer"
-                >
+                onClick={async () => {
+                  if (!profile) return;
+                  if ((profile.coins ?? 0) < 5000) {
+                    toast({ title: "Not enough coins!", description: "You need 5,000 coins to unlock the Gold Vault.", variant: "destructive" });
+                    return;
+                  }
+                  const newCoins = (profile.coins ?? 0) - 5000;
+                  const newXp = (profile.xp ?? 0) + 2000;
+                  const { error } = await supabase.from("profiles").update({ coins: newCoins, xp: newXp }).eq("id", profile.id);
+                  if (!error) {
+                    updateProfile({ coins: newCoins, xp: newXp });
+                    toast({ title: "🏆 Super Gold Vault Unlocked!", description: "+2000 XP awarded! You are a legend!" });
+                  } else {
+                    toast({ title: "Failed to unlock vault", variant: "destructive" });
+                  }
+                }}
+                className="rounded-lg p-2.5 border border-[hsl(45,100%,50%)]/30 bg-gradient-to-r from-[hsl(280,80%,60%)]/10 to-[hsl(45,100%,50%)]/10 w-full text-left hover:from-[hsl(280,80%,60%)]/20 hover:to-[hsl(45,100%,50%)]/20 transition-colors cursor-pointer">
+
                   <div className="flex items-center gap-2">
                     <span className="text-base">{(profile?.coins ?? 0) >= 5000 ? "🔓" : "💎"}</span>
                     <div>
