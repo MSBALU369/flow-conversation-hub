@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { startOfWeek, getDay } from "date-fns";
+import { startOfWeek, getDay, isToday, isYesterday, isSameDay, format } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown, Pause, Play, Pencil, X, ShieldAlert, Ban, Copy } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -1343,9 +1343,29 @@ export default function Chat() {
               <span className="text-xs text-muted-foreground animate-pulse">Loading older messages...</span>
             </div>
           )}
-          {messages.map((message) => {
+          {messages.map((message, index) => {
             const isMe = message.senderId === "me";
             const isCallLog = message.content.startsWith("📞 ");
+
+            // Date separator logic
+            const messageDate = new Date(message.timestamp);
+            const prevMessage = index > 0 ? messages[index - 1] : null;
+            const prevDate = prevMessage ? new Date(prevMessage.timestamp) : null;
+            const showDateSeparator = !prevDate || !isSameDay(messageDate, prevDate);
+
+            const formatDateLabel = (d: Date) => {
+              if (isToday(d)) return "Today";
+              if (isYesterday(d)) return "Yesterday";
+              return format(d, "EEEE, d MMMM yyyy");
+            };
+
+            const dateSeparator = showDateSeparator ? (
+              <div key={`date-${message.id}`} className="flex justify-center my-4">
+                <span className="bg-muted px-3 py-1 rounded-full text-[11px] text-muted-foreground shadow-sm">
+                  {formatDateLabel(messageDate)}
+                </span>
+              </div>
+            ) : null;
 
             // Check if deleted for current user
             const isDeletedForMe = profile?.id && (message.deletedFor || []).includes(profile.id);
@@ -1358,6 +1378,7 @@ export default function Chat() {
             if (isDeletedForEveryone) {
               const deletedByMe = isMe;
               return (
+                <>{dateSeparator}
                 <div key={message.id} className={cn("flex", isMe ? "justify-end" : "justify-start")}>
                   <div className="max-w-[75%] px-4 py-2 rounded-2xl bg-muted/30 border border-border/50">
                     <p className="text-sm text-muted-foreground italic">
@@ -1368,6 +1389,7 @@ export default function Chat() {
                     </div>
                   </div>
                 </div>
+                </>
               );
             }
             
@@ -1395,6 +1417,7 @@ export default function Chat() {
               }
 
               return (
+                <>{dateSeparator}
                 <div key={message.id} className="flex justify-center">
                   <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-xs", callColor)}>
                     {callIcon}
@@ -1402,10 +1425,12 @@ export default function Chat() {
                     <span className="text-[10px] text-muted-foreground">{formatTime(message.timestamp)}</span>
                   </div>
                 </div>
+                </>
               );
             }
             
             return (
+              <>{dateSeparator}
               <div
                 key={message.id}
                 className={cn("flex group", isMe ? "justify-end" : "justify-start")}
@@ -1646,6 +1671,7 @@ export default function Chat() {
                   </div>
                 </div>
               </div>
+              </>
             );
           })}
 
