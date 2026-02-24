@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Clock, PhoneIncoming, PhoneOutgoing, PhoneMissed, Users, Phone, ChevronDown, ChevronUp, UserPlus, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, isToday, differenceInMinutes, differenceInHours } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -140,6 +140,16 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
     }
   };
 
+  const formatTimeAgo = (dateStr: string) => {
+    const date = new Date(dateStr);
+    if (!isToday(date)) return format(date, "MMM d, yyyy · h:mm a");
+    const mins = differenceInMinutes(new Date(), date);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = differenceInHours(new Date(), date);
+    return `${hours}h ago`;
+  };
+
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "incoming": return "Incoming";
@@ -271,7 +281,7 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                               <div className="flex-1 min-w-0">
                                 <p className={`text-[11px] font-medium ${colors.text}`}>{getStatusLabel(item.status)}</p>
                                 <p className="text-[10px] text-muted-foreground">
-                                  {format(new Date(item.created_at), "MMM d, yyyy · h:mm a")}
+                                  {formatTimeAgo(item.created_at)}
                                 </p>
                               </div>
                               <span className="text-xs font-semibold text-foreground">{formatDuration(item.duration)}</span>
