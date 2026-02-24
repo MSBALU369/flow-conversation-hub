@@ -228,7 +228,7 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                         </Avatar>
                       </button>
 
-                      {/* Name & latest duration */}
+                      {/* Name, timestamp & total calls */}
                       <button
                         onClick={() => partner && handleProfileClick(partner.id)}
                         className="flex-1 min-w-0 text-left"
@@ -238,31 +238,27 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                         <p className="text-[9px] text-muted-foreground whitespace-nowrap overflow-hidden">
                           {format(new Date(lastCall.created_at), "EEE, MMM d · h:mm a")} · {formatDuration(lastCall.duration)} ({formatTimeAgo(lastCall.created_at)})
                         </p>
+                        <p className="text-[9px] text-muted-foreground">Total calls ({calls.length})</p>
                       </button>
 
-                      {/* Follow button */}
-                      {partner && (
-                        <Button
-                          size="sm"
-                          variant={isFollowing ? "secondary" : "default"}
-                          className="h-6 px-1.5 text-[10px] gap-0.5"
-                          disabled={isFollowing || followLoading === partner.id}
-                          onClick={(e) => { e.stopPropagation(); handleFollow(partner.id); }}
-                        >
-                          {isFollowing ? <Check className="w-2.5 h-2.5" /> : <UserPlus className="w-2.5 h-2.5" />}
-                          {isFollowing ? "Following" : "Follow"}
-                        </Button>
-                      )}
-
-                      {/* Total calls badge */}
-                      <span className="text-[9px] text-muted-foreground whitespace-nowrap">
-                        {calls.length}
-                      </span>
-
-                      {/* Expand toggle */}
-                      <button onClick={() => setExpandedUser(isExpanded ? null : name)} className="text-muted-foreground p-1">
-                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      </button>
+                      {/* Follow button + dropdown stacked on right */}
+                      <div className="flex flex-col items-center gap-1 shrink-0">
+                        {partner && (
+                          <Button
+                            size="sm"
+                            variant={isFollowing ? "secondary" : "default"}
+                            className="h-6 px-1.5 text-[10px] gap-0.5"
+                            disabled={isFollowing || followLoading === partner.id}
+                            onClick={(e) => { e.stopPropagation(); handleFollow(partner.id); }}
+                          >
+                            {isFollowing ? <Check className="w-2.5 h-2.5" /> : <UserPlus className="w-2.5 h-2.5" />}
+                            {isFollowing ? "Following" : "Follow"}
+                          </Button>
+                        )}
+                        <button onClick={() => setExpandedUser(isExpanded ? null : name)} className="text-muted-foreground p-0.5">
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
 
                     {isExpanded && (
