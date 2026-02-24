@@ -11,8 +11,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { room_id, participant_name } = await req.json();
-    console.log("[generate-livekit-token] Request:", { room_id, participant_name });
+    const { room_id, participant_name, participant_id } = await req.json();
+    console.log("[generate-livekit-token] Request:", { room_id, participant_name, participant_id });
 
     if (!room_id || !participant_name) {
       console.error("[generate-livekit-token] Missing params:", { room_id, participant_name });
@@ -21,6 +21,9 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Use participant_id (user UUID) as identity to prevent collisions; fall back to name
+    const identity = participant_id || participant_name;
 
     const apiKey = Deno.env.get("LIVEKIT_API_KEY");
     const apiSecret = Deno.env.get("LIVEKIT_API_SECRET");
@@ -34,7 +37,7 @@ serve(async (req) => {
     }
 
     const at = new AccessToken(apiKey, apiSecret, {
-      identity: participant_name,
+      identity: identity,
       name: participant_name,
       ttl: "10m",
     });
