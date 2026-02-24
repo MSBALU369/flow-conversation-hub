@@ -161,12 +161,31 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
 
           if (row.status === "declined") {
             // Receiver declined — hide outgoing banner, show toast
+            const currentOutgoing = outgoingCallRef.current;
             setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
             toast({
               title: "Call Declined",
               description: "The user declined your call.",
               variant: "destructive",
             });
+
+            // Log missed call in chat_messages (caller is the inserter)
+            if (currentOutgoing.receiverId) {
+              supabase.from("chat_messages").insert({
+                sender_id: user.id,
+                receiver_id: currentOutgoing.receiverId,
+                content: "📞 Missed Call",
+                is_read: true,
+              }).then(() => {});
+            }
+
+            // Log missed call in call_history
+            supabase.from("call_history").insert({
+              user_id: user.id,
+              partner_name: currentOutgoing.receiverName || "Unknown",
+              duration: 0,
+              status: "missed",
+            }).then(() => {});
           } else if (row.status === "accepted") {
             // Receiver accepted — BOTH sides now join the room
             const roomId = `direct_${row.id}`;
@@ -342,6 +361,22 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         osc.stop(ctx.currentTime + 0.8);
         osc.onended = () => ctx.close();
       } catch {}
+
+      // Log missed call in chat + history before clearing state
+      if (outgoingCall.receiverId) {
+        supabase.from("chat_messages").insert({
+          sender_id: user?.id || "",
+          receiver_id: outgoingCall.receiverId,
+          content: "📞 Missed Call",
+          is_read: true,
+        }).then(() => {});
+      }
+      supabase.from("call_history").insert({
+        user_id: user?.id || "",
+        partner_name: outgoingCall.receiverName || "Unknown",
+        duration: 0,
+        status: "missed",
+      }).then(() => {});
 
       setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
       toast({
