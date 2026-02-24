@@ -93,8 +93,9 @@ export function GameListModal({ open, onOpenChange, onSelectGame }: GameListModa
         <DialogHeader>
           <DialogTitle className="text-foreground text-lg flex items-center gap-2">
             <Gamepad2 className="w-5 h-5 text-primary" />
-            In-Call Games
+            Play Games with Caller...
           </DialogTitle>
+          <p className="text-xs text-muted-foreground">You can play games while talking too...</p>
         </DialogHeader>
 
         <div className="space-y-2">
