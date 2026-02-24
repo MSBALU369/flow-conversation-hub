@@ -89,6 +89,10 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
   const isFetchingRef = useRef(false);
   const currentRoomRef = useRef<any>(null);
   const outgoingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const outgoingCallRef = useRef(outgoingCall);
+
+  // Keep ref in sync with state
+  useEffect(() => { outgoingCallRef.current = outgoingCall; }, [outgoingCall]);
 
   const registerCurrentRoom = useCallback((room: any) => {
     currentRoomRef.current = room;
@@ -182,8 +186,11 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
                 return;
               }
 
-              const currentOutgoing = outgoingCall;
+              // Read from ref to avoid stale closure
+              const currentOutgoing = outgoingCallRef.current;
               setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
+
+              console.log("[DirectCall] Caller navigating to /call with token, partner:", currentOutgoing.receiverName);
 
               setCallState({
                 isInCall: true,
@@ -204,7 +211,8 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
                   directCallId: row.id,
                 },
               });
-            } catch {
+            } catch (err) {
+              console.error("[DirectCall] Caller connection error:", err);
               toast({ title: "Connection Error", description: "Could not establish call.", variant: "destructive" });
               setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
             }
@@ -216,7 +224,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(statusChannel);
     };
-  }, [user?.id, profile?.username, navigate, toast, outgoingCall]);
+  }, [user?.id, profile?.username, navigate, toast]);
 
   // ─── Realtime: listen for STATUS UPDATES on calls where I am receiver (caller cancelled = 'missed') ───
   useEffect(() => {
