@@ -236,7 +236,7 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                       >
                         <p className="text-sm font-medium text-foreground truncate">{name}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {formatDuration(lastCall.duration)} ({formatTimeAgo(lastCall.created_at)})
+                          {format(new Date(lastCall.created_at), "EEEE, MMM d · h:mm a")} · {formatDuration(lastCall.duration)} ({formatTimeAgo(lastCall.created_at)})
                         </p>
                       </button>
 
@@ -281,7 +281,7 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                               <div className="flex-1 min-w-0">
                                 <p className={`text-[11px] font-medium ${colors.text}`}>{getStatusLabel(item.status)}</p>
                                 <p className="text-[10px] text-muted-foreground">
-                                  {format(new Date(item.created_at), "MMM d, yyyy · h:mm a")}
+                                  {format(new Date(item.created_at), "EEEE, MMM d, yyyy · h:mm a")}
                                 </p>
                               </div>
                               <span className="text-xs font-semibold text-foreground">{formatDuration(item.duration)} ({formatTimeAgo(item.created_at)})</span>
