@@ -270,19 +270,50 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     const forceEnd = async (isLocalDisconnect = false) => {
       if (hasHandledDisconnectRef.current) return;
       hasHandledDisconnectRef.current = true;
+      const callDuration = seconds;
       toast({ title: "Call Ended", description: isLocalDisconnect ? "You were disconnected." : "The other user has left the call." });
       try { room.disconnect(); } catch {}
       endCall();
 
-      // Clean up matchmaking queue + update calls table to ended
+      // Clean up matchmaking queue + update calls table to ended + log call history
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
 
         // FIX #4: Network drop zombie — update any active calls to 'ended'
         const directCallId = (location.state as any)?.directCallId;
+        const callerId = (location.state as any)?.callerId;
         if (directCallId) {
-          supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", directCallId).then();
+          supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString(), duration_sec: callDuration }).eq("id", directCallId).then();
+        }
+
+        // Log call history for BOTH parties (only caller/initiator inserts to prevent duplication)
+        const isCallerOrInitiator = !directCallId || callerId === undefined || user.id === callerId;
+        const effectivePartnerId = partnerId || stateMatchedUserId;
+        if (isCallerOrInitiator && effectivePartnerId) {
+          supabase.rpc("log_call_for_both" as any, {
+            p_caller_id: user.id,
+            p_receiver_id: effectivePartnerId,
+            p_caller_name: profile?.username || "Partner",
+            p_receiver_name: partnerProfile?.username || "Partner",
+            p_duration: callDuration,
+            p_status: "completed",
+          }).then(() => {});
+        }
+
+        // Log call as system message in chat for friend calls
+        const chatPartnerId = partnerId || stateMatchedUserId;
+        if (isFriendCall && chatPartnerId && isCallerOrInitiator) {
+          const mins = Math.floor(callDuration / 60);
+          const secs = callDuration % 60;
+          const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
+          const callLabel = callDuration < 5 ? "📞 Missed Call" : `📞 Outgoing Call - ${durationStr}`;
+          supabase.from("chat_messages").insert({
+            sender_id: user.id,
+            receiver_id: chatPartnerId,
+            content: callLabel,
+            is_read: true,
+          }).then(() => {});
         }
       }
 
@@ -293,7 +324,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
         setSelectedLikeReasons([]);
         setShowPostCallModal(true);
       } else {
-        navigate("/");
+        navigate(-1);
       }
     };
 
@@ -309,7 +340,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       room.off(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
       room.off(RoomEvent.Disconnected, handleRoomDisconnected);
     };
-  }, [room, endCall, navigate, toast, isFriendCall, location.state]);
+  }, [room, endCall, navigate, toast, isFriendCall, location.state, seconds, partnerId, stateMatchedUserId, profile?.username, partnerProfile?.username]);
 
   // Fetch partner profile from real data
   useEffect(() => {
