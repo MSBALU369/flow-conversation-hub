@@ -98,6 +98,8 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       await supabase.from("friendships").insert({ user_id: user.id, friend_id: partnerId, status: "accepted" });
+      const { sendFollowNotification } = await import("@/lib/followNotification");
+      sendFollowNotification(user.id, partnerId);
       setFollowingIds(prev => new Set(prev).add(partnerId));
     } catch (err) {
       console.error("Follow error:", err);

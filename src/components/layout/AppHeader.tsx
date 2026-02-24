@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bell, Play, Search, X, Flame, Crown, ShieldCheck } from "lucide-react";
+import { Bell, Play, Search, X, Flame, Crown, ShieldCheck, UserPlus, Check } from "lucide-react";
 import { EFLogo } from "@/components/ui/EFLogo";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { sendFollowNotification } from "@/lib/followNotification";
 
 interface AppHeaderProps {
   streakDays?: number;
@@ -60,6 +62,8 @@ export function AppHeader({
   const { user } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [followedBackIds, setFollowedBackIds] = useState<Set<string>>(new Set());
+  const [followLoading, setFollowLoading] = useState<string | null>(null);
   const showAdmin = isAdminOrRoot(user?.email);
 
   const userLevel = profile?.level ?? level;
@@ -75,7 +79,23 @@ export function AppHeader({
         .eq("user_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(20);
-      setNotifications((data as Notification[]) || []);
+      const notifs = (data as Notification[]) || [];
+      setNotifications(notifs);
+
+      // Pre-load follow-back states for follow_request notifications
+      const followFromIds = notifs
+        .filter(n => n.type === "follow_request" && n.from_user_id)
+        .map(n => n.from_user_id!);
+      if (followFromIds.length > 0) {
+        const { data: existing } = await supabase
+          .from("friendships")
+          .select("friend_id")
+          .eq("user_id", profile.id)
+          .in("friend_id", followFromIds);
+        if (existing) {
+          setFollowedBackIds(new Set(existing.map(f => f.friend_id)));
+        }
+      }
     };
     fetchNotifications();
 
@@ -332,20 +352,66 @@ export function AppHeader({
                   <span className="text-2xl mb-2">🔔</span>
                   <p className="text-sm text-muted-foreground">No notifications yet</p>
                 </div>
-              ) : notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-3 border-b border-border hover:bg-muted cursor-pointer transition-colors ${
-                    !notification.is_read ? 'bg-primary/5' : ''
-                  }`}
-                >
-                  <p className="text-sm text-foreground">{notification.title}</p>
-                  {notification.message && <p className="text-xs text-muted-foreground">{notification.message}</p>}
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {new Date(notification.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
+              ) : notifications.map((notification) => {
+                const isFollow = notification.type === "follow_request";
+                const fromId = notification.from_user_id;
+                const alreadyFollowed = fromId ? followedBackIds.has(fromId) : false;
+
+                const handleFollowBack = async () => {
+                  if (!profile?.id || !fromId || followLoading) return;
+                  setFollowLoading(fromId);
+                  await supabase.from("friendships").insert({ user_id: profile.id, friend_id: fromId, status: "accepted" });
+                  sendFollowNotification(profile.id, fromId);
+                  setFollowedBackIds(prev => new Set(prev).add(fromId));
+                  setFollowLoading(null);
+                };
+
+                const handleViewProfile = () => {
+                  if (fromId) navigate(`/user/${fromId}`);
+                };
+
+                return (
+                  <div
+                    key={notification.id}
+                    className={`p-3 border-b border-border hover:bg-muted transition-colors ${
+                      !notification.is_read ? 'bg-primary/5' : ''
+                    }`}
+                  >
+                    <div
+                      className="cursor-pointer"
+                      onClick={isFollow && fromId ? handleViewProfile : undefined}
+                    >
+                      <p className="text-sm text-foreground">{notification.title}</p>
+                      {notification.message && <p className="text-xs text-muted-foreground">{notification.message}</p>}
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {new Date(notification.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {isFollow && fromId && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          variant={alreadyFollowed ? "outline" : "default"}
+                          className="h-7 text-xs gap-1"
+                          disabled={alreadyFollowed || followLoading === fromId}
+                          onClick={handleFollowBack}
+                        >
+                          {alreadyFollowed ? <Check className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                          {alreadyFollowed ? "Following" : "Follow Back"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          onClick={handleViewProfile}
+                        >
+                          View Profile
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <div className="p-2 border-t border-border">
               <button onClick={markAllRead} className="w-full text-center text-xs text-primary hover:underline">

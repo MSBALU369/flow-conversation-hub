@@ -258,9 +258,9 @@ export default function Profile() {
   const handleFollowBack = async (targetUserId: string) => {
     if (!profile?.id || followActionLoading) return;
     setFollowActionLoading(targetUserId);
-    await supabase.
-    from("friendships").
-    insert({ user_id: profile.id, friend_id: targetUserId, status: "accepted" });
+    await supabase.from("friendships").insert({ user_id: profile.id, friend_id: targetUserId, status: "accepted" });
+    const { sendFollowNotification } = await import("@/lib/followNotification");
+    sendFollowNotification(profile.id, targetUserId);
     setFollowedBackIds((prev) => new Set(prev).add(targetUserId));
     fetchCounts();
     toast({ title: "Followed", description: "You are now following this user." });

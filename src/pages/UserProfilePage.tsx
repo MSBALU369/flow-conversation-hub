@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { sendFollowNotification } from "@/lib/followNotification";
 import { useProfile } from "@/hooks/useProfile";
 import { formatSpeakTime, calculateTogetherTotal } from "@/lib/mockData";
 
@@ -480,6 +481,7 @@ export default function UserProfilePage() {
               setIsFollowing(newState);
               if (newState) {
                 await supabase.from("friendships").insert({ user_id: myProfile.id, friend_id: user.id, status: "accepted" });
+                sendFollowNotification(myProfile.id, user.id);
               } else {
                 await supabase.from("friendships").delete().eq("user_id", myProfile.id).eq("friend_id", user.id);
               }
