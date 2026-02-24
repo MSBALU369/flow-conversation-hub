@@ -357,18 +357,22 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     const participantName = profile?.username || "User";
     const participantId = user?.id;
 
+    console.log("[Matchmaking] fetchTokenAndNavigate called — mode: random, room:", roomId, "matchedWith:", matchedUserId);
+
     try {
       const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
         body: { room_id: roomId, participant_name: participantName, participant_id: participantId },
       });
 
       if (error || !data?.token) {
+        console.error("[Matchmaking] Token generation failed:", error, data);
         toast({ title: "Connection Error", description: "Could not establish call.", variant: "destructive" });
         setIsSearching(false);
         isFetchingRef.current = false;
         return;
       }
 
+      console.log("[Matchmaking] Token received, navigating to /call");
       setIsSearching(false);
       navigate("/call", { replace: true, state: { roomId, livekitToken: data.token, matchedUserId } });
     } catch {
@@ -383,10 +387,15 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     if (!user?.id || isFetchingRef.current || isMatchedRef.current) return;
 
     try {
+      console.log("[Matchmaking] Polling find_match for user:", user.id);
       const { data, error } = await supabase.rpc("find_match", { p_user_id: user.id });
-      if (error) return;
+      if (error) {
+        console.error("[Matchmaking] find_match RPC error:", error);
+        return;
+      }
 
       const result = data as { status: string; room_id?: string; matched_with?: string };
+      console.log("[Matchmaking] find_match result:", result);
 
       if (result?.status === "matched" && result?.room_id) {
         isMatchedRef.current = true;
@@ -394,7 +403,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         await fetchTokenAndNavigate(result.room_id, result.matched_with);
       }
     } catch (err) {
-      console.error("Matchmaking poll error:", err);
+      console.error("[Matchmaking] Poll error:", err);
     }
   }, [user?.id, fetchTokenAndNavigate]);
 
