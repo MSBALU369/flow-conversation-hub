@@ -236,7 +236,7 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                       >
                         <p className="text-sm font-medium text-foreground">{name}</p>
                         <p className="text-[9px] text-muted-foreground whitespace-nowrap overflow-hidden">
-                          {format(new Date(lastCall.created_at), "EEE, MMM d · h:mm a")} · <span className={lastColors.text}>{formatDuration(lastCall.duration)} ({formatTimeAgo(lastCall.created_at)})</span>
+                          {format(new Date(lastCall.created_at), "EEE, MMM d · h:mm a")} · <span className="text-foreground font-medium">{formatDuration(lastCall.duration)} ({formatTimeAgo(lastCall.created_at)})</span>
                         </p>
                         <p className="text-[9px] text-muted-foreground">Total calls ({calls.length})</p>
                       </button>
