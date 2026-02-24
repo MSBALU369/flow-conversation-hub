@@ -669,11 +669,12 @@ export default function Chat() {
       });
       setCompareMyData(dayLabels.map((day, i) => ({ day, minutes: myBuckets[i] })));
 
-      // Friend's call history this week
+      // Friend's speaking time with me this week (query my own call_history filtered by partner_name due to RLS)
       const { data: friendCalls } = await supabase
         .from("call_history")
         .select("duration, created_at")
-        .eq("user_id", selectedFriend.id)
+        .eq("user_id", profile.id)
+        .eq("partner_name", selectedFriend.name)
         .gte("created_at", weekStart.toISOString());
       const friendBuckets = new Array(7).fill(0);
       (friendCalls || []).forEach(c => {
