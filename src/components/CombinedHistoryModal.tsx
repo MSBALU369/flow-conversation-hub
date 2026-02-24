@@ -16,7 +16,7 @@ interface CallHistoryItem {
   id: string;
   partner_name: string;
   duration: number;
-  status: "incoming" | "outgoing" | "missed" | "completed";
+  status: "incoming" | "outgoing" | "missed" | "missed_outgoing" | "missed_incoming" | "completed";
   created_at: string;
 }
 
@@ -123,7 +123,9 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "incoming": return <PhoneIncoming className="w-3.5 h-3.5" />;
-      case "missed": return <PhoneMissed className="w-3.5 h-3.5" />;
+      case "missed":
+      case "missed_incoming": return <PhoneMissed className="w-3.5 h-3.5" />;
+      case "missed_outgoing": return <PhoneMissed className="w-3.5 h-3.5" />;
       default: return <PhoneOutgoing className="w-3.5 h-3.5" />;
     }
   };
@@ -131,7 +133,9 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
   const getStatusColor = (status: string) => {
     switch (status) {
       case "incoming": return { bg: "bg-green-500/15", text: "text-green-500", icon: "text-green-500" };
-      case "missed": return { bg: "bg-destructive/15", text: "text-destructive", icon: "text-destructive" };
+      case "missed":
+      case "missed_incoming":
+      case "missed_outgoing": return { bg: "bg-destructive/15", text: "text-destructive", icon: "text-destructive" };
       default: return { bg: "bg-blue-500/15", text: "text-blue-500", icon: "text-blue-500" };
     }
   };
@@ -140,6 +144,8 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
     switch (status) {
       case "incoming": return "Incoming";
       case "missed": return "Missed";
+      case "missed_outgoing": return "No Answer (You called)";
+      case "missed_incoming": return "Missed (They called)";
       default: return "Outgoing";
     }
   };
