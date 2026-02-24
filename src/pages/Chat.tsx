@@ -323,6 +323,38 @@ export default function Chat() {
     fetchMutualFollowers();
   }, [profile?.id]);
 
+  // Global inbox realtime: update friend list preview when messages arrive from any friend
+  useEffect(() => {
+    if (!profile?.id) return;
+    const inboxChannel = supabase
+      .channel(`inbox-updates-${profile.id}`)
+      .on(
+        "postgres_changes" as any,
+        { event: "INSERT", schema: "public", table: "chat_messages", filter: `receiver_id=eq.${profile.id}` },
+        (payload: any) => {
+          const msg = payload.new;
+          if (!msg) return;
+          const senderId = msg.sender_id;
+          const content = msg.content || "📷 Media";
+          const isCallLog = content.startsWith("📞 ");
+          setChatFriends(prev => {
+            const exists = prev.find(f => f.id === senderId);
+            if (exists) {
+              const updated = prev.map(f => f.id === senderId
+                ? { ...f, lastMessage: content, lastMessageSenderId: senderId, time: "now", unread: isCallLog ? f.unread : f.unread + (selectedFriend?.id === senderId ? 0 : 1) }
+                : f
+              );
+              const friend = updated.find(f => f.id === senderId)!;
+              return [friend, ...updated.filter(f => f.id !== senderId)];
+            }
+            return prev;
+          });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(inboxChannel); };
+  }, [profile?.id, selectedFriend?.id]);
+
   const handleRemoveChat = useCallback(async (friend: Friend) => {
     setChatFriends(prev => prev.filter(f => f.id !== friend.id));
     setSwipeOffsets(prev => { const n = { ...prev }; delete n[friend.id]; return n; });
@@ -498,6 +530,9 @@ export default function Chat() {
             if (prev.some(m => m.id === msg.id)) return prev;
             return [...prev, newMsg];
           });
+
+          // Update friend list preview with latest received message
+          setChatFriends(prev => prev.map(f => f.id === selectedFriend.id ? { ...f, lastMessage: msg.content || "📷 Media", lastMessageSenderId: msg.sender_id, time: "now" } : f));
         }
       )
       .on(
@@ -724,6 +759,9 @@ export default function Chat() {
     const replyId = replyToMessage?.id || null;
     setNewMessage("");
     setReplyToMessage(null);
+
+    // Update friend list preview with latest sent message
+    setChatFriends(prev => prev.map(f => f.id === selectedFriend.id ? { ...f, lastMessage: msgContent, lastMessageSenderId: profile.id, time: "now" } : f));
 
     // Persist to Supabase
     const insertPayload: any = {
