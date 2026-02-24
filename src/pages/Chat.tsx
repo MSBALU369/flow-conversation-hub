@@ -262,13 +262,19 @@ export default function Chat() {
         .select("id, username, avatar_url, is_online, last_seen")
         .in("id", mutualIds);
 
-      const mutuals = (profiles || []).map(p => ({
-        id: p.id,
-        name: p.username || "User",
-        avatar: p.avatar_url,
-        isOnline: p.is_online ?? false,
-        lastSeen: (p as any).last_seen || null,
-      }));
+      const now = Date.now();
+      const ONLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
+      const mutuals = (profiles || []).map(p => {
+        const lastSeen = p.last_seen ? new Date(p.last_seen).getTime() : 0;
+        const isRecentlyActive = now - lastSeen < ONLINE_THRESHOLD_MS;
+        return {
+          id: p.id,
+          name: p.username || "User",
+          avatar: p.avatar_url,
+          isOnline: isRecentlyActive,
+          lastSeen: p.last_seen || null,
+        };
+      });
       setMutualFollowers(mutuals);
 
       // Also set up chat friends from those who have existing messages
