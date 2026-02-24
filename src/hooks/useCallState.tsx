@@ -425,13 +425,19 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
   }, [isSearching, user?.id, pollForMatch]);
 
   const startSearching = useCallback(async (preferences?: { genderPref?: string | null; levelPref?: string | null }) => {
+    console.log("[Matchmaking] startSearching called, userId:", user?.id, "preferences:", preferences);
     if (user?.id) {
       // Call join_matchmaking RPC with preferences (premium-verified server-side)
-      await (supabase.rpc as any)("join_matchmaking", {
+      const { error } = await (supabase.rpc as any)("join_matchmaking", {
         p_user_id: user.id,
         p_gender_pref: preferences?.genderPref || null,
         p_level_pref: preferences?.levelPref || null,
       });
+      if (error) {
+        console.error("[Matchmaking] join_matchmaking RPC error:", error);
+      } else {
+        console.log("[Matchmaking] Successfully joined matchmaking queue");
+      }
     }
     setIsSearching(true);
   }, [user?.id]);
