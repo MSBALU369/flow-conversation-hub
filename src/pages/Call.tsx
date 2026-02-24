@@ -160,7 +160,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   };
 
   const [isMuted, setIsMuted] = useState(false);
-  const [isSpeaker, setIsSpeaker] = useState(false);
+  const [isSpeaker, setIsSpeaker] = useState(true);
   const [seconds, setSeconds] = useState(0);
   const [showGameModal, setShowGameModal] = useState(false);
   const [showQuizBet, setShowQuizBet] = useState(false);
