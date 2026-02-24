@@ -234,8 +234,8 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                         className="flex-1 min-w-0 text-left"
                         disabled={!partner}
                       >
-                        <p className="text-sm font-medium text-foreground truncate">{name}</p>
-                        <p className="text-[10px] text-muted-foreground whitespace-nowrap overflow-hidden">
+                        <p className="text-sm font-medium text-foreground">{name}</p>
+                        <p className="text-[9px] text-muted-foreground whitespace-nowrap overflow-hidden">
                           {format(new Date(lastCall.created_at), "EEE, MMM d · h:mm a")} · {formatDuration(lastCall.duration)} ({formatTimeAgo(lastCall.created_at)})
                         </p>
                       </button>
@@ -245,18 +245,18 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                         <Button
                           size="sm"
                           variant={isFollowing ? "secondary" : "default"}
-                          className="h-7 px-2.5 text-xs gap-1"
+                          className="h-6 px-1.5 text-[10px] gap-0.5"
                           disabled={isFollowing || followLoading === partner.id}
                           onClick={(e) => { e.stopPropagation(); handleFollow(partner.id); }}
                         >
-                          {isFollowing ? <Check className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                          {isFollowing ? <Check className="w-2.5 h-2.5" /> : <UserPlus className="w-2.5 h-2.5" />}
                           {isFollowing ? "Following" : "Follow"}
                         </Button>
                       )}
 
                       {/* Total calls badge */}
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                        {calls.length} call{calls.length > 1 ? "s" : ""}
+                      <span className="text-[9px] text-muted-foreground whitespace-nowrap">
+                        {calls.length}
                       </span>
 
                       {/* Expand toggle */}
