@@ -22,9 +22,13 @@ export default function Login() {
   const [signUpBlink, setSignUpBlink] = useState(false);
   const [referenceIdValid, setReferenceIdValid] = useState(false);
   const [loginError, setLoginError] = useState("");
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotLoading, setForgotLoading] = useState(false);
+  const [resetStep, setResetStep] = useState<0 | 1 | 2 | 3>(0);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetOtp, setResetOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -38,6 +42,12 @@ export default function Login() {
     const t = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
     return () => clearTimeout(t);
   }, [resendCooldown]);
+
+  useEffect(() => {
+    if (resetCooldown <= 0) return;
+    const t = setTimeout(() => setResetCooldown(resetCooldown - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resetCooldown]);
 
   const validateReferenceId = async (value: string) => {
     if (!value.trim()) {
@@ -276,7 +286,7 @@ export default function Login() {
         </form>
         {!isSignUp && (
           <button
-            onClick={() => { setForgotEmail(email); setShowForgotPassword(true); }}
+            onClick={() => { setResetEmail(email); setResetStep(1); }}
             className="w-full mt-2 text-primary/70 text-xs hover:text-primary hover:underline transition-colors"
           >
             Forgot Password?
@@ -294,49 +304,132 @@ export default function Login() {
         </p>
       </div>
 
-      {/* Forgot Password Modal */}
-      {showForgotPassword && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setShowForgotPassword(false)}>
+      {/* In-App OTP Password Reset Flow */}
+      {resetStep > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setResetStep(0)}>
           <div className="w-full max-w-sm glass-card p-6 animate-scale-in" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setShowForgotPassword(false)} className="flex items-center gap-1 text-muted-foreground text-sm mb-4 hover:text-foreground">
-              <ArrowLeft className="w-4 h-4" /> Back
+            <button onClick={() => { if (resetStep === 1) setResetStep(0); else setResetStep(prev => (prev - 1) as any); }} className="flex items-center gap-1 text-muted-foreground text-sm mb-4 hover:text-foreground">
+              <ArrowLeft className="w-4 h-4" /> {resetStep === 1 ? "Back to Login" : "Back"}
             </button>
-            <div className="flex flex-col items-center mb-4">
+            <div className="flex flex-col items-center mb-5">
               <EFLogo size="lg" className="mb-3" />
-              <h1 className="text-xl font-bold text-foreground">Reset Password</h1>
+              <h1 className="text-xl font-bold text-foreground">
+                {resetStep === 1 && "Reset Password"}
+                {resetStep === 2 && "Enter OTP"}
+                {resetStep === 3 && "New Password"}
+              </h1>
               <p className="text-xs text-muted-foreground mt-1 text-center">
-                Enter your email and we'll send a password reset link.
+                {resetStep === 1 && "We'll send a 6-digit code to your email."}
+                {resetStep === 2 && <>Enter the code sent to <span className="font-semibold text-foreground">{resetEmail}</span></>}
+                {resetStep === 3 && "Choose a strong new password."}
               </p>
             </div>
-            <Input
-              type="email"
-              placeholder="Email"
-              value={forgotEmail}
-              onChange={e => setForgotEmail(e.target.value)}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground mb-3"
-            />
-            <Button
-              onClick={async () => {
-                if (!forgotEmail.trim()) return;
-                setForgotLoading(true);
-                try {
-                  const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
-                    redirectTo: window.location.origin,
-                  });
-                  if (error) throw error;
-                  toast({ title: "Reset link sent! ✉️", description: "Check your email for the password reset link." });
-                  setShowForgotPassword(false);
-                } catch (err: any) {
-                  toast({ title: "Error", description: err.message, variant: "destructive" });
-                } finally {
-                  setForgotLoading(false);
-                }
-              }}
-              disabled={forgotLoading || !forgotEmail.trim()}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6"
-            >
-              {forgotLoading ? "Sending..." : "Send Reset Link"}
-            </Button>
+
+            {resetStep === 1 && (
+              <>
+                <Input type="email" placeholder="Email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="bg-muted border-border text-foreground placeholder:text-muted-foreground mb-3" />
+                <Button
+                  disabled={resetLoading || !resetEmail.trim()}
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6"
+                  onClick={async () => {
+                    setResetLoading(true);
+                    try {
+                      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), { redirectTo: window.location.origin });
+                      if (error) throw error;
+                      toast({ title: "OTP Sent ✉️", description: "Check your email for the 6-digit code." });
+                      setResetCooldown(60);
+                      setResetStep(2);
+                    } catch (err: any) {
+                      toast({ title: "Error", description: err.message, variant: "destructive" });
+                    } finally { setResetLoading(false); }
+                  }}
+                >
+                  {resetLoading ? "Sending..." : "Send OTP"}
+                </Button>
+              </>
+            )}
+
+            {resetStep === 2 && (
+              <>
+                <div className="flex justify-center mb-4">
+                  <InputOTP maxLength={6} value={resetOtp} onChange={setResetOtp}>
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+                <Button
+                  disabled={resetLoading || resetOtp.length !== 6}
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6"
+                  onClick={async () => {
+                    setResetLoading(true);
+                    try {
+                      const { error } = await supabase.auth.verifyOtp({ email: resetEmail, token: resetOtp, type: "recovery" });
+                      if (error) throw error;
+                      toast({ title: "OTP Verified ✅" });
+                      setResetStep(3);
+                    } catch (err: any) {
+                      toast({ title: "Invalid OTP", description: err.message, variant: "destructive" });
+                    } finally { setResetLoading(false); }
+                  }}
+                >
+                  {resetLoading ? "Verifying..." : "Verify OTP"}
+                </Button>
+                <button
+                  onClick={async () => {
+                    if (resetCooldown > 0) return;
+                    setResetLoading(true);
+                    try {
+                      await supabase.auth.resetPasswordForEmail(resetEmail.trim(), { redirectTo: window.location.origin });
+                      setResetCooldown(60);
+                      toast({ title: "OTP Resent ✉️" });
+                    } catch {} finally { setResetLoading(false); }
+                  }}
+                  disabled={resetCooldown > 0 || resetLoading}
+                  className="w-full mt-3 text-primary text-sm font-medium hover:underline disabled:text-muted-foreground disabled:no-underline"
+                >
+                  {resetCooldown > 0 ? `Resend OTP in ${resetCooldown}s` : "Resend OTP"}
+                </button>
+              </>
+            )}
+
+            {resetStep === 3 && (
+              <>
+                <Input type="password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} minLength={6} className="bg-muted border-border text-foreground placeholder:text-muted-foreground mb-3" />
+                <Input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} minLength={6} className="bg-muted border-border text-foreground placeholder:text-muted-foreground mb-3" />
+                <Button
+                  disabled={resetLoading || newPassword.length < 6 || newPassword !== confirmPassword}
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-6"
+                  onClick={async () => {
+                    if (newPassword !== confirmPassword) {
+                      toast({ title: "Passwords don't match", variant: "destructive" });
+                      return;
+                    }
+                    setResetLoading(true);
+                    try {
+                      const { error } = await supabase.auth.updateUser({ password: newPassword });
+                      if (error) throw error;
+                      toast({ title: "Password Reset Successful ✅", description: "You can now sign in with your new password." });
+                      setResetStep(0);
+                      setResetOtp(""); setNewPassword(""); setConfirmPassword("");
+                      await supabase.auth.signOut();
+                    } catch (err: any) {
+                      toast({ title: "Error", description: err.message, variant: "destructive" });
+                    } finally { setResetLoading(false); }
+                  }}
+                >
+                  {resetLoading ? "Saving..." : "Save New Password"}
+                </Button>
+                {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                  <p className="text-destructive text-xs text-center mt-2">Passwords do not match</p>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
