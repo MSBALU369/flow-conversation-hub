@@ -235,8 +235,8 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                         disabled={!partner}
                       >
                         <p className="text-sm font-medium text-foreground truncate">{name}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {format(new Date(lastCall.created_at), "EEEE, MMM d · h:mm a")} · {formatDuration(lastCall.duration)} ({formatTimeAgo(lastCall.created_at)})
+                        <p className="text-[10px] text-muted-foreground whitespace-nowrap overflow-hidden">
+                          {format(new Date(lastCall.created_at), "EEE, MMM d · h:mm a")} · {formatDuration(lastCall.duration)} ({formatTimeAgo(lastCall.created_at)})
                         </p>
                       </button>
 
