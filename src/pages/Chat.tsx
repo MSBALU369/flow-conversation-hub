@@ -1166,9 +1166,9 @@ export default function Chat() {
     );
     switch (status) {
       case "sent":
-        return <SingleTick color="hsl(var(--muted-foreground))" />;
+        return <SingleTick color="hsl(var(--primary))" />;
       case "delivered":
-        return <DoubleTick color="hsl(var(--muted-foreground))" />;
+        return <DoubleTick color="hsl(var(--primary))" />;
       case "read":
         return <DoubleTick color="hsl(var(--primary))" />;
     }
