@@ -1380,7 +1380,7 @@ export default function Chat() {
 
               if (isMissedCall) {
                 callIcon = <PhoneMissed className="w-3.5 h-3.5 text-destructive" />;
-                callText = isMe ? "Missed call (You)" : `Missed call (${selectedFriend?.name || "Unknown"})`;
+                callText = isMe ? "Missed call (You)" : `Missed call from ${selectedFriend?.name || "Unknown"}`;
                 callColor = "text-destructive";
               } else if (isMe) {
                 const duration = message.content.replace("📞 Outgoing Call - ", "");
