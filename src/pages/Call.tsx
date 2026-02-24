@@ -387,6 +387,11 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const progressPercent = (seconds % CALL_DURATION_LIMIT) / CALL_DURATION_LIMIT * 100;
 
   const handleAttemptEndCall = () => {
+    // Friend/direct calls: no warning, no penalty — end immediately
+    if (isFriendCall) {
+      handleEndCall();
+      return;
+    }
     if (seconds < 60) {
       setShowEndCallWarning(true);
     } else {
@@ -449,50 +454,49 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       }
     }
 
-    // Penalty logic
-    const currentBars = profile?.energy_bars ?? 5;
-    const currentCoins = profile?.coins ?? 0;
-    const currentEarlyEndCount = (profile as any)?.early_end_count ?? 0;
-    let batteryChange = 0;
-    let coinDeduction = 0;
-    let newEarlyEndCount = currentEarlyEndCount;
+    // Penalty logic — skip for friend/direct calls
+    if (!isFriendCall) {
+      const currentBars = profile?.energy_bars ?? 5;
+      const currentCoins = profile?.coins ?? 0;
+      const currentEarlyEndCount = (profile as any)?.early_end_count ?? 0;
+      let batteryChange = 0;
+      let coinDeduction = 0;
+      let newEarlyEndCount = currentEarlyEndCount;
 
-    if (callDuration < 30) {
-      coinDeduction = currentCoins > 0 ? 2 : 0;
-      newEarlyEndCount += 1;
-      if (newEarlyEndCount % 2 === 0) batteryChange -= 1;
-    } else if (callDuration < 60) {
-      coinDeduction = currentCoins > 0 ? 1 : 0;
-      newEarlyEndCount += 1;
-    } else {
-      batteryChange = 1;
-      newEarlyEndCount = 0;
-    }
+      if (callDuration < 30) {
+        coinDeduction = currentCoins > 0 ? 2 : 0;
+        newEarlyEndCount += 1;
+        if (newEarlyEndCount % 2 === 0) batteryChange -= 1;
+      } else if (callDuration < 60) {
+        coinDeduction = currentCoins > 0 ? 1 : 0;
+        newEarlyEndCount += 1;
+      } else {
+        batteryChange = 1;
+        newEarlyEndCount = 0;
+      }
 
-    if (callDuration < 60 && newEarlyEndCount > 0 && newEarlyEndCount % 3 === 0) {
-      batteryChange -= 1;
-    }
+      if (callDuration < 60 && newEarlyEndCount > 0 && newEarlyEndCount % 3 === 0) {
+        batteryChange -= 1;
+      }
 
-    if (callDuration >= 1200) batteryChange = 7 - currentBars;
+      if (callDuration >= 1200) batteryChange = 7 - currentBars;
 
-    // Backend-first: update Supabase directly, then local state syncs via realtime
-    const updates: any = { early_end_count: newEarlyEndCount };
-    if (batteryChange !== 0) {
-      updates.energy_bars = Math.max(0, Math.min(7, currentBars + batteryChange));
-    }
-    if (coinDeduction > 0) {
-      updates.coins = Math.max(0, currentCoins - coinDeduction);
-    }
-    if (user) {
-      const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
-      if (error) {
-        console.error("Failed to update profile penalties:", error);
-        // Fallback to context update
+      const updates: any = { early_end_count: newEarlyEndCount };
+      if (batteryChange !== 0) {
+        updates.energy_bars = Math.max(0, Math.min(7, currentBars + batteryChange));
+      }
+      if (coinDeduction > 0) {
+        updates.coins = Math.max(0, currentCoins - coinDeduction);
+      }
+      if (user) {
+        const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
+        if (error) {
+          console.error("Failed to update profile penalties:", error);
+          updateProfile(updates);
+        }
+      } else {
         updateProfile(updates);
       }
-      // Realtime subscription in useProfile will auto-sync the UI
-    } else {
-      updateProfile(updates);
     }
   };
 
