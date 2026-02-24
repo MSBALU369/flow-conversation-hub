@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { startOfWeek, getDay } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown, Pause, Play, Pencil, X, ShieldAlert, Ban, Copy } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useProfile } from "@/hooks/useProfile";
@@ -146,7 +146,9 @@ export default function Chat() {
   const { profile } = useProfile();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { initiateDirectCall } = useCallState();
+
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -205,6 +207,29 @@ export default function Chat() {
   const [swipeOffsets, setSwipeOffsets] = useState<Record<string, number>>({});
   const touchStartRef = useRef<{ x: number; y: number; id: string } | null>(null);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle deep-link from global message banner (openConversationWith)
+  useEffect(() => {
+    const state = (location as any).state;
+    if (state?.openConversationWith) {
+      const target = state.openConversationWith;
+      const existing = chatFriends.find(f => f.id === target.id);
+      if (existing) {
+        setSelectedFriend(existing);
+      } else {
+        setSelectedFriend({
+          id: target.id,
+          name: target.name || "User",
+          avatar: target.avatar || null,
+          lastMessage: "",
+          time: "now",
+          unread: 0,
+          isOnline: true,
+        });
+      }
+      window.history.replaceState({}, document.title);
+    }
+  }, [location, chatFriends]);
 
   // Fetch mutual followers (people who follow you AND you follow them)
   useEffect(() => {
@@ -1093,6 +1118,8 @@ export default function Chat() {
   if (selectedFriend) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
+        {/* Hidden marker so global message listener knows which conversation is open */}
+        <div id="active-chat-partner" data-partner-id={selectedFriend.id} className="hidden" />
         {/* Chat Header */}
         <header className="flex items-center gap-3 px-4 py-3 glass-nav safe-top sticky top-0 z-10">
           <button
