@@ -143,6 +143,8 @@ export function ReferralTreeModal({ open, onOpenChange }: ReferralTreeModalProps
     if (!profile?.id || followLoading[userId]) return;
     setFollowLoading(prev => ({ ...prev, [userId]: true }));
     await supabase.from("friendships").insert({ user_id: profile.id, friend_id: userId, status: "accepted" });
+    const { sendFollowNotification } = await import("@/lib/followNotification");
+    sendFollowNotification(profile.id, userId);
     setFollowStates(prev => ({ ...prev, [userId]: true }));
     setFollowLoading(prev => ({ ...prev, [userId]: false }));
   }, [profile?.id, followLoading]);

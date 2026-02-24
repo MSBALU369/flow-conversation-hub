@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
+import { sendFollowNotification } from "@/lib/followNotification";
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -190,6 +191,7 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
     setIsFollowing(newState);
     if (newState) {
       await supabase.from("friendships").insert({ user_id: myProfile.id, friend_id: currentUser.id, status: "accepted" });
+      sendFollowNotification(myProfile.id, currentUser.id);
       setFollowedIds(prev => new Set(prev).add(currentUser.id));
     } else {
       await supabase.from("friendships").delete().eq("user_id", myProfile.id).eq("friend_id", currentUser.id);
@@ -206,6 +208,7 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
       setFollowedIds(prev => { const n = new Set(prev); n.delete(targetId); return n; });
     } else {
       await supabase.from("friendships").insert({ user_id: myProfile.id, friend_id: targetId, status: "accepted" });
+      sendFollowNotification(myProfile.id, targetId);
       setFollowedIds(prev => new Set(prev).add(targetId));
     }
   }, [myProfile?.id, followedIds]);

@@ -1176,6 +1176,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
                       const { data: { user: authUser } } = await supabase.auth.getUser();
                       if (!authUser || !effectivePartnerId) return;
                       await supabase.from("friendships").insert({ user_id: authUser.id, friend_id: effectivePartnerId, status: "accepted" });
+                      const { sendFollowNotification } = await import("@/lib/followNotification");
+                      sendFollowNotification(authUser.id, effectivePartnerId);
                       setHasFollowedPartner(true);
                       toast({ title: `Followed ${partnerProfile?.username || "User"}!`, duration: 2000 });
                     }}
