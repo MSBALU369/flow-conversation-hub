@@ -1558,9 +1558,14 @@ export default function Chat() {
                       )}>
                         {formatTime(message.timestamp)}
                       </span>
-                      {isMe && getStatusIcon(message.status)}
                     </div>
                   </div>
+                  {/* Tick marks below the bubble for sent messages */}
+                  {isMe && (
+                    <div className="flex justify-end mt-0.5 mr-1">
+                      {getStatusIcon(message.status)}
+                    </div>
+                  )}
                   {/* Reactions display */}
                   {message.reactions && Object.keys(message.reactions).length > 0 && (
                     <div className={cn("flex flex-wrap gap-1 mt-1", isMe ? "justify-end" : "justify-start")}>
