@@ -179,19 +179,15 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
               }).then(() => {});
             }
 
-            // Log missed call in call_history for BOTH caller and receiver
-            supabase.from("call_history").insert({
-              user_id: user.id,
-              partner_name: currentOutgoing.receiverName || "Unknown",
-              duration: 0,
-              status: "missed",
-            }).then(() => {});
+            // Log missed call in call_history for BOTH via RPC
             if (currentOutgoing.receiverId) {
-              supabase.from("call_history").insert({
-                user_id: currentOutgoing.receiverId,
-                partner_name: profile?.username || "Unknown",
-                duration: 0,
-                status: "missed",
+              supabase.rpc("log_call_for_both" as any, {
+                p_caller_id: user.id,
+                p_receiver_id: currentOutgoing.receiverId,
+                p_caller_name: profile?.username || "Unknown",
+                p_receiver_name: currentOutgoing.receiverName || "Unknown",
+                p_duration: 0,
+                p_status: "missed",
               }).then(() => {});
             }
           } else if (row.status === "accepted") {
@@ -379,19 +375,15 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
           is_read: true,
         }).then(() => {});
       }
-      supabase.from("call_history").insert({
-        user_id: user?.id || "",
-        partner_name: outgoingCall.receiverName || "Unknown",
-        duration: 0,
-        status: "missed",
-      }).then(() => {});
-      // Also log for the receiver
-      if (outgoingCall.receiverId) {
-        supabase.from("call_history").insert({
-          user_id: outgoingCall.receiverId,
-          partner_name: profile?.username || "Unknown",
-          duration: 0,
-          status: "missed",
+      // Log missed call in call_history for BOTH via RPC
+      if (user?.id && outgoingCall.receiverId) {
+        supabase.rpc("log_call_for_both" as any, {
+          p_caller_id: user.id,
+          p_receiver_id: outgoingCall.receiverId,
+          p_caller_name: profile?.username || "Unknown",
+          p_receiver_name: outgoingCall.receiverName || "Unknown",
+          p_duration: 0,
+          p_status: "missed",
         }).then(() => {});
       }
 
@@ -597,10 +589,20 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         .from("calls")
         .update({ status: "declined" })
         .eq("id", current.callId);
+
+      // Receiver-side: log missed call in chat so BOTH users see it
+      if (current.callerId && user?.id) {
+        supabase.from("chat_messages").insert({
+          sender_id: current.callerId,
+          receiver_id: user.id,
+          content: "📞 Missed Call",
+          is_read: true,
+        }).then(() => {});
+      }
     }
 
     setIncomingCall({ active: false, callerName: null, callerAvatar: null, callId: null, roomId: null, callerId: null });
-  }, [incomingCall]);
+  }, [incomingCall, user?.id]);
 
   return (
     <CallStateContext.Provider value={{

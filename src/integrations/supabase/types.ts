@@ -1032,6 +1032,17 @@ export type Database = {
         Returns: undefined
       }
       leave_matchmaking: { Args: { p_user_id: string }; Returns: undefined }
+      log_call_for_both: {
+        Args: {
+          p_caller_id: string
+          p_caller_name: string
+          p_duration?: number
+          p_receiver_id: string
+          p_receiver_name: string
+          p_status?: string
+        }
+        Returns: undefined
+      }
       process_premium_purchase: {
         Args: { p_bonus_coins?: number; p_duration: string; p_user_id: string }
         Returns: Json
