@@ -1297,7 +1297,7 @@ export default function Call() {
   const handleLiveKitError = (error: Error) => {
     // Suppress expected disconnect errors (user ended call, navigated away, etc.)
     const msg = (error?.message || "").toLowerCase();
-    if (msg.includes("client initiated disconnect") || msg.includes("signal reconnect") || msg.includes("websocket")) {
+    if (msg.includes("client initiated disconnect") || msg.includes("signal reconnect") || msg.includes("websocket") || msg.includes("engine not connected") || msg.includes("publishing rejected")) {
       console.warn("[LiveKit] Expected disconnect:", msg);
       return;
     }
