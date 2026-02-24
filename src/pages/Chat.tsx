@@ -35,6 +35,7 @@ interface Friend {
   name: string;
   avatar: string | null;
   lastMessage: string;
+  lastMessageSenderId?: string;
   time: string;
   unread: number;
   isOnline: boolean;
@@ -304,6 +305,7 @@ export default function Chat() {
               name: mutual.name,
               avatar: mutual.avatar,
               lastMessage: msg.content || "📷 Media",
+              lastMessageSenderId: msg.sender_id,
               time: timeStr,
               unread: unreadCounts.get(partnerId) || 0,
               isOnline: mutual.isOnline,
@@ -2350,14 +2352,39 @@ export default function Chat() {
                         </div>
                         <span className="text-xs text-muted-foreground">{friend.time}</span>
                       </div>
-                      <p className={cn(
-                        "text-sm truncate",
-                        friend.lastMessage.includes("📞 Missed Call") ? "text-destructive" :
-                        friend.lastMessage.startsWith("📞 ") ? "text-green-600" :
-                        "text-muted-foreground"
-                      )}>
-                        {friend.lastMessage}
-                      </p>
+                      {(() => {
+                        const isCallLog = friend.lastMessage.startsWith("📞 ");
+                        if (isCallLog) {
+                          const isMissed = friend.lastMessage.includes("Missed Call");
+                          const isOutgoing = friend.lastMessageSenderId === profile?.id;
+                          const duration = friend.lastMessage.replace("📞 Outgoing Call - ", "").replace("📞 Missed Call", "");
+                          let icon, text, color;
+                          if (isMissed) {
+                            icon = <PhoneMissed className="w-3.5 h-3.5 text-destructive flex-shrink-0" />;
+                            text = isOutgoing ? "Missed call" : "Missed call";
+                            color = "text-destructive";
+                          } else if (isOutgoing) {
+                            icon = <PhoneOutgoing className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />;
+                            text = `Outgoing call · ${duration}`;
+                            color = "text-green-600";
+                          } else {
+                            icon = <PhoneIncoming className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />;
+                            text = `Incoming call · ${duration}`;
+                            color = "text-blue-500";
+                          }
+                          return (
+                            <p className={cn("text-sm truncate flex items-center gap-1", color)}>
+                              {icon}
+                              <span>{text}</span>
+                            </p>
+                          );
+                        }
+                        return (
+                          <p className="text-sm text-muted-foreground truncate">
+                            {friend.lastMessage}
+                          </p>
+                        );
+                      })()}
                     </div>
 
                     {friend.unread > 0 && (
