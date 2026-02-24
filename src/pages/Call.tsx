@@ -1280,6 +1280,12 @@ export default function Call() {
   }
 
   const handleLiveKitError = (error: Error) => {
+    // Suppress expected disconnect errors (user ended call, navigated away, etc.)
+    const msg = (error?.message || "").toLowerCase();
+    if (msg.includes("client initiated disconnect") || msg.includes("signal reconnect") || msg.includes("websocket")) {
+      console.warn("[LiveKit] Expected disconnect:", msg);
+      return;
+    }
     console.error("[LiveKit] Connection error:", error);
     toast({ title: "LiveKit connection failed", description: error.message || "Could not connect to the call server.", variant: "destructive" });
   };
