@@ -218,7 +218,7 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                         </Avatar>
                       </button>
 
-                      {/* Name & stats – clickable to profile */}
+                      {/* Name & latest duration */}
                       <button
                         onClick={() => partner && handleProfileClick(partner.id)}
                         className="flex-1 min-w-0 text-left"
@@ -226,7 +226,7 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                       >
                         <p className="text-sm font-medium text-foreground truncate">{name}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {calls.length} call{calls.length > 1 ? "s" : ""} · {formatDuration(getTotalDuration(calls))} total
+                          Last: {formatDuration(lastCall.duration)}
                         </p>
                       </button>
 
@@ -244,6 +244,11 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                         </Button>
                       )}
 
+                      {/* Total calls badge */}
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        {calls.length} call{calls.length > 1 ? "s" : ""}
+                      </span>
+
                       {/* Expand toggle */}
                       <button onClick={() => setExpandedUser(isExpanded ? null : name)} className="text-muted-foreground p-1">
                         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -251,7 +256,13 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                     </div>
 
                     {isExpanded && (
-                      <ul className="mt-1 ml-6 space-y-1 border-l-2 border-border pl-3">
+                      <div className="mt-1 ml-6 border-l-2 border-border pl-3">
+                        <div className="flex items-center gap-3 py-1.5 px-2 text-[10px] text-muted-foreground">
+                          <span>Total: {calls.length} call{calls.length > 1 ? "s" : ""}</span>
+                          <span>·</span>
+                          <span>{formatDuration(getTotalDuration(calls))} total duration</span>
+                        </div>
+                        <ul className="space-y-1">
                         {calls.map((item) => {
                           const colors = getStatusColor(item.status);
                           return (
@@ -267,7 +278,8 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                             </li>
                           );
                         })}
-                      </ul>
+                        </ul>
+                      </div>
                     )}
                   </li>
                 );
