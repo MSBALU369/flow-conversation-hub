@@ -996,7 +996,7 @@ export default function Profile() {
             </div>
             <div>
               <p className="text-[8px] text-muted-foreground uppercase tracking-wider">
-                Email (Private)
+                Email
               </p>
               <p className="text-xs text-foreground leading-tight">{user?.email || "Not set"}</p>
             </div>
