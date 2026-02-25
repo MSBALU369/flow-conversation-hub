@@ -33,6 +33,22 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const retry = async <T,>(fn: () => Promise<T>, attempts = 3, delay = 1500): Promise<T> => {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        const isNetwork = err?.message?.toLowerCase().includes("failed to fetch") || err?.message?.toLowerCase().includes("network");
+        if (isNetwork && i < attempts - 1) {
+          await new Promise(r => setTimeout(r, delay * (i + 1)));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error("Request failed after retries");
+  };
+
   const TEST_EMAIL = "324324324@ef.com";
   const TEST_RAW = "324324324";
   const TEST_PASS = "123456";
@@ -101,13 +117,13 @@ export default function Login() {
           toast({ title: "Invalid Reference ID", description: "Please enter a valid reference ID or leave it blank.", variant: "destructive" });
           return;
         }
-        const { error } = await signUp(email, password);
+        const { error } = await retry(() => signUp(email, password));
         if (error) throw error;
         setOtpStep(true);
         setResendCooldown(60);
         toast({ title: "OTP Sent ✉️", description: "Check your email for a 6-digit code." });
       } else {
-        const { error } = await signIn(email, password);
+        const { error } = await retry(() => signIn(email, password));
         if (error) throw error;
         setLoginError("");
         try { await (supabase.rpc as any)("sync_test_role"); } catch {}
