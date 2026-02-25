@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("[System Wakeup] Forcing redeploy to clear Unhealthy state - Timestamp:", Date.now());
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
