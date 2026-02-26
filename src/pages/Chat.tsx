@@ -170,7 +170,7 @@ export default function Chat() {
   const [msgSwipeOffsets, setMsgSwipeOffsets] = useState<Record<string, number>>({});
   const msgTouchStartRef = useRef<{ x: number; y: number; id: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [showReactionsFor, setShowReactionsFor] = useState<string | null>(null);
+  
   const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
   const [pinnedMessage, setPinnedMessage] = useState<Message | null>(null);
   const [showGiftPicker, setShowGiftPicker] = useState(false);
@@ -968,7 +968,7 @@ export default function Chat() {
     }
     // Optimistic update
     setMessages(prev => prev.map(m => m.id === messageId ? { ...m, reactions } : m));
-    setShowReactionsFor(null);
+    
     // Persist
     await supabase.from("chat_messages").update({ reactions } as any).eq("id", messageId);
     // Haptic
