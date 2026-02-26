@@ -1659,16 +1659,7 @@ export default function Chat() {
                       ))}
                     </div>
                   )}
-                  {/* Reaction picker popup */}
-                  {showReactionsFor === message.id && (
-                    <div className={cn("absolute -top-8 z-20 flex gap-1 px-2 py-1 rounded-full bg-popover border border-border shadow-lg", isMe ? "right-0" : "left-0")}>
-                      {REACTION_EMOJIS.map(emoji => (
-                        <button key={emoji} onClick={() => handleReaction(message.id, emoji)} className="text-lg hover:scale-125 transition-transform">
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  {/* Reactions moved to long-press context menu */}
                   {/* Actions moved to long-press context menu */}
                 </div>
               </div>
