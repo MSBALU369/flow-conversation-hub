@@ -3,6 +3,10 @@
     {
       "source": "/supabase/:path*",
       "destination": "https://xokdzwkmrrtopqektbfb.supabase.co/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
