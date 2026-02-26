@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,37 +7,38 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile, ProfileProvider } from "@/hooks/useProfile";
 import { CallStateProvider } from "@/hooks/useCallState";
-import FloatingCallBubble from "@/components/FloatingCallBubble";
-import FloatingSearchBubble from "@/components/FloatingSearchBubble";
-import IncomingCallBanner from "@/components/IncomingCallBanner";
-import OutgoingCallBanner from "@/components/OutgoingCallBanner";
-import { IncomingCallDemo } from "@/components/IncomingCallDemo";
-import { RenewalReminder } from "@/components/RenewalReminder";
-import { BatteryWarningModal } from "@/components/BatteryWarningModal";
-import { GlobalListeners } from "@/components/GlobalListeners";
+import { AuthorizedGlobals } from "@/components/AuthorizedGlobals";
 
-// Pages
-import Login from "./pages/Login";
-import Onboarding from "./pages/Onboarding";
-import Home from "./pages/Home";
-import Chat from "./pages/Chat";
-import Premium from "./pages/Premium";
-import Profile from "./pages/Profile";
-import Call from "./pages/Call";
-import FindingUser from "./pages/FindingUser";
-import Talent from "./pages/Talent";
-import Learn from "./pages/Learn";
-import Rooms from "./pages/Rooms";
-import RoomDiscussion from "./pages/RoomDiscussion";
-import UserProfilePage from "./pages/UserProfilePage";
-import NotFound from "./pages/NotFound";
-import FAQ from "./pages/FAQ";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import LegalInfo from "./pages/LegalInfo";
-import ContactUs from "./pages/ContactUs";
-import Admin from "./pages/Admin";
+// Lazy-loaded pages
+const Login = lazy(() => import("./pages/Login"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Home = lazy(() => import("./pages/Home"));
+const Chat = lazy(() => import("./pages/Chat"));
+const Premium = lazy(() => import("./pages/Premium"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Call = lazy(() => import("./pages/Call"));
+const FindingUser = lazy(() => import("./pages/FindingUser"));
+const Talent = lazy(() => import("./pages/Talent"));
+const Learn = lazy(() => import("./pages/Learn"));
+const Rooms = lazy(() => import("./pages/Rooms"));
+const RoomDiscussion = lazy(() => import("./pages/RoomDiscussion"));
+const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const LegalInfo = lazy(() => import("./pages/LegalInfo"));
+const ContactUs = lazy(() => import("./pages/ContactUs"));
+const Admin = lazy(() => import("./pages/Admin"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 300000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function isProfileComplete(profile: any): boolean {
   // Founder rule: gender defaults to 'male' — users can always access home.
@@ -64,7 +66,11 @@ function AppRoutes() {
     if (location.pathname !== "/login") {
       return <Navigate to="/login" replace />;
     }
-    return <Login />;
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Login />
+      </Suspense>
+    );
   }
 
   // Logged in but profile incomplete — only allow /onboarding
@@ -72,7 +78,11 @@ function AppRoutes() {
     if (location.pathname !== "/onboarding") {
       return <Navigate to="/onboarding" replace />;
     }
-    return <Onboarding />;
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Onboarding />
+      </Suspense>
+    );
   }
 
   // Logged in + profile complete — block /login and /onboarding
@@ -81,25 +91,27 @@ function AppRoutes() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/chat" element={<Chat />} />
-      <Route path="/premium" element={<Premium />} />
-      <Route path="/talent" element={<Talent />} />
-      <Route path="/learn" element={<Learn />} />
-      <Route path="/rooms" element={<Rooms />} />
-      <Route path="/room/:roomCode" element={<RoomDiscussion />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/finding" element={<FindingUser />} />
-      <Route path="/call" element={<Call />} />
-      <Route path="/user/:id" element={<UserProfilePage />} />
-      <Route path="/faq" element={<FAQ />} />
-      <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/legal" element={<LegalInfo />} />
-      <Route path="/contact" element={<ContactUs />} />
-      <Route path="/admin" element={<Admin />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/premium" element={<Premium />} />
+        <Route path="/talent" element={<Talent />} />
+        <Route path="/learn" element={<Learn />} />
+        <Route path="/rooms" element={<Rooms />} />
+        <Route path="/room/:roomCode" element={<RoomDiscussion />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/finding" element={<FindingUser />} />
+        <Route path="/call" element={<Call />} />
+        <Route path="/user/:id" element={<UserProfilePage />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/legal" element={<LegalInfo />} />
+        <Route path="/contact" element={<ContactUs />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 }
 
@@ -112,14 +124,7 @@ const App = () => (
         <ProfileProvider>
           <CallStateProvider>
             <AppRoutes />
-            <FloatingCallBubble />
-            <FloatingSearchBubble />
-            <IncomingCallBanner />
-            <OutgoingCallBanner />
-            <IncomingCallDemo />
-            <RenewalReminder />
-            <BatteryWarningModal />
-            <GlobalListeners />
+            <AuthorizedGlobals />
           </CallStateProvider>
         </ProfileProvider>
       </BrowserRouter>
