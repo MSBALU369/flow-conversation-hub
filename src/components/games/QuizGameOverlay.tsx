@@ -19,6 +19,7 @@ interface QuizGameOverlayProps {
   onClose: () => void;
   onMinimize?: () => void;
   partnerName: string;
+  room?: any;
 }
 
 const QUESTION_TIME = 15; // seconds per question

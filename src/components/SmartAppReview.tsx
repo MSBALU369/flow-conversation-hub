@@ -5,13 +5,20 @@ import { Star } from "lucide-react";
 
 interface SmartAppReviewProps {
   isPremium: boolean;
+  createdAt?: string;
 }
 
-export function SmartAppReview({ isPremium }: SmartAppReviewProps) {
+export function SmartAppReview({ isPremium, createdAt }: SmartAppReviewProps) {
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState(0);
 
   useEffect(() => {
+    // Don't show ratings to users whose account is less than 15 days old
+    if (createdAt) {
+      const accountAgeDays = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      if (accountAgeDays < 15) return;
+    }
+
     const key = "app_review_status";
     const lastPromptKey = "app_review_last_prompt";
     const status = localStorage.getItem(key);
@@ -29,7 +36,7 @@ export function SmartAppReview({ isPremium }: SmartAppReviewProps) {
       localStorage.setItem(lastPromptKey, now.toString());
     }, 3000);
     return () => clearTimeout(timer);
-  }, [isPremium]);
+  }, [isPremium, createdAt]);
 
   const handleRate = () => {
     localStorage.setItem("app_review_status", "rated");
