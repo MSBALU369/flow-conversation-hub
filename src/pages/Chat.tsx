@@ -331,7 +331,7 @@ export default function Chat() {
       .on(
         "postgres_changes" as any,
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `receiver_id=eq.${profile.id}` },
-        (payload: any) => {
+        async (payload: any) => {
           const msg = payload.new;
           if (!msg) return;
           const senderId = msg.sender_id;
@@ -349,6 +349,52 @@ export default function Chat() {
             }
             return prev;
           });
+
+          // If sender is NOT in chatFriends yet, fetch their profile and add them
+          setChatFriends(prev => {
+            if (prev.find(f => f.id === senderId)) return prev; // already added above
+            // Return prev for now; we'll prepend after async fetch below
+            return prev;
+          });
+
+          // Check if we need to add a new friend entry
+          const alreadyExists = (chatFriendsRef: Friend[]) => chatFriendsRef.some(f => f.id === senderId);
+          // Use a micro-task to check after the synchronous setChatFriends above
+          setTimeout(async () => {
+            // Re-check current state
+            setChatFriends(currentFriends => {
+              if (currentFriends.some(f => f.id === senderId)) return currentFriends;
+              // Trigger async fetch outside setState
+              (async () => {
+                const { data: senderProfile } = await supabase
+                  .from("profiles")
+                  .select("id, username, avatar_url, last_seen")
+                  .eq("id", senderId)
+                  .single();
+                if (senderProfile) {
+                  const now = Date.now();
+                  const lastSeen = senderProfile.last_seen ? new Date(senderProfile.last_seen).getTime() : 0;
+                  const isOnline = now - lastSeen < 2 * 60 * 1000;
+                  const newFriend: Friend = {
+                    id: senderProfile.id,
+                    name: senderProfile.username || "User",
+                    avatar: senderProfile.avatar_url,
+                    lastMessage: content,
+                    lastMessageSenderId: senderId,
+                    time: "now",
+                    unread: isCallLog ? 0 : 1,
+                    isOnline,
+                    lastSeen: senderProfile.last_seen,
+                  };
+                  setChatFriends(prev => {
+                    if (prev.some(f => f.id === senderId)) return prev;
+                    return [newFriend, ...prev];
+                  });
+                }
+              })();
+              return currentFriends;
+            });
+          }, 0);
         }
       )
       .subscribe();
@@ -1433,10 +1479,29 @@ export default function Chat() {
               <>{dateSeparator}
               <div
                 key={message.id}
-                className={cn("flex group", isMe ? "justify-end" : "justify-start")}
-                onTouchStart={(e) => handleMsgTouchStart(e, message.id)}
-                onTouchMove={(e) => handleMsgTouchMove(e, message.id)}
-                onTouchEnd={() => handleMsgTouchEnd(message.id)}
+                className={cn("flex", isMe ? "justify-end" : "justify-start")}
+                onTouchStart={(e) => {
+                  handleMsgTouchStart(e, message.id);
+                  // Long-press detection for context menu
+                  const touch = e.touches[0];
+                  const timer = setTimeout(() => {
+                    if (navigator.vibrate) navigator.vibrate(20);
+                    setContextMenuMessage(message);
+                    setContextMenuPos({ x: touch.clientX, y: touch.clientY });
+                  }, 500);
+                  (e.currentTarget as any).__longPressTimer = timer;
+                }}
+                onTouchMove={(e) => {
+                  handleMsgTouchMove(e, message.id);
+                  // Cancel long-press on move
+                  const timer = (e.currentTarget as any).__longPressTimer;
+                  if (timer) clearTimeout(timer);
+                }}
+                onTouchEnd={(e) => {
+                  handleMsgTouchEnd(message.id);
+                  const timer = (e.currentTarget as any).__longPressTimer;
+                  if (timer) clearTimeout(timer);
+                }}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setContextMenuMessage(message);
@@ -1464,41 +1529,26 @@ export default function Chat() {
                         <p className="truncate">{message.replyToContent}</p>
                       </div>
                     )}
-                    {/* Voice message with play button */}
+                    {/* Voice message with native audio player */}
                     {message.type === "voice" ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handlePlayVoice(message)}
-                          className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                            isMe ? "bg-primary-foreground/20" : "bg-primary/20"
-                          )}
-                        >
-                          {playingVoiceId === message.id ? (
-                            <Pause className={cn("w-4 h-4", isMe ? "text-primary-foreground" : "text-primary")} />
-                          ) : (
-                            <Play className={cn("w-4 h-4", isMe ? "text-primary-foreground" : "text-primary")} />
-                          )}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1">
-                            <Mic className={cn("w-3 h-3", isMe ? "text-primary-foreground/70" : "text-muted-foreground")} />
-                            <span className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>
-                              {message.content.replace("🎤 ", "")}
-                            </span>
-                          </div>
-                          {playingVoiceId === message.id && (
-                            <div className="flex gap-0.5 mt-1">
-                              {Array.from({ length: 20 }).map((_, i) => (
-                                <div
-                                  key={i}
-                                  className={cn("w-1 rounded-full animate-pulse", isMe ? "bg-primary-foreground/50" : "bg-primary/50")}
-                                  style={{ height: `${4 + Math.random() * 10}px`, animationDelay: `${i * 50}ms` }}
-                                />
-                              ))}
-                            </div>
-                          )}
+                      <div className="flex flex-col gap-1.5 min-w-[180px]">
+                        <div className="flex items-center gap-1.5">
+                          <Mic className={cn("w-3.5 h-3.5 flex-shrink-0", isMe ? "text-primary-foreground/70" : "text-muted-foreground")} />
+                          <span className={cn("text-xs", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                            {message.content.replace("🎤 ", "")}
+                          </span>
                         </div>
+                        {message.mediaUrl ? (
+                          <audio
+                            controls
+                            src={message.mediaUrl}
+                            preload="metadata"
+                            className="w-full max-w-[220px] h-8"
+                            style={{ filter: isMe ? "invert(1) brightness(2)" : "none" }}
+                          />
+                        ) : (
+                          <span className={cn("text-xs italic", isMe ? "text-primary-foreground/50" : "text-muted-foreground")}>Audio unavailable</span>
+                        )}
                       </div>
                     ) : message.type === "image" ? (
                       // Image message rendering
@@ -1619,56 +1669,7 @@ export default function Chat() {
                       ))}
                     </div>
                   )}
-                  {/* Action buttons on hover/tap */}
-                  <div className={cn(
-                    "absolute top-1/2 -translate-y-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity",
-                    isMe ? "-left-24" : "-right-24"
-                  )}>
-                    <button
-                      onClick={() => setShowReactionsFor(showReactionsFor === message.id ? null : message.id)}
-                      className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted"
-                      title="React"
-                    >
-                      <span className="text-xs">😊</span>
-                    </button>
-                    {message.type === "text" && (
-                      <button
-                        onClick={() => handleCopyMessage(message)}
-                        className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted"
-                        title="Copy"
-                      >
-                        <Copy className="w-3 h-3 text-muted-foreground" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setForwardingMessage(message)}
-                      className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted"
-                      title="Forward"
-                    >
-                      <Send className="w-3 h-3 text-muted-foreground" />
-                    </button>
-                    <button
-                      onClick={() => handlePinMessage(message)}
-                      className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted"
-                      title="Pin"
-                    >
-                      <span className="text-[10px]">📌</span>
-                    </button>
-                    {canEditMessage(message) && (
-                      <button
-                        onClick={() => handleStartEdit(message)}
-                        className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted"
-                      >
-                        <Pencil className="w-3 h-3 text-muted-foreground" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => { setDeleteTarget(message); setShowDeleteDialog(true); }}
-                      className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center hover:bg-destructive/20"
-                    >
-                      <Trash2 className="w-3 h-3 text-muted-foreground" />
-                    </button>
-                  </div>
+                  {/* Actions moved to long-press context menu */}
                 </div>
               </div>
               </>
@@ -2217,11 +2218,23 @@ export default function Chat() {
             <div
               className="absolute bg-popover border border-border rounded-xl shadow-xl py-1.5 min-w-[180px] animate-in fade-in-0 zoom-in-95"
               style={{
-                top: Math.min(contextMenuPos.y, window.innerHeight - 280),
+                top: Math.min(contextMenuPos.y, window.innerHeight - 320),
                 left: Math.min(contextMenuPos.x, window.innerWidth - 200),
               }}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Emoji reaction row */}
+              <div className="flex items-center justify-center gap-1 px-3 py-2 border-b border-border/50">
+                {REACTION_EMOJIS.map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => { handleReaction(contextMenuMessage.id, emoji); setContextMenuMessage(null); setContextMenuPos(null); }}
+                    className="text-xl hover:scale-125 transition-transform p-1"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
               {contextMenuMessage.type === "text" && (
                 <button
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors"
