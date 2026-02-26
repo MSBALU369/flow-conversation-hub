@@ -10,6 +10,7 @@ interface WouldYouRatherGameProps {
   onMinimize?: () => void;
   betAmount?: number;
   partnerName: string;
+  room?: any;
 }
 
 const QUESTIONS = [

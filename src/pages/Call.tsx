@@ -11,7 +11,7 @@ import {
   useIsSpeaking,
   useLocalParticipant,
 } from "@livekit/components-react";
-import { RoomEvent, Track } from "livekit-client";
+import { RoomEvent, Track, ConnectionQuality } from "livekit-client";
 // LiveKit styles handled via custom CSS
 import {
   ArrowLeft,
@@ -155,9 +155,12 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const { startCall, endCall, updateCallSeconds } = useCallState();
   const { isLowEnergy, isEmptyEnergy, energyBars, isPremium: isPremiumEnergy } = useEnergySystem({ isDraining: true });
 
+  // Remote signal strength - derived from LiveKit ConnectionQuality
+  const [remoteSignalLevel, setRemoteSignalLevel] = useState<SignalLevel>(2);
+  const [remoteIsOffline, setRemoteIsOffline] = useState(false);
   const remoteNetworkStatus: { signalLevel: SignalLevel; isOffline: boolean } = {
-    signalLevel: 2,
-    isOffline: false,
+    signalLevel: remoteSignalLevel,
+    isOffline: remoteIsOffline,
   };
 
   const [isMuted, setIsMuted] = useState(false);
@@ -261,11 +264,73 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     };
   }, [room, participants]);
 
-  // LiveKit: detect when partner disconnects or room closes — force end call for both users
+  // Call log dedup guard
+  const callLoggedRef = useRef(false);
+  const reconnectingRef = useRef(false);
+  const intentionalDisconnectRef = useRef(false);
+  const [disconnectCountdown, setDisconnectCountdown] = useState<number | null>(null);
+  const disconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // LiveKit: detect remote connection quality
+  useEffect(() => {
+    if (!room) return;
+    const handleQualityChanged = (quality: ConnectionQuality, participant: any) => {
+      if (participant.isLocal) return;
+      switch (quality) {
+        case ConnectionQuality.Excellent: setRemoteSignalLevel(4); setRemoteIsOffline(false); break;
+        case ConnectionQuality.Good: setRemoteSignalLevel(3); setRemoteIsOffline(false); break;
+        case ConnectionQuality.Poor: setRemoteSignalLevel(1); setRemoteIsOffline(false); break;
+        default: setRemoteSignalLevel(2); break;
+      }
+    };
+    room.on(RoomEvent.ConnectionQualityChanged, handleQualityChanged);
+    return () => { room.off(RoomEvent.ConnectionQualityChanged, handleQualityChanged); };
+  }, [room]);
+
   const hasHandledDisconnectRef = useRef(false);
   useEffect(() => {
     if (!room) return;
     hasHandledDisconnectRef.current = false;
+    callLoggedRef.current = false;
+    intentionalDisconnectRef.current = false;
+
+    const logCallHistory = async (callDuration: number) => {
+      if (callLoggedRef.current) return;
+      callLoggedRef.current = true;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+      const directCallId = (location.state as any)?.directCallId;
+      const callerId = (location.state as any)?.callerId;
+      if (directCallId) {
+        supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString(), duration_sec: callDuration }).eq("id", directCallId).then();
+      }
+      const isCallerOrInitiator = !directCallId || callerId === undefined || user.id === callerId;
+      const effectivePartnerId = partnerId || stateMatchedUserId;
+      if (isCallerOrInitiator && effectivePartnerId) {
+        supabase.rpc("log_call_for_both" as any, {
+          p_caller_id: user.id,
+          p_receiver_id: effectivePartnerId,
+          p_caller_name: profile?.username || "Partner",
+          p_receiver_name: partnerProfile?.username || "Partner",
+          p_duration: callDuration,
+          p_status: "completed",
+        }).then(() => {});
+      }
+      const chatPartnerId = partnerId || stateMatchedUserId;
+      if (isFriendCall && chatPartnerId && isCallerOrInitiator) {
+        const mins = Math.floor(callDuration / 60);
+        const secs = callDuration % 60;
+        const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
+        const callLabel = callDuration < 5 ? "📞 Missed Call" : `📞 Outgoing Call - ${durationStr}`;
+        supabase.from("chat_messages").insert({
+          sender_id: user.id,
+          receiver_id: chatPartnerId,
+          content: callLabel,
+          is_read: true,
+        }).then(() => {});
+      }
+    };
 
     const forceEnd = async (isLocalDisconnect = false) => {
       if (hasHandledDisconnectRef.current) return;
@@ -274,50 +339,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       toast({ title: "Call Ended", description: isLocalDisconnect ? "You were disconnected." : "The other user has left the call." });
       try { room.disconnect(); } catch {}
       endCall();
+      await logCallHistory(callDuration);
 
-      // Clean up matchmaking queue + update calls table to ended + log call history
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
-
-        // FIX #4: Network drop zombie — update any active calls to 'ended'
-        const directCallId = (location.state as any)?.directCallId;
-        const callerId = (location.state as any)?.callerId;
-        if (directCallId) {
-          supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString(), duration_sec: callDuration }).eq("id", directCallId).then();
-        }
-
-        // Log call history for BOTH parties (only caller/initiator inserts to prevent duplication)
-        const isCallerOrInitiator = !directCallId || callerId === undefined || user.id === callerId;
-        const effectivePartnerId = partnerId || stateMatchedUserId;
-        if (isCallerOrInitiator && effectivePartnerId) {
-          supabase.rpc("log_call_for_both" as any, {
-            p_caller_id: user.id,
-            p_receiver_id: effectivePartnerId,
-            p_caller_name: profile?.username || "Partner",
-            p_receiver_name: partnerProfile?.username || "Partner",
-            p_duration: callDuration,
-            p_status: "completed",
-          }).then(() => {});
-        }
-
-        // Log call as system message in chat for friend calls
-        const chatPartnerId = partnerId || stateMatchedUserId;
-        if (isFriendCall && chatPartnerId && isCallerOrInitiator) {
-          const mins = Math.floor(callDuration / 60);
-          const secs = callDuration % 60;
-          const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
-          const callLabel = callDuration < 5 ? "📞 Missed Call" : `📞 Outgoing Call - ${durationStr}`;
-          supabase.from("chat_messages").insert({
-            sender_id: user.id,
-            receiver_id: chatPartnerId,
-            content: callLabel,
-            is_read: true,
-          }).then(() => {});
-        }
-      }
-
-      // Show post-call modal instead of navigating away (so user can rate)
       if (!isFriendCall) {
         setPostCallRating(null);
         setSelectedReportReasons([]);
@@ -329,16 +352,49 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     };
 
     const handleParticipantDisconnected = (participant: any) => {
-      if (!participant.isLocal) forceEnd(false);
+      if (!participant.isLocal) {
+        // Clear any reconnect countdown
+        if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
+        setDisconnectCountdown(null);
+        forceEnd(false);
+      }
     };
-    // FIX #4: Local disconnect (network drop) also updates DB
-    const handleRoomDisconnected = () => forceEnd(true);
+
+    // Screen lock / network drop: don't immediately end - start 60s countdown
+    const handleRoomDisconnected = () => {
+      if (intentionalDisconnectRef.current) return;
+      reconnectingRef.current = true;
+      setRemoteIsOffline(true);
+      setDisconnectCountdown(60);
+      let remaining = 60;
+      disconnectTimerRef.current = setInterval(() => {
+        remaining -= 1;
+        setDisconnectCountdown(remaining);
+        if (remaining <= 0) {
+          if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
+          disconnectTimerRef.current = null;
+          reconnectingRef.current = false;
+          forceEnd(true);
+        }
+      }, 1000);
+    };
+
+    const handleReconnected = () => {
+      reconnectingRef.current = false;
+      setRemoteIsOffline(false);
+      setDisconnectCountdown(null);
+      if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
+      toast({ title: "Reconnected!", description: "Connection restored." });
+    };
 
     room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
     room.on(RoomEvent.Disconnected, handleRoomDisconnected);
+    room.on(RoomEvent.Reconnected, handleReconnected);
     return () => {
       room.off(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
       room.off(RoomEvent.Disconnected, handleRoomDisconnected);
+      room.off(RoomEvent.Reconnected, handleReconnected);
+      if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
     };
   }, [room, endCall, navigate, toast, isFriendCall, location.state, seconds, partnerId, stateMatchedUserId, profile?.username, partnerProfile?.username]);
 
@@ -434,7 +490,10 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     const callDuration = seconds;
 
     // Disconnect from LiveKit room
+    intentionalDisconnectRef.current = true;
     hasHandledDisconnectRef.current = true; // prevent forceEnd from also firing
+    if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
+    setDisconnectCountdown(null);
     try { room?.disconnect(); } catch {}
     endCall();
 
@@ -447,46 +506,42 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       setShowPostCallModal(true);
     }
 
-    // Background DB work: save call history + clean matchmaking queue + log call in chat
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      // FIX #5: Only the caller inserts call_history to prevent duplication
-      const directCallId = (location.state as any)?.directCallId;
-      const callerId = (location.state as any)?.callerId;
-      const isCallerOrInitiator = !directCallId || callerId === undefined || user.id === callerId;
-      const effectivePartnerId = partnerId || stateMatchedUserId;
-      if (isCallerOrInitiator && effectivePartnerId) {
-        // Log call history for BOTH parties via secure RPC
-        supabase.rpc("log_call_for_both" as any, {
-          p_caller_id: user.id,
-          p_receiver_id: effectivePartnerId,
-          p_caller_name: profile?.username || "Partner",
-          p_receiver_name: partnerProfile?.username || "Partner",
-          p_duration: callDuration,
-          p_status: "completed",
-        }).then(() => {});
-      }
-      supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
-
-      // Update calls table to ended
-      if (directCallId) {
-        supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString(), duration_sec: callDuration }).eq("id", directCallId).then();
-      }
-
-      // Instagram-style: log call as system message in chat_messages for friend calls
-      // Only the caller/initiator inserts the log to prevent duplicates
-      const chatPartnerId = partnerId || stateMatchedUserId;
-      if (isFriendCall && chatPartnerId && isCallerOrInitiator) {
-        const mins = Math.floor(callDuration / 60);
-        const secs = callDuration % 60;
-        const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
-        const callLabel = callDuration < 5 ? "📞 Missed Call" : `📞 Outgoing Call - ${durationStr}`;
-        supabase.from("chat_messages").insert({
-          sender_id: user.id,
-          receiver_id: chatPartnerId,
-          content: callLabel,
-          is_read: true,
-        }).then(() => {});
+    // Use the shared log function with dedup guard
+    if (!callLoggedRef.current) {
+      callLoggedRef.current = true;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const directCallId = (location.state as any)?.directCallId;
+        const callerId = (location.state as any)?.callerId;
+        const isCallerOrInitiator = !directCallId || callerId === undefined || user.id === callerId;
+        const effectivePartnerId = partnerId || stateMatchedUserId;
+        if (isCallerOrInitiator && effectivePartnerId) {
+          supabase.rpc("log_call_for_both" as any, {
+            p_caller_id: user.id,
+            p_receiver_id: effectivePartnerId,
+            p_caller_name: profile?.username || "Partner",
+            p_receiver_name: partnerProfile?.username || "Partner",
+            p_duration: callDuration,
+            p_status: "completed",
+          }).then(() => {});
+        }
+        supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+        if (directCallId) {
+          supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString(), duration_sec: callDuration }).eq("id", directCallId).then();
+        }
+        const chatPartnerId = partnerId || stateMatchedUserId;
+        if (isFriendCall && chatPartnerId && isCallerOrInitiator) {
+          const mins = Math.floor(callDuration / 60);
+          const secs = callDuration % 60;
+          const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
+          const callLabel = callDuration < 5 ? "📞 Missed Call" : `📞 Outgoing Call - ${durationStr}`;
+          supabase.from("chat_messages").insert({
+            sender_id: user.id,
+            receiver_id: chatPartnerId,
+            content: callLabel,
+            is_read: true,
+          }).then(() => {});
+        }
       }
     }
 
@@ -524,8 +579,9 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       if (coinDeduction > 0) {
         updates.coins = Math.max(0, currentCoins - coinDeduction);
       }
-      if (user) {
-        const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
+      const { data: { user: penaltyUser } } = await supabase.auth.getUser();
+      if (penaltyUser) {
+        const { error } = await supabase.from("profiles").update(updates).eq("id", penaltyUser.id);
         if (error) {
           console.error("Failed to update profile penalties:", error);
           updateProfile(updates);
@@ -582,20 +638,40 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     navigate("/");
   };
 
-  const handleReconnect = () => {
+  const handleReconnect = async () => {
+    if (!room) return;
+    intentionalDisconnectRef.current = true;
+    toast({ title: "Reconnecting...", description: "Reconnecting with the same user" });
+    try { room.disconnect(); } catch {}
     setIsConnected(false);
     setCallStatus("connected");
     setIsSpeaking(false);
     setPulseIntensity(0);
-    setSeconds(0);
-    toast({ title: "Reconnecting...", description: "Reconnecting with the same user" });
-    setTimeout(() => {
+
+    // Wait 500ms then reconnect
+    await new Promise(r => setTimeout(r, 500));
+    try {
+      const token = new URLSearchParams(window.location.search).get("token") || (location.state as any)?.token;
+      if (token && LIVEKIT_URL) {
+        intentionalDisconnectRef.current = false;
+        hasHandledDisconnectRef.current = false;
+        reconnectingRef.current = false;
+        await room.connect(LIVEKIT_URL, token);
+        setIsConnected(true);
+        setSeconds(0); // Reset timer
+        setCallStatus("connected");
+        setTimeout(() => setCallStatus("talking"), 1000);
+        toast({ title: "Reconnected!", description: "Connection restored. Timer reset." });
+      } else {
+        toast({ title: "Reconnect failed", description: "No token available.", variant: "destructive" });
+        setIsConnected(true);
+      }
+    } catch (err) {
+      console.error("Reconnect failed:", err);
+      toast({ title: "Reconnect failed", variant: "destructive" });
       setIsConnected(true);
-      setCallStatus("connected");
-    }, 2000);
-    setTimeout(() => {
-      setCallStatus("talking");
-    }, 3000);
+      intentionalDisconnectRef.current = false;
+    }
   };
 
   return (
@@ -1082,18 +1158,19 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           partnerName={partnerProfile?.username || "Partner"}
           onClose={() => { setQuizActive(false); setGameMinimized(false); }}
           onMinimize={() => setGameMinimized(true)}
+          room={room}
         />
       )}
 
       {activeGame === "wordchain" && !gameMinimized && <WordChainGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-      {activeGame === "wouldyourather" && !gameMinimized && <WouldYouRatherGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "truthordare" && !gameMinimized && <TruthOrDareGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "wouldyourather" && !gameMinimized && <WouldYouRatherGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+      {activeGame === "truthordare" && !gameMinimized && <TruthOrDareGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
       {activeGame === "chess" && !gameMinimized && <ChessGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
       {activeGame === "ludo" && !gameMinimized && <LudoGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
 
-      {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "archery" && !gameMinimized && <ArcheryGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
-      {activeGame === "sudoku" && !gameMinimized && <SudokuGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} />}
+      {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+      {activeGame === "archery" && !gameMinimized && <ArcheryGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+      {activeGame === "sudoku" && !gameMinimized && <SudokuGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
 
       {gameMinimized && (activeGame || quizActive) && (
         <FloatingGameBubble

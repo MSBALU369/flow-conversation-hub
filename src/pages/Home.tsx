@@ -42,13 +42,14 @@ export default function Home() {
   const { role } = useRole();
   const [onlineCount, setOnlineCount] = useState(0);
 
-  // Fetch real online count from profiles
+  // Fetch real online count using last_seen threshold (2 minutes)
   useEffect(() => {
     const fetchOnlineCount = async () => {
+      const threshold = new Date(Date.now() - 2 * 60 * 1000).toISOString();
       const { count } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true })
-        .eq("is_online", true);
+        .gte("last_seen", threshold);
       setOnlineCount(count || 0);
     };
     fetchOnlineCount();

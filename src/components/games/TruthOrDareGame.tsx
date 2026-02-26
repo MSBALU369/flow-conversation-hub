@@ -10,6 +10,7 @@ interface TruthOrDareGameProps {
   onMinimize?: () => void;
   betAmount?: number;
   partnerName: string;
+  room?: any;
 }
 
 const TRUTHS = [

@@ -1125,7 +1125,7 @@ export default function Profile() {
         <CoinExchangeModal open={showCoinExchange} onOpenChange={setShowCoinExchange} />
         <ReferralTreeModal open={showReferralTree} onOpenChange={setShowReferralTree} />
         <TopTalkersModal open={showTopTalkers} onOpenChange={setShowTopTalkers} />
-        <SmartAppReview isPremium={!!profile?.is_premium} />
+        <SmartAppReview isPremium={!!profile?.is_premium} createdAt={profile?.created_at} />
 
         {/* Profile Visitors Modal */}
         <Dialog open={showVisitors} onOpenChange={setShowVisitors}>
