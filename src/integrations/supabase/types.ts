@@ -472,6 +472,7 @@ export type Database = {
           coins: number | null
           country: string | null
           created_at: string
+          current_session_id: string | null
           description: string | null
           early_end_count: number | null
           email: string | null
@@ -510,6 +511,7 @@ export type Database = {
           coins?: number | null
           country?: string | null
           created_at?: string
+          current_session_id?: string | null
           description?: string | null
           early_end_count?: number | null
           email?: string | null
@@ -548,6 +550,7 @@ export type Database = {
           coins?: number | null
           country?: string | null
           created_at?: string
+          current_session_id?: string | null
           description?: string | null
           early_end_count?: number | null
           email?: string | null
