@@ -360,9 +360,18 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       }
     };
 
-    // Screen lock / network drop: don't immediately end - start 60s countdown
+    // Screen lock / network drop: show "Reconnecting..." — do NOT end the call
+    const handleRoomReconnecting = () => {
+      reconnectingRef.current = true;
+      setRemoteIsOffline(true);
+      setCallStatus("connected"); // shows "Reconnecting..." in UI
+      // Do NOT show end-call banners or post-call modal
+    };
+
+    // If reconnecting fails completely after LiveKit exhausts retries, start 60s countdown
     const handleRoomDisconnected = () => {
       if (intentionalDisconnectRef.current) return;
+      // If already reconnecting, this means it fully failed — start countdown
       reconnectingRef.current = true;
       setRemoteIsOffline(true);
       setDisconnectCountdown(60);
@@ -383,15 +392,18 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       reconnectingRef.current = false;
       setRemoteIsOffline(false);
       setDisconnectCountdown(null);
+      setCallStatus("talking");
       if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
       toast({ title: "Reconnected!", description: "Connection restored." });
     };
 
     room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
+    room.on(RoomEvent.Reconnecting, handleRoomReconnecting);
     room.on(RoomEvent.Disconnected, handleRoomDisconnected);
     room.on(RoomEvent.Reconnected, handleReconnected);
     return () => {
       room.off(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
+      room.off(RoomEvent.Reconnecting, handleRoomReconnecting);
       room.off(RoomEvent.Disconnected, handleRoomDisconnected);
       room.off(RoomEvent.Reconnected, handleReconnected);
       if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
@@ -641,35 +653,41 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const handleReconnect = async () => {
     if (!room) return;
     intentionalDisconnectRef.current = true;
-    toast({ title: "Reconnecting...", description: "Reconnecting with the same user" });
-    try { room.disconnect(); } catch {}
-    setIsConnected(false);
-    setCallStatus("connected");
+    reconnectingRef.current = true;
+    setRemoteIsOffline(true);
+    setCallStatus("connected"); // Show "Reconnecting..." state
     setIsSpeaking(false);
     setPulseIntensity(0);
+    // Do NOT reset seconds — timer continues from where it was
+
+    try { room.disconnect(); } catch {}
 
     // Wait 500ms then reconnect
     await new Promise(r => setTimeout(r, 500));
     try {
-      const token = new URLSearchParams(window.location.search).get("token") || (location.state as any)?.token;
+      const token = (location.state as any)?.livekitToken;
       if (token && LIVEKIT_URL) {
         intentionalDisconnectRef.current = false;
         hasHandledDisconnectRef.current = false;
         reconnectingRef.current = false;
         await room.connect(LIVEKIT_URL, token);
         setIsConnected(true);
-        setSeconds(0); // Reset timer
-        setCallStatus("connected");
-        setTimeout(() => setCallStatus("talking"), 1000);
-        toast({ title: "Reconnected!", description: "Connection restored. Timer reset." });
+        setRemoteIsOffline(false);
+        setCallStatus("talking");
+        toast({ title: "Reconnected!", description: "Connection restored." });
       } else {
         toast({ title: "Reconnect failed", description: "No token available.", variant: "destructive" });
         setIsConnected(true);
+        setRemoteIsOffline(false);
+        reconnectingRef.current = false;
+        intentionalDisconnectRef.current = false;
       }
     } catch (err) {
       console.error("Reconnect failed:", err);
       toast({ title: "Reconnect failed", variant: "destructive" });
       setIsConnected(true);
+      setRemoteIsOffline(false);
+      reconnectingRef.current = false;
       intentionalDisconnectRef.current = false;
     }
   };
