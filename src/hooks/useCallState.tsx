@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const POLL_INTERVAL = 2500;
+const CALL_POLL_MS = 1000;
 
 interface CallState {
   isInCall: boolean;
@@ -329,7 +330,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch {}
-    }, 3000);
+    }, CALL_POLL_MS);
     return () => clearInterval(interval);
   }, [user?.id, incomingCall.active, incomingCall.callId]);
 
@@ -395,7 +396,7 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch {}
-    }, 3000);
+    }, CALL_POLL_MS);
     return () => clearInterval(interval);
   }, [user?.id, outgoingCall.active, outgoingCall.callId, profile?.username, navigate, toast]);
 
