@@ -283,6 +283,122 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
     };
   }, [user?.id, incomingCall.callId, toast]);
 
+  // ─── HTTP Polling Fallback: Incoming Calls ───
+  useEffect(() => {
+    if (!user?.id) return;
+    const interval = setInterval(async () => {
+      try {
+        // Poll for ringing calls where I am receiver
+        const { data: ringingCalls } = await supabase
+          .from("calls")
+          .select("id, caller_id, status")
+          .eq("receiver_id", user.id)
+          .eq("status", "ringing")
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (ringingCalls && ringingCalls.length > 0) {
+          const row = ringingCalls[0];
+          // Only trigger if not already showing this call
+          if (!incomingCall.active || incomingCall.callId !== row.id) {
+            const { data: callerProfile } = await supabase
+              .from("profiles")
+              .select("username, avatar_url")
+              .eq("id", row.caller_id)
+              .single();
+            setIncomingCall({
+              active: true,
+              callerName: callerProfile?.username || "Unknown",
+              callerAvatar: callerProfile?.avatar_url || null,
+              callId: row.id,
+              roomId: `direct_${row.id}`,
+              callerId: row.caller_id,
+            });
+          }
+        }
+
+        // If incoming call is active, check if it was cancelled/missed
+        if (incomingCall.active && incomingCall.callId) {
+          const { data: callCheck } = await supabase
+            .from("calls")
+            .select("status")
+            .eq("id", incomingCall.callId)
+            .single();
+          if (callCheck && (callCheck.status === "missed" || callCheck.status === "cancelled" || callCheck.status === "declined")) {
+            setIncomingCall({ active: false, callerName: null, callerAvatar: null, callId: null, roomId: null, callerId: null });
+          }
+        }
+      } catch {}
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [user?.id, incomingCall.active, incomingCall.callId]);
+
+  // ─── HTTP Polling Fallback: Outgoing Call Status ───
+  useEffect(() => {
+    if (!user?.id || !outgoingCall.active || !outgoingCall.callId) return;
+    const interval = setInterval(async () => {
+      try {
+        const { data: callRow } = await supabase
+          .from("calls")
+          .select("status, id")
+          .eq("id", outgoingCall.callId!)
+          .single();
+        if (!callRow) return;
+
+        if (callRow.status === "accepted") {
+          // Trigger same logic as realtime accepted handler
+          const roomId = `direct_${callRow.id}`;
+          const participantName = profile?.username || "User";
+          const participantId = user?.id;
+          const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
+            body: { room_id: roomId, participant_name: participantName, participant_id: participantId },
+          });
+          if (error || !data?.token) return;
+          const currentOutgoing = outgoingCallRef.current;
+          setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
+          setCallState({
+            isInCall: true, isConnected: true,
+            partnerName: currentOutgoing.receiverName,
+            partnerAvatar: currentOutgoing.receiverAvatar,
+            callSeconds: 0,
+          });
+          navigate("/call", {
+            replace: true,
+            state: {
+              roomId, livekitToken: data.token,
+              matchedUserId: currentOutgoing.receiverId,
+              partnerName: currentOutgoing.receiverName,
+              partnerAvatar: currentOutgoing.receiverAvatar,
+              directCallId: callRow.id,
+            },
+          });
+        } else if (callRow.status === "declined" || callRow.status === "missed") {
+          const currentOutgoing = outgoingCallRef.current;
+          setOutgoingCall({ active: false, callId: null, receiverName: null, receiverAvatar: null, receiverId: null });
+          toast({
+            title: callRow.status === "declined" ? "Call Declined" : "Call Missed",
+            description: callRow.status === "declined" ? "The user declined your call." : "User unavailable.",
+            variant: "destructive",
+          });
+          // Log missed call
+          if (currentOutgoing.receiverId) {
+            supabase.from("chat_messages").insert({
+              sender_id: user.id, receiver_id: currentOutgoing.receiverId,
+              content: "📞 Missed Call", is_read: true,
+            }).then(() => {});
+            supabase.rpc("log_call_for_both" as any, {
+              p_caller_id: user.id, p_receiver_id: currentOutgoing.receiverId,
+              p_caller_name: profile?.username || "Unknown",
+              p_receiver_name: currentOutgoing.receiverName || "Unknown",
+              p_duration: 0, p_status: "missed",
+            }).then(() => {});
+          }
+        }
+      } catch {}
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [user?.id, outgoingCall.active, outgoingCall.callId, profile?.username, navigate, toast]);
+
   // ─── Initiate a direct call (caller side) ───
   const initiateDirectCall = useCallback(async (receiverId: string, receiverName: string, receiverAvatar: string | null) => {
     if (!profile?.id) return;
