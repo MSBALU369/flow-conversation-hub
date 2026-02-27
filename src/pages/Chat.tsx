@@ -263,20 +263,20 @@ export default function Chat() {
 
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, username, avatar_url, is_online, last_seen")
+        .select("id, username, avatar_url, is_online, last_seen, is_ghost_mode")
         .in("id", mutualIds);
 
       const now = Date.now();
       const ONLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
       const mutuals = (profiles || []).map(p => {
         const lastSeen = p.last_seen ? new Date(p.last_seen).getTime() : 0;
-        const isRecentlyActive = now - lastSeen < ONLINE_THRESHOLD_MS;
+        const isRecentlyActive = (p as any).is_ghost_mode ? false : (now - lastSeen < ONLINE_THRESHOLD_MS);
         return {
           id: p.id,
           name: p.username || "User",
           avatar: p.avatar_url,
           isOnline: isRecentlyActive,
-          lastSeen: p.last_seen || null,
+          lastSeen: (p as any).is_ghost_mode ? null : (p.last_seen || null),
         };
       });
       setMutualFollowers(mutuals);
@@ -1606,27 +1606,90 @@ export default function Chat() {
                           </div>
                         )
                       ) : (
-                        // Regular image — render as WhatsApp-style bubble
-                        <div
-                          className="cursor-pointer -mx-4 -mt-2 -mb-1"
-                          onClick={() => message.mediaUrl && setFullScreenImage(message.mediaUrl)}
-                        >
-                          {message.mediaUrl ? (
-                            <img
-                              src={message.mediaUrl}
-                              alt="Shared photo"
-                              className="rounded-2xl max-w-full w-full object-cover"
-                              style={{ maxHeight: "300px" }}
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="flex items-center gap-2 py-2 px-4">
-                              <ImageIcon className={cn("w-4 h-4", isMe ? "text-primary-foreground/70" : "text-muted-foreground")} />
-                              <span className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>Photo</span>
-                            </div>
+                        // Regular image — render as WhatsApp-style bubble with download protection
+                        <div className="relative">
+                          <div
+                            className="cursor-pointer -mx-4 -mt-2 -mb-1"
+                            onClick={() => message.mediaUrl && setFullScreenImage(message.mediaUrl)}
+                          >
+                            {message.mediaUrl ? (
+                              <img
+                                src={message.mediaUrl}
+                                alt="Shared photo"
+                                className="rounded-2xl max-w-full w-full object-cover"
+                                style={{ maxHeight: "300px", WebkitTouchCallout: "none", userSelect: "none" } as any}
+                                loading="lazy"
+                                onContextMenu={(e) => e.preventDefault()}
+                                draggable={false}
+                              />
+                            ) : (
+                              <div className="flex items-center gap-2 py-2 px-4">
+                                <ImageIcon className={cn("w-4 h-4", isMe ? "text-primary-foreground/70" : "text-muted-foreground")} />
+                                <span className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>Photo</span>
+                              </div>
+                            )}
+                          </div>
+                          {/* Download request button — only for received images, NOT view-once */}
+                          {!isMe && message.mediaUrl && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!selectedFriend || !profile?.id) return;
+                                // Send system message requesting download permission
+                                await supabase.from("chat_messages").insert({
+                                  sender_id: profile.id,
+                                  receiver_id: selectedFriend.id,
+                                  content: `[📥 Image Download Request] Can I save this image?`,
+                                  is_read: false,
+                                });
+                                toast({ title: "Download Request Sent", description: "Waiting for approval..." });
+                              }}
+                              className="absolute top-1 right-1 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/50 hover:bg-background transition-colors"
+                              title="Request download"
+                            >
+                              <ArrowLeft className="w-3.5 h-3.5 text-foreground rotate-[-90deg]" />
+                            </button>
                           )}
                         </div>
                       )
+                    ) : message.content.startsWith("[📥 Image Download Request]") ? (
+                      // Download request message with Accept/Reject for the receiver
+                      <div className="space-y-1.5">
+                        <p className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>
+                          📥 Image Download Request
+                        </p>
+                        <p className={cn("text-xs", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                          {isMe ? "You requested to save an image" : `${selectedFriend?.name} wants to save your image`}
+                        </p>
+                        {!isMe && !message.content.includes("[Accepted]") && !message.content.includes("[Rejected]") && (
+                          <div className="flex gap-2 mt-1">
+                            <button
+                              onClick={async () => {
+                                await supabase.from("chat_messages").update({ content: message.content + " [Accepted] ✅" }).eq("id", message.id);
+                                toast({ title: "Download Approved", description: "They can now save the image." });
+                              }}
+                              className="px-3 py-1 rounded-lg bg-primary/20 text-primary text-xs font-medium hover:bg-primary/30 transition-colors"
+                            >
+                              ✅ Accept
+                            </button>
+                            <button
+                              onClick={async () => {
+                                await supabase.from("chat_messages").update({ content: message.content + " [Rejected] ❌" }).eq("id", message.id);
+                                toast({ title: "Download Rejected" });
+                              }}
+                              className="px-3 py-1 rounded-lg bg-destructive/20 text-destructive text-xs font-medium hover:bg-destructive/30 transition-colors"
+                            >
+                              ❌ Reject
+                            </button>
+                          </div>
+                        )}
+                        {message.content.includes("[Accepted]") && (
+                          <p className="text-xs text-primary font-medium">✅ Download approved</p>
+                        )}
+                        {message.content.includes("[Rejected]") && (
+                          <p className="text-xs text-destructive font-medium">❌ Download rejected</p>
+                        )}
+                      </div>
                     ) : (
                       <p className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>
                         {message.content}
