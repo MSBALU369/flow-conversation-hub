@@ -24,6 +24,7 @@ import { formatDuration, calculateTogetherTotal, type CompareUser } from "@/lib/
 import { useRole } from "@/hooks/useRole";
 import { SmartAppReview } from "@/components/SmartAppReview";
 import { TopTalkersModal } from "@/components/TopTalkersModal";
+import { PremiumModal } from "@/components/PremiumModal";
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export default function Profile() {
   const navigate = useNavigate();
@@ -78,6 +79,7 @@ export default function Profile() {
   const [visitorsLoading, setVisitorsLoading] = useState(false);
   const [editingStatus, setEditingStatus] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [showPremiumModalFromVisitors, setShowPremiumModalFromVisitors] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
   // Ad watching effect for coins
@@ -1039,7 +1041,6 @@ export default function Profile() {
           </button>
 
 
-
           {/* Profile Visitors Button */}
           <button
           onClick={async () => {
@@ -1126,6 +1127,7 @@ export default function Profile() {
         <ReferralTreeModal open={showReferralTree} onOpenChange={setShowReferralTree} />
         <TopTalkersModal open={showTopTalkers} onOpenChange={setShowTopTalkers} />
         <SmartAppReview isPremium={!!profile?.is_premium} createdAt={profile?.created_at} />
+        <PremiumModal open={showPremiumModalFromVisitors} onOpenChange={setShowPremiumModalFromVisitors} />
 
         {/* Profile Visitors Modal */}
         <Dialog open={showVisitors} onOpenChange={setShowVisitors}>
@@ -1133,46 +1135,63 @@ export default function Profile() {
             <DialogHeader>
               <DialogTitle className="text-foreground text-base flex items-center gap-2">
                 <Eye className="w-4 h-4 text-primary" /> Profile Visitors
+                {visitors.length > 0 && (
+                  <span className="ml-auto bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">{visitors.length}</span>
+                )}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-2 py-2">
-              {visitorsLoading ?
-            <p className="text-xs text-muted-foreground text-center py-8">Loading...</p> :
-            visitors.length === 0 ?
-            <div className="text-center py-8">
+              {visitorsLoading ? (
+                <p className="text-xs text-muted-foreground text-center py-8">Loading...</p>
+              ) : visitors.length === 0 ? (
+                <div className="text-center py-8">
                   <Eye className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">No visitors yet</p>
-                </div> :
-            visitors.map((v) =>
-            <div key={v.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className={`w-9 h-9 rounded-full bg-muted flex items-center justify-center overflow-hidden ${!profile?.is_premium ? "blur-sm" : ""}`}>
-                    {v.viewer_avatar ?
-                <img src={v.viewer_avatar} alt="" className="w-full h-full object-cover rounded-full" /> :
-
-                <span className="text-sm">👤</span>
-                }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium text-foreground truncate ${!profile?.is_premium ? "blur-sm select-none" : ""}`}>
-                      {v.viewer_username}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {new Date(v.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  {!profile?.is_premium &&
-              <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              }
                 </div>
-            )}
-              {!profile?.is_premium && visitors.length > 0 &&
-            <button
-              onClick={() => {setShowVisitors(false);navigate("/premium");}}
-              className="w-full mt-2 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
-
+              ) : (
+                visitors.map((v) => (
+                  <div
+                    key={v.id}
+                    className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${!profile?.is_premium ? "cursor-pointer hover:bg-primary/5" : "hover:bg-muted/50"}`}
+                    onClick={() => {
+                      if (!profile?.is_premium) {
+                        setShowVisitors(false);
+                        setShowPremiumModalFromVisitors(true);
+                      } else {
+                        navigate(`/user/${v.viewer_id}`);
+                        setShowVisitors(false);
+                      }
+                    }}
+                  >
+                    <div className={`w-9 h-9 rounded-full bg-muted flex items-center justify-center overflow-hidden ${!profile?.is_premium ? "blur-[6px]" : ""}`}>
+                      {v.viewer_avatar ? (
+                        <img src={v.viewer_avatar} alt="" className="w-full h-full object-cover rounded-full" />
+                      ) : (
+                        <span className="text-sm">👤</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium text-foreground truncate ${!profile?.is_premium ? "blur-[6px] select-none" : ""}`}>
+                        {v.viewer_username}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(v.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {!profile?.is_premium && (
+                      <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    )}
+                  </div>
+                ))
+              )}
+              {!profile?.is_premium && visitors.length > 0 && (
+                <button
+                  onClick={() => { setShowVisitors(false); setShowPremiumModalFromVisitors(true); }}
+                  className="w-full mt-2 py-2.5 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 text-primary text-xs font-semibold hover:from-primary/30 hover:to-accent/30 transition-colors border border-primary/20"
+                >
                   🔓 Upgrade to Premium to see visitors
                 </button>
-            }
+              )}
             </div>
           </DialogContent>
         </Dialog>

@@ -114,6 +114,8 @@ export default function UserProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
+  const [userStatus, setUserStatus] = useState<string | null>(null);
+
   // Fetch profile from DB if no state was passed
   // Always fetch real profile + real counts from friendships table
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function UserProfilePage() {
     const fetchProfile = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, username, avatar_url, level, is_online, unique_id, created_at, country, region, location_city, description")
+        .select("id, username, avatar_url, level, is_online, is_ghost_mode, unique_id, created_at, country, region, location_city, description, status_message")
         .eq("id", id)
         .maybeSingle();
 
@@ -133,12 +135,14 @@ export default function UserProfilePage() {
       ]);
 
       if (data) {
+        // Respect ghost mode: if user has ghost mode on, show as offline
+        const effectiveOnline = data.is_ghost_mode ? false : (data.is_online ?? false);
         setUser({
           id: data.id,
           name: data.username || "Unknown",
           avatar: data.avatar_url,
           level: data.level ?? 1,
-          isOnline: data.is_online ?? false,
+          isOnline: effectiveOnline,
           uniqueId: data.unique_id ?? undefined,
           createdAt: data.created_at,
           followersCount: followersCount ?? 0,
@@ -146,8 +150,27 @@ export default function UserProfilePage() {
           location: [data.location_city, data.region, data.country].filter(Boolean).join(", ") || undefined,
         });
         setUserBio(data.description || null);
+        setUserStatus((data as any).status_message || null);
       }
       setProfileLoading(false);
+
+      // Record profile view + send notification
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser && authUser.id !== id) {
+        supabase.from("profile_views").insert({ viewer_id: authUser.id, viewed_user_id: id }).then(() => {});
+        // Send notification
+        const { data: viewerProfile } = await supabase.from("profiles").select("username, is_premium").eq("id", authUser.id).single();
+        const { data: viewedProfile } = await supabase.from("profiles").select("is_premium").eq("id", id).single();
+        const viewerName = viewerProfile?.username || "Someone";
+        const notifMessage = viewedProfile?.is_premium ? `${viewerName} viewed your profile` : "Someone viewed your profile";
+        supabase.from("notifications").insert({
+          user_id: id,
+          type: "profile_view",
+          title: "Profile View",
+          message: notifMessage,
+          from_user_id: authUser.id,
+        }).then(() => {});
+      }
     };
     fetchProfile();
   }, [id]);
@@ -423,6 +446,9 @@ export default function UserProfilePage() {
 
         {/* Name & Level */}
         <h2 className="text-xl font-bold text-foreground mt-3">{user.name}</h2>
+        {userStatus && (
+          <p className="text-xs text-muted-foreground italic mt-0.5">"{userStatus}"</p>
+        )}
         <div className="mt-1.5">
           <LevelBadge level={user.level} size="sm" />
         </div>
