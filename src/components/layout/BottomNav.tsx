@@ -29,13 +29,23 @@ export function BottomNav() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { count } = await supabase
+      // Count unread text/image messages (exclude call logs starting with 📞)
+      const { data: unreadMsgs } = await supabase
         .from("chat_messages")
-        .select("*", { count: "exact", head: true })
+        .select("content", { count: "exact", head: false })
         .eq("receiver_id", user.id)
         .eq("is_read", false);
 
-      setUnreadCount(count ?? 0);
+      const nonCallUnread = (unreadMsgs || []).filter(m => !(m.content || "").startsWith("📞 ")).length;
+
+      // Count missed calls
+      const { count: missedCalls } = await supabase
+        .from("call_history")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "missed_incoming");
+
+      setUnreadCount(nonCallUnread + (missedCalls ?? 0));
 
       channel = supabase
         .channel("unread-badge")
@@ -45,12 +55,7 @@ export function BottomNav() {
           table: "chat_messages",
           filter: `receiver_id=eq.${user.id}`,
         }, () => {
-          supabase
-            .from("chat_messages")
-            .select("*", { count: "exact", head: true })
-            .eq("receiver_id", user.id)
-            .eq("is_read", false)
-            .then(({ count: c }) => setUnreadCount(c ?? 0));
+          fetchUnread();
         })
         .subscribe();
     };

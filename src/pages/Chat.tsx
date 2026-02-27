@@ -57,7 +57,7 @@ interface Message {
   replyToId?: string | null;
   replyToContent?: string | null;
   reactions?: Record<string, string[]>;
-  isPinned?: boolean;
+  
 }
 
 const REACTION_EMOJIS = ["👍", "😂", "❤️", "😮", "😢", "🙏"];
@@ -172,7 +172,7 @@ export default function Chat() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
-  const [pinnedMessage, setPinnedMessage] = useState<Message | null>(null);
+  
   const [showGiftPicker, setShowGiftPicker] = useState(false);
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
   const [viewOnceImageUrl, setViewOnceImageUrl] = useState<string | null>(null);
@@ -199,6 +199,9 @@ export default function Chat() {
   const [clearChatOption, setClearChatOption] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingChannelRef = useRef<any>(null);
@@ -727,13 +730,7 @@ export default function Chat() {
   useEffect(() => {
     if (isRecording && !isPaused) {
       recordingIntervalRef.current = setInterval(() => {
-        setRecordingTime((prev) => {
-          if (prev >= 90) {
-            stopRecording();
-            return 90;
-          }
-          return prev + 1;
-        });
+        setRecordingTime((prev) => prev + 1);
       }, 1000);
     } else {
       if (recordingIntervalRef.current) {
@@ -830,20 +827,43 @@ export default function Chat() {
     if (navigator.vibrate) navigator.vibrate(15);
   };
 
-  const startRecording = () => {
-    setIsRecording(true);
-    setIsPaused(false);
-    toast({
-      title: "🎙️ Recording...",
-      description: "Max 90 seconds.",
-    });
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4' });
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.start(250); // collect chunks every 250ms
+      setIsRecording(true);
+      setIsPaused(false);
+      setRecordingTime(0);
+    } catch (err) {
+      toast({ title: "Microphone access denied", description: "Please allow microphone access to record voice notes.", variant: "destructive" });
+    }
   };
 
   const togglePauseRecording = () => {
-    setIsPaused(prev => !prev);
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) return;
+    if (isPaused) {
+      recorder.resume();
+      setIsPaused(false);
+    } else {
+      recorder.pause();
+      setIsPaused(true);
+    }
   };
 
   const cancelRecording = () => {
+    mediaRecorderRef.current?.stop();
+    mediaStreamRef.current?.getTracks().forEach(t => t.stop());
+    mediaRecorderRef.current = null;
+    mediaStreamRef.current = null;
+    audioChunksRef.current = [];
     setIsRecording(false);
     setIsPaused(false);
     setRecordingTime(0);
@@ -851,50 +871,68 @@ export default function Chat() {
   };
 
   const stopRecording = async () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recordingTime === 0 || !profile?.id || !selectedFriend) {
+      cancelRecording();
+      return;
+    }
+
+    // Stop recorder and wait for final data
+    const finalDuration = recordingTime;
     setIsRecording(false);
     setIsPaused(false);
-    if (recordingTime > 0 && profile?.id && selectedFriend) {
-      // Create a small audio blob placeholder (real MediaRecorder integration would go here)
-      const blob = new Blob([new ArrayBuffer(recordingTime * 100)], { type: "audio/webm" });
-      const fileName = `${profile.id}/voice_${Date.now()}.webm`;
 
-      // Optimistic local update
-      const tempId = Date.now().toString();
-      const voiceMessage: Message = {
-        id: tempId,
-        content: `🎤 Voice note (${recordingTime}s)`,
-        senderId: "me",
-        timestamp: new Date(),
-        status: "sent",
-        type: "voice",
-      };
-      setMessages(prev => [...prev, voiceMessage]);
+    await new Promise<void>((resolve) => {
+      recorder.onstop = () => resolve();
+      recorder.stop();
+    });
+    mediaStreamRef.current?.getTracks().forEach(t => t.stop());
+    mediaStreamRef.current = null;
+    mediaRecorderRef.current = null;
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from("chat_media")
-        .upload(fileName, blob, { upsert: true });
+    const mimeType = audioChunksRef.current[0]?.type || 'audio/webm';
+    const blob = new Blob(audioChunksRef.current, { type: mimeType });
+    audioChunksRef.current = [];
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+    const fileName = `${profile.id}/voice_${Date.now()}.${ext}`;
 
-      if (uploadError) {
-        toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
-        return;
-      }
+    // Optimistic local update
+    const tempId = Date.now().toString();
+    const voiceMessage: Message = {
+      id: tempId,
+      content: `🎤 Voice note (${finalDuration}s)`,
+      senderId: "me",
+      timestamp: new Date(),
+      status: "sent",
+      type: "voice",
+    };
+    setMessages(prev => [...prev, voiceMessage]);
 
-      const { data: { publicUrl } } = supabase.storage.from("chat_media").getPublicUrl(fileName);
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from("chat_media")
+      .upload(fileName, blob, { upsert: true, contentType: mimeType });
 
-      // Insert real message with media_url
-      const { error } = await supabase.from("chat_messages").insert({
-        sender_id: profile.id,
-        receiver_id: selectedFriend.id,
-        content: `🎤 Voice note (${recordingTime}s)`,
-        media_url: publicUrl,
-      });
+    if (uploadError) {
+      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      return;
+    }
 
-      if (error) {
-        toast({ title: "Failed to send voice note", variant: "destructive" });
-      } else {
-        toast({ title: "Voice note sent!", description: `${recordingTime} seconds recorded.` });
-      }
+    const { data: { publicUrl } } = supabase.storage.from("chat_media").getPublicUrl(fileName);
+
+    // Insert real message with media_url
+    const { error } = await supabase.from("chat_messages").insert({
+      sender_id: profile.id,
+      receiver_id: selectedFriend.id,
+      content: `🎤 Voice note (${finalDuration}s)`,
+      media_url: publicUrl,
+    });
+
+    if (error) {
+      toast({ title: "Failed to send voice note", variant: "destructive" });
+    } else {
+      toast({ title: "Voice note sent!", description: `${finalDuration} seconds recorded.` });
     }
   };
 
@@ -991,19 +1029,6 @@ export default function Chat() {
     toast({ title: "Message forwarded!" });
     setForwardingMessage(null);
     if (navigator.vibrate) navigator.vibrate(15);
-  };
-
-  // Pin message handler
-  const handlePinMessage = async (message: Message) => {
-    if (!profile?.id) return;
-    // Unpin previous
-    if (pinnedMessage) {
-      await supabase.from("chat_messages").update({ is_pinned: false } as any).eq("id", pinnedMessage.id);
-    }
-    await supabase.from("chat_messages").update({ is_pinned: true } as any).eq("id", message.id);
-    setPinnedMessage(message);
-    setMessages(prev => prev.map(m => ({ ...m, isPinned: m.id === message.id })));
-    toast({ title: "📌 Message pinned!" });
   };
 
   // Send gift handler
@@ -1368,17 +1393,6 @@ export default function Chat() {
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
-
-        {/* Pinned Message Bar */}
-        {pinnedMessage && (
-          <div className="px-4 py-2 bg-muted/50 border-b border-border flex items-center gap-2">
-            <span className="text-xs">📌</span>
-            <p className="text-xs text-foreground flex-1 truncate">{pinnedMessage.content}</p>
-            <button onClick={() => setPinnedMessage(null)} className="text-muted-foreground hover:text-foreground">
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        )}
 
         {/* Messages */}
         <main className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
@@ -1756,7 +1770,7 @@ export default function Chat() {
               <div className="flex-1 flex items-center gap-2 bg-destructive/20 rounded-xl px-3 py-2">
                 <div className={cn("w-2.5 h-2.5 bg-destructive rounded-full", !isPaused && "animate-pulse")} />
                 <span className="text-foreground font-medium text-sm">{isPaused ? "Paused" : "Recording..."}</span>
-                <span className="text-muted-foreground ml-auto text-xs">{formatRecordingTime(recordingTime)} / 1:30</span>
+                <span className="text-muted-foreground ml-auto text-xs">{formatRecordingTime(recordingTime)}</span>
               </div>
 
               {/* Pause / Resume */}
@@ -2245,12 +2259,6 @@ export default function Chat() {
                 onClick={() => { setForwardingMessage(contextMenuMessage); setContextMenuMessage(null); setContextMenuPos(null); }}
               >
                 <Send className="w-4 h-4 text-muted-foreground" /> Forward
-              </button>
-              <button
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-colors"
-                onClick={() => { handlePinMessage(contextMenuMessage); setContextMenuMessage(null); setContextMenuPos(null); }}
-              >
-                <span className="text-sm">📌</span> Pin
               </button>
               {canEditMessage(contextMenuMessage) && (
                 <button
