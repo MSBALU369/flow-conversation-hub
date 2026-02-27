@@ -163,7 +163,7 @@ export function useGlobalMessageListener() {
           },
         });
       } catch {}
-    }, 3000);
+    }, 1500);
 
     return () => clearInterval(interval);
   }, [user?.id, navigate, playSound]);
