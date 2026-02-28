@@ -28,14 +28,14 @@ const durationLabels: Record<string, string> = {
 };
 
 const premiumFeatures = [
-  "Gender filter (Female/Male)",
-  "No advertisements",
-  "Book recommendations",
-  "Restrict your talent visibility",
-  "Priority matching",
-  "Exclusive badges",
-  "Choose speaker level (1-15)",
-];
+"Gender filter (Female/Male)",
+"No advertisements",
+"Book recommendations",
+"Restrict your talent visibility",
+"Priority matching",
+"Exclusive badges",
+"Choose speaker level (1-15)"];
+
 
 // Bonus coins per plan duration
 const bonusCoinsMap: Record<string, number> = {
@@ -43,7 +43,7 @@ const bonusCoinsMap: Record<string, number> = {
   "1_week": 25,
   "1_month": 50,
   "6_month": 150,
-  "1_year": 300,
+  "1_year": 300
 };
 
 export default function Premium() {
@@ -66,11 +66,11 @@ export default function Premium() {
 
   useEffect(() => {
     const fetchPlans = async () => {
-      const { data, error } = await supabase
-        .from("plans")
-        .select("*")
-        .eq("region", userRegion)
-        .order("price", { ascending: false });
+      const { data, error } = await supabase.
+      from("plans").
+      select("*").
+      eq("region", userRegion).
+      order("price", { ascending: false });
 
       if (!error && data) {
         setPlans(data);
@@ -89,7 +89,7 @@ export default function Premium() {
 
   const getWeeklyPrice = (price: number, duration: string) => {
     const weeks: Record<string, number> = {
-      "1_day": 1 / 7, "1_week": 1, "1_month": 4, "6_month": 26, "1_year": 52,
+      "1_day": 1 / 7, "1_week": 1, "1_month": 4, "6_month": 26, "1_year": 52
     };
     return Math.round(price / weeks[duration]);
   };
@@ -101,7 +101,7 @@ export default function Premium() {
 
   const handlePurchase = async () => {
     if (!selectedPlan || !profile?.id || purchasing) return;
-    const plan = plans.find(p => p.id === selectedPlan);
+    const plan = plans.find((p) => p.id === selectedPlan);
     if (!plan) return;
 
     setPurchasing(true);
@@ -111,25 +111,25 @@ export default function Premium() {
       // RAZORPAY PLACEHOLDER — In production, open Razorpay checkout
       toast({
         title: "🏦 Razorpay Gateway",
-        description: "Razorpay payment flow will open here. Simulating success...",
+        description: "Razorpay payment flow will open here. Simulating success..."
       });
     } else {
       // STRIPE PLACEHOLDER — In production, redirect to Stripe Checkout
       toast({
         title: "💳 Stripe Gateway",
-        description: "Stripe checkout will open here. Simulating success...",
+        description: "Stripe checkout will open here. Simulating success..."
       });
     }
 
     // Simulate 1.5s gateway processing
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1500));
 
     // Process via DB function (webhook simulation)
     const bonusCoins = bonusCoinsMap[plan.duration] || 50;
     const { data, error } = await supabase.rpc("process_premium_purchase", {
       p_user_id: profile.id,
       p_duration: plan.duration,
-      p_bonus_coins: bonusCoins,
+      p_bonus_coins: bonusCoins
     });
 
     if (error) {
@@ -145,7 +145,7 @@ export default function Premium() {
         is_premium: true,
         premium_expires_at: result.expires_at,
         coins: (profile.coins ?? 0) + bonusCoins,
-        badges: [...(profile?.badges || []), "premium"].filter((b, i, a) => a.indexOf(b) === i),
+        badges: [...(profile?.badges || []), "premium"].filter((b, i, a) => a.indexOf(b) === i)
       });
       setShowCelebration(true);
     } else {
@@ -174,16 +174,16 @@ export default function Premium() {
       <main className="px-3 flex-1 flex flex-col pb-16 overflow-y-auto">
         {/* Payment Gateway Indicator */}
         <div className="mb-2 flex items-center gap-2">
-          <div className="inline-flex items-center gap-1.5 glass-button px-3 py-1 rounded-full">
-            <CreditCard className="w-3 h-3 text-primary" />
-            <span className="text-xs text-foreground">
-              {isIndiaRegion ? "🇮🇳 Pay via Razorpay" : "💳 Pay via Stripe"}
-            </span>
-          </div>
+          
+
+
+
+
+
           <button
             onClick={() => setShowReportModal(true)}
-            className="inline-flex items-center gap-1 glass-button px-2 py-1 rounded-full hover:bg-destructive/10 transition-colors"
-          >
+            className="inline-flex items-center gap-1 glass-button px-2 py-1 rounded-full hover:bg-destructive/10 transition-colors">
+
             <AlertTriangle className="w-3 h-3 text-destructive" />
             <span className="text-[10px] text-destructive">Report Issue</span>
           </button>
@@ -207,37 +207,37 @@ export default function Premium() {
           </div>
 
           <div className="space-y-1.5">
-            {plans
-              .filter((p) => ["6_month", "1_month", "1_week"].includes(p.duration))
-              .map((plan) => {
-                const isSelected = selectedPlan === plan.id;
-                const savings = getSavingsPercent(plan.duration);
-                const bonus = bonusCoinsMap[plan.duration] || 50;
+            {plans.
+            filter((p) => ["6_month", "1_month", "1_week"].includes(p.duration)).
+            map((plan) => {
+              const isSelected = selectedPlan === plan.id;
+              const savings = getSavingsPercent(plan.duration);
+              const bonus = bonusCoinsMap[plan.duration] || 50;
 
-                return (
-                  <button
-                    key={plan.id}
-                    onClick={() => setSelectedPlan(plan.id)}
-                    className={cn(
-                      "w-full p-2.5 rounded-xl border-2 transition-all text-left relative",
-                      isSelected ? "border-primary bg-primary/10" : "border-border bg-card"
-                    )}
-                  >
+              return (
+                <button
+                  key={plan.id}
+                  onClick={() => setSelectedPlan(plan.id)}
+                  className={cn(
+                    "w-full p-2.5 rounded-xl border-2 transition-all text-left relative",
+                    isSelected ? "border-primary bg-primary/10" : "border-border bg-card"
+                  )}>
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className={cn(
-                          "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                          isSelected ? "border-primary bg-primary" : "border-muted-foreground"
-                        )}>
+                        "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                        isSelected ? "border-primary bg-primary" : "border-muted-foreground"
+                      )}>
                           {isSelected && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                         </div>
                         <div>
                           <span className="text-sm text-foreground font-medium">
                             {durationLabels[plan.duration]}
                           </span>
-                          {savings > 0 && (
-                            <span className="text-primary text-[10px] ml-1.5">Save {savings}%</span>
-                          )}
+                          {savings > 0 &&
+                        <span className="text-primary text-[10px] ml-1.5">Save {savings}%</span>
+                        }
                           <span className="text-accent text-[10px] ml-1.5">+{bonus} 🪙</span>
                         </div>
                       </div>
@@ -245,16 +245,16 @@ export default function Premium() {
                         <span className="text-sm text-foreground font-bold">
                           {formatPrice(plan.price, plan.currency)}
                         </span>
-                        {plan.duration !== "1_week" && (
-                          <span className="text-muted-foreground text-[10px] ml-1">
+                        {plan.duration !== "1_week" &&
+                      <span className="text-muted-foreground text-[10px] ml-1">
                             ({formatPrice(getWeeklyPrice(plan.price, plan.duration), plan.currency)}/week)
                           </span>
-                        )}
+                      }
                       </div>
                     </div>
-                  </button>
-                );
-              })}
+                  </button>);
+
+            })}
           </div>
         </div>
 
@@ -262,33 +262,33 @@ export default function Premium() {
         <Button
           onClick={handlePurchase}
           disabled={!selectedPlan || purchasing}
-          className="w-full py-4 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-teal mb-2"
-        >
-          {purchasing ? (
-            <div className="flex items-center gap-2">
+          className="w-full py-4 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-teal mb-2">
+
+          {purchasing ?
+          <div className="flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
               Processing...
-            </div>
-          ) : (
-            <>
+            </div> :
+
+          <>
               <Crown className="w-5 h-5 mr-2" />
               {isIndiaRegion ? "PAY WITH RAZORPAY" : "PAY WITH STRIPE"}
             </>
-          )}
+          }
         </Button>
 
         {/* Premium Features List */}
         <div className="glass-card p-2 px-3 mt-3">
           <h3 className="text-[10px] font-semibold text-foreground mb-1">Premium Features</h3>
           <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-            {premiumFeatures.map((feature, index) => (
-              <div key={index} className="flex items-start gap-1">
+            {premiumFeatures.map((feature, index) =>
+            <div key={index} className="flex items-start gap-1">
                 <div className="w-3 h-3 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-px">
                   <Check className="w-1.5 h-1.5 text-primary" />
                 </div>
                 <span className="text-[9px] leading-tight text-muted-foreground">{feature}</span>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -310,16 +310,16 @@ export default function Premium() {
         show={showCelebration}
         onComplete={() => {
           setShowCelebration(false);
-          const plan = plans.find(p => p.id === selectedPlan);
+          const plan = plans.find((p) => p.id === selectedPlan);
           const bonus = plan ? bonusCoinsMap[plan.duration] || 50 : 50;
           toast({
             title: "Welcome to Premium! 👑",
-            description: `Enjoy all premium features + ${bonus} bonus coins! 🪙`,
+            description: `Enjoy all premium features + ${bonus} bonus coins! 🪙`
           });
           navigate("/");
-        }}
-      />
+        }} />
+
       <ReportPaymentModal open={showReportModal} onOpenChange={setShowReportModal} />
-    </div>
-  );
+    </div>);
+
 }
