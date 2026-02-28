@@ -174,19 +174,6 @@ export default function Premium() {
       <main className="px-3 flex-1 flex flex-col pb-16 overflow-y-auto">
         {/* Payment Gateway Indicator */}
         <div className="mb-2 flex items-center gap-2">
-          
-
-
-
-
-
-          <button
-            onClick={() => setShowReportModal(true)}
-            className="inline-flex items-center gap-1 glass-button px-2 py-1 rounded-full hover:bg-destructive/10 transition-colors">
-
-            <AlertTriangle className="w-3 h-3 text-destructive" />
-            <span className="text-[10px] text-destructive">Report Issue</span>
-          </button>
         </div>
 
         {/* One-Time Deal */}
@@ -297,6 +284,16 @@ export default function Premium() {
           <p className="text-[10px] text-accent font-medium text-center">
             🎁 Every Premium purchase includes FREE Gift Coins! Coins cannot be purchased separately.
           </p>
+        </div>
+
+        {/* Report Issue */}
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => setShowReportModal(true)}
+            className="inline-flex items-center gap-1 glass-button px-2 py-1 rounded-full hover:bg-destructive/10 transition-colors">
+            <AlertTriangle className="w-3 h-3 text-destructive" />
+            <span className="text-[10px] text-destructive">Report Issue</span>
+          </button>
         </div>
 
         {/* T&C */}
