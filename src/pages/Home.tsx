@@ -213,8 +213,8 @@ export default function Home() {
 
           {/* Battery indicator (hidden for premium) */}
           {!isPremium && (
-            <div className="flex items-center justify-end gap-1.5 mb-1">
-              <span className={`text-[10px] font-medium ${
+            <div className="flex items-center justify-end gap-1 mb-0.5 scale-[0.65] origin-right">
+              <span className={`text-[8px] font-medium ${
                 batteryBars === 7 ? 'text-primary' : 
                 batteryBars >= 5 ? 'text-accent' : 
                 batteryBars >= 3 ? 'text-[hsl(var(--ef-streak))]' : 'text-destructive'
