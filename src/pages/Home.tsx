@@ -229,7 +229,7 @@ export default function Home() {
 
           {/* Non-Premium Encouragement Banner */}
           {!isPremium && (
-            <div className="mt-1 mb-3 glass-card-glow p-2.5 border border-primary/20 rounded-2xl scale-[0.85] origin-center">
+            <div className="mt-1 mb-3 glass-card-glow p-2.5 border border-primary/20 rounded-2xl">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center flex-shrink-0">
                   <Crown className="w-5 h-5 text-primary" />
