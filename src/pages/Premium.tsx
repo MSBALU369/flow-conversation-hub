@@ -223,7 +223,7 @@ export default function Premium() {
                             {durationLabels[plan.duration]}
                           </span>
                           {savings > 0 &&
-                        <span className="text-primary text-[10px] ml-1.5">Save {savings}%</span>
+                        <span className="bg-primary/15 text-primary text-[10px] ml-1.5 px-1.5 py-0.5 rounded-full font-semibold">Save {savings}%</span>
                         }
                           
                         </div>
