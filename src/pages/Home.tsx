@@ -211,8 +211,31 @@ export default function Home() {
               </div>
             </div>}
 
+          {/* Non-Premium Encouragement Banner */}
+          {!isPremium && (
+            <div className="mt-2 mb-3 glass-card-glow p-4 border border-primary/20 rounded-2xl">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center flex-shrink-0">
+                  <Crown className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-foreground">Unlock Your Full Potential 🚀</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    See who viewed your profile, filter by gender, unlimited calls & more!
+                  </p>
+                  <button
+                    onClick={() => setShowPremiumModal(true)}
+                    className="mt-2 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+                  >
+                    Go Premium
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Main Card */}
-          <div className={cn("glass-card-glow p-4 animate-fade-in relative", isPremium ? "mt-0" : "mt-2")}>
+          <div className={cn("glass-card-glow p-4 animate-fade-in relative", isPremium ? "mt-0" : "mt-0")}>
             {/* Battery - Positioned on top-right of card (hidden for premium) */}
             {!isPremium && (
               <div className="absolute -top-6 -right-1 scale-75 flex items-center gap-1.5">
@@ -306,28 +329,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Non-Premium Encouragement Banner */}
-          {!isPremium && (
-            <div className="mt-4 glass-card-glow p-4 border border-primary/20 rounded-2xl">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center flex-shrink-0">
-                  <Crown className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-foreground">Unlock Your Full Potential 🚀</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    See who viewed your profile, filter by gender, unlimited calls & more!
-                  </p>
-                  <button
-                    onClick={() => setShowPremiumModal(true)}
-                    className="mt-2 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
-                  >
-                    Go Premium
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Recommended Books & Courses Button (premium) / Ad Area (free) */}
           {isPremium ? (
