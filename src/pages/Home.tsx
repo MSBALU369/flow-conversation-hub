@@ -179,6 +179,22 @@ export default function Home() {
         <AppHeader streakDays={streakDays} level={profile?.level ?? 1} showLogout onlineCount={onlineCount} onHistoryClick={() => setShowHistoryModal(true)} />
 
         <main className="px-3 pt-2 relative">
+          {/* Battery indicator (hidden for premium) */}
+          {!isPremium && (
+            <div className="flex items-center justify-end gap-1 mb-0.5 scale-[0.65] origin-right">
+              <span className={`text-[8px] font-medium ${
+                batteryBars === 7 ? 'text-primary' : 
+                batteryBars >= 5 ? 'text-accent' : 
+                batteryBars >= 3 ? 'text-[hsl(var(--ef-streak))]' : 'text-destructive'
+              }`}>
+                {batteryBars === 7 ? '⚡ Full Power!' : 
+                 batteryBars >= 5 ? '⚡ High Energy!' : 
+                 batteryBars >= 3 ? '⚡ Medium' : '⚡ Low Energy'}
+              </span>
+              <NeonBattery segments={batteryBars} maxSegments={7} size="sm" />
+            </div>
+          )}
+
           {/* Premium/Role status banner */}
           {(isPremium || role) && <div className="glass-card p-2 mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -210,22 +226,6 @@ export default function Home() {
                 </div>
               </div>
             </div>}
-
-          {/* Battery indicator (hidden for premium) */}
-          {!isPremium && (
-            <div className="flex items-center justify-end gap-1 mb-0.5 scale-[0.65] origin-right">
-              <span className={`text-[8px] font-medium ${
-                batteryBars === 7 ? 'text-primary' : 
-                batteryBars >= 5 ? 'text-accent' : 
-                batteryBars >= 3 ? 'text-[hsl(var(--ef-streak))]' : 'text-destructive'
-              }`}>
-                {batteryBars === 7 ? '⚡ Full Power!' : 
-                 batteryBars >= 5 ? '⚡ High Energy!' : 
-                 batteryBars >= 3 ? '⚡ Medium' : '⚡ Low Energy'}
-              </span>
-              <NeonBattery segments={batteryBars} maxSegments={7} size="sm" />
-            </div>
-          )}
 
           {/* Non-Premium Encouragement Banner */}
           {!isPremium && (
