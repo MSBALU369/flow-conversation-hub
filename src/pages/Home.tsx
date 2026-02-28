@@ -229,10 +229,10 @@ export default function Home() {
 
           {/* Non-Premium Encouragement Banner */}
           {!isPremium && (
-            <div className="mt-1 mb-3 glass-card-glow p-2.5 border border-primary/20 rounded-2xl">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center flex-shrink-0">
-                  <Crown className="w-5 h-5 text-primary" />
+            <div className="mt-1 mb-3 glass-card-glow p-2.5 border border-primary/20 rounded-2xl max-w-[85%] mx-auto">
+              <div className="flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center flex-shrink-0">
+                  <Crown className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-foreground">Unlock Your Full Potential 🚀</p>
@@ -241,7 +241,7 @@ export default function Home() {
                   </p>
                   <button
                     onClick={() => setShowPremiumModal(true)}
-                    className="mt-2 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+                    className="mt-1.5 px-3 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-semibold hover:bg-primary/90 transition-colors"
                   >
                     Go Premium
                   </button>
