@@ -181,7 +181,7 @@ export default function Premium() {
           <button className="inline-flex items-center gap-1.5 glass-button px-3 py-1 rounded-full hover:bg-muted transition-colors">
             <Sparkles className="w-3 h-3 text-accent" />
             <span className="text-xs text-foreground">
-              Try  {isIndiaRegion ? "₹49" : "$0.99"} ( 1 Day )
+              Try{"\u00A0\u00A0\u00A0"}{isIndiaRegion ? "₹49" : "$0.99"} ( 1 Day )
             </span>
           </button>
         </div>
