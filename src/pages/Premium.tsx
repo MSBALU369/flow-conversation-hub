@@ -225,7 +225,7 @@ export default function Premium() {
                           {savings > 0 &&
                         <span className="text-primary text-[10px] ml-1.5">Save {savings}%</span>
                         }
-                          <span className="text-accent text-[10px] ml-1.5">+{bonus} 🪙</span>
+                          
                         </div>
                       </div>
                       <div className="text-right">
