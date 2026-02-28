@@ -211,9 +211,25 @@ export default function Home() {
               </div>
             </div>}
 
+          {/* Battery indicator (hidden for premium) */}
+          {!isPremium && (
+            <div className="flex items-center justify-end gap-1.5 mb-1">
+              <span className={`text-[10px] font-medium ${
+                batteryBars === 7 ? 'text-primary' : 
+                batteryBars >= 5 ? 'text-accent' : 
+                batteryBars >= 3 ? 'text-[hsl(var(--ef-streak))]' : 'text-destructive'
+              }`}>
+                {batteryBars === 7 ? '⚡ Full Power!' : 
+                 batteryBars >= 5 ? '⚡ High Energy!' : 
+                 batteryBars >= 3 ? '⚡ Medium' : '⚡ Low Energy'}
+              </span>
+              <NeonBattery segments={batteryBars} maxSegments={7} size="sm" />
+            </div>
+          )}
+
           {/* Non-Premium Encouragement Banner */}
           {!isPremium && (
-            <div className="mt-2 mb-3 glass-card-glow p-4 border border-primary/20 rounded-2xl">
+            <div className="mt-1 mb-3 glass-card-glow p-4 border border-primary/20 rounded-2xl">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center flex-shrink-0">
                   <Crown className="w-5 h-5 text-primary" />
@@ -235,22 +251,7 @@ export default function Home() {
           )}
 
           {/* Main Card */}
-          <div className={cn("glass-card-glow p-4 animate-fade-in relative", isPremium ? "mt-0" : "mt-0")}>
-            {/* Battery - Positioned on top-right of card (hidden for premium) */}
-            {!isPremium && (
-              <div className="absolute -top-6 -right-1 scale-75 flex items-center gap-1.5">
-                <span className={`text-[10px] font-medium ${
-                  batteryBars === 7 ? 'text-primary' : 
-                  batteryBars >= 5 ? 'text-accent' : 
-                  batteryBars >= 3 ? 'text-[hsl(var(--ef-streak))]' : 'text-destructive'
-                }`}>
-                  {batteryBars === 7 ? '⚡ Full Power!' : 
-                   batteryBars >= 5 ? '⚡ High Energy!' : 
-                   batteryBars >= 3 ? '⚡ Medium' : '⚡ Low Energy'}
-                </span>
-                <NeonBattery segments={batteryBars} maxSegments={7} size="sm" />
-              </div>
-            )}
+          <div className={cn("glass-card-glow p-4 animate-fade-in relative", "mt-0")}>
             
             {/* Top Row: Online Count (left) + History */}
             <div className="flex items-center justify-between mb-3">
