@@ -413,21 +413,21 @@ export default function Home() {
       </div>
       
       {/* Premium Modal */}
-      <PremiumModal open={showPremiumModal} onOpenChange={setShowPremiumModal} />
+      {showPremiumModal && <PremiumModal open={showPremiumModal} onOpenChange={setShowPremiumModal} />}
       
       {/* History Modal */}
-      <CombinedHistoryModal open={showHistoryModal} onOpenChange={setShowHistoryModal} />
+      {showHistoryModal && <CombinedHistoryModal open={showHistoryModal} onOpenChange={setShowHistoryModal} />}
 
       {/* Speak With Modal (Premium) */}
-      <SpeakWithModal open={showSpeakWith} onOpenChange={setShowSpeakWith} />
+      {showSpeakWith && <SpeakWithModal open={showSpeakWith} onOpenChange={setShowSpeakWith} />}
 
       {/* Levels Modal */}
-      <LevelsModal
+      {showLevelsModal && <LevelsModal
         open={showLevelsModal}
         onOpenChange={setShowLevelsModal}
         currentLevel={profile?.level ?? 1}
         currentXp={profile?.xp ?? 0}
-      />
+      />}
 
       {/* Books & Courses Modal */}
       <Dialog open={showBooksModal} onOpenChange={setShowBooksModal}>
