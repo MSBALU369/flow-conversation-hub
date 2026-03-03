@@ -9,10 +9,12 @@ import { useProfile, ProfileProvider } from "@/hooks/useProfile";
 import { CallStateProvider } from "@/hooks/useCallState";
 import { AuthorizedGlobals } from "@/components/AuthorizedGlobals";
 
+// Eager-loaded critical pages
+import Login from "./pages/Login";
+import Onboarding from "./pages/Onboarding";
+import Home from "./pages/Home";
+
 // Lazy-loaded pages
-const Login = lazy(() => import("./pages/Login"));
-const Onboarding = lazy(() => import("./pages/Onboarding"));
-const Home = lazy(() => import("./pages/Home"));
 const Chat = lazy(() => import("./pages/Chat"));
 const Premium = lazy(() => import("./pages/Premium"));
 const Profile = lazy(() => import("./pages/Profile"));
