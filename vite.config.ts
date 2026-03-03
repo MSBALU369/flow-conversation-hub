@@ -15,7 +15,6 @@ export default defineConfig(({ mode }) => ({
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   build: {
     target: 'esnext',
-    minify: 'terser',
     rollupOptions: {
       output: {
         manualChunks: {
