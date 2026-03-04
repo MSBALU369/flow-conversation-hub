@@ -207,6 +207,18 @@ export default function Profile() {
       in("id", userIds);
 
       setListUsers(profiles || []);
+
+      // Load bidirectional follow state: check which of these users I already follow
+      if (showUsersList === "followers" || showUsersList === "fans") {
+        const { data: myFollows } = await supabase
+          .from("friendships")
+          .select("friend_id")
+          .eq("user_id", profile.id)
+          .eq("status", "accepted")
+          .in("friend_id", userIds);
+        setFollowedBackIds(new Set((myFollows || []).map((f) => f.friend_id)));
+      }
+
       setListLoading(false);
     };
     fetchList();
@@ -260,30 +272,44 @@ export default function Profile() {
   const handleFollowBack = async (targetUserId: string) => {
     if (!profile?.id || followActionLoading) return;
     setFollowActionLoading(targetUserId);
-    await supabase.from("friendships").insert({ user_id: profile.id, friend_id: targetUserId, status: "accepted" });
-    const { sendFollowNotification } = await import("@/lib/followNotification");
-    sendFollowNotification(profile.id, targetUserId);
+    // Optimistic: immediately show as followed
     setFollowedBackIds((prev) => new Set(prev).add(targetUserId));
-    fetchCounts();
-    toast({ title: "Followed", description: "You are now following this user." });
+    const { error } = await supabase.from("friendships").insert({ user_id: profile.id, friend_id: targetUserId, status: "accepted" });
+    if (error) {
+      // Rollback on failure
+      setFollowedBackIds((prev) => { const next = new Set(prev); next.delete(targetUserId); return next; });
+      toast({ title: "Failed to follow", variant: "destructive" });
+    } else {
+      const { sendFollowNotification } = await import("@/lib/followNotification");
+      sendFollowNotification(profile.id, targetUserId);
+      fetchCounts();
+      toast({ title: "Followed", description: "You are now following this user." });
+    }
     setFollowActionLoading(null);
   };
 
   const handleUnfollowBack = async (targetUserId: string) => {
     if (!profile?.id || followActionLoading) return;
     setFollowActionLoading(targetUserId);
-    await supabase.
-    from("friendships").
-    delete().
-    eq("user_id", profile.id).
-    eq("friend_id", targetUserId);
+    // Optimistic: immediately show as unfollowed
     setFollowedBackIds((prev) => {
       const next = new Set(prev);
       next.delete(targetUserId);
       return next;
     });
-    fetchCounts();
-    toast({ title: "Unfollowed", description: "You have unfollowed this user." });
+    const { error } = await supabase.
+    from("friendships").
+    delete().
+    eq("user_id", profile.id).
+    eq("friend_id", targetUserId);
+    if (error) {
+      // Rollback
+      setFollowedBackIds((prev) => new Set(prev).add(targetUserId));
+      toast({ title: "Failed to unfollow", variant: "destructive" });
+    } else {
+      fetchCounts();
+      toast({ title: "Unfollowed", description: "You have unfollowed this user." });
+    }
     setFollowActionLoading(null);
   };
 

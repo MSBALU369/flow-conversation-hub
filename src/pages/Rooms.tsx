@@ -149,7 +149,8 @@ export default function Rooms() {
       .single();
 
     if (error || !newRoom) {
-      toast({ title: "Error", description: "Failed to create room" });
+      console.error("Room creation failed:", error);
+      toast({ title: "Error", description: error?.message || "Failed to create room", variant: "destructive" });
       return;
     }
 
