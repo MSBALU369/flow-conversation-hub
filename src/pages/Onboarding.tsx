@@ -52,7 +52,7 @@ export default function Onboarding() {
       const { data } = await supabase
         .from("profiles")
         .select("id")
-        .eq("username", debouncedUsername)
+        .ilike("username", debouncedUsername)
         .maybeSingle();
 
       if (!cancelled) {
