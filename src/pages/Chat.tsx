@@ -487,6 +487,9 @@ export default function Chat() {
       setHasMore(true);
       return;
     }
+    // Immediately clear unread badge for this friend in local state
+    setChatFriends(prev => prev.map(f => f.id === selectedFriend.id ? { ...f, unread: 0 } : f));
+
     const fetchMessages = async () => {
       const { data, error } = await supabase
         .from("chat_messages")
@@ -527,13 +530,14 @@ export default function Chat() {
       }
       setMessages(mapped);
 
-      // Mark unread messages from friend as read
-      await supabase
+      // Mark unread messages from friend as read in DB (fire-and-forget)
+      supabase
         .from("chat_messages")
         .update({ is_read: true })
         .eq("sender_id", selectedFriend.id)
         .eq("receiver_id", profile.id)
-        .eq("is_read", false);
+        .eq("is_read", false)
+        .then(() => {});
     };
     fetchMessages();
 

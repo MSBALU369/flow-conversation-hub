@@ -761,26 +761,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
         </button>
       </header>
 
-      {/* Talk Prompt Banner */}
-      <div className="w-full flex justify-center px-4">
-        <div className="w-full max-w-[320px] mx-auto px-3 py-2 rounded-xl bg-[hsl(0,0%,15%)]">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-white/70 text-xs flex items-center gap-1.5">
-              <span className="text-sm">💡</span> Talk about
-            </span>
-            <button
-              onClick={() => setPromptIndex((prev) => (prev + 1) % talkPrompts.length)}
-              className="text-white text-xs flex items-center gap-1 hover:text-white/80 transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Next
-            </button>
-          </div>
-          <p className="text-white text-xs leading-relaxed">
-            {talkPrompts[promptIndex]}
-          </p>
-        </div>
-      </div>
+      {/* Talk Prompt Banner removed for cleaner UI */}
 
       {/* Safety Warning */}
       <div className="flex items-center justify-center gap-1.5 text-[10px] px-4 mt-5 mb-4">
