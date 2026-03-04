@@ -47,6 +47,7 @@ import { useNetworkStrength } from "@/hooks/useNetworkStrength";
 import { useCallState } from "@/hooks/useCallState";
 import { useToast } from "@/hooks/use-toast";
 import { useEnergySystem } from "@/hooks/useEnergySystem";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 import { cn, isInAppBrowser } from "@/lib/utils";
 import { GameListModal } from "@/components/games/GameListModal";
 import { QuizBetModal } from "@/components/games/QuizBetModal";
@@ -335,6 +336,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     const forceEnd = async (isLocalDisconnect = false) => {
       if (hasHandledDisconnectRef.current) return;
       hasHandledDisconnectRef.current = true;
+      try { playCallSound("beep"); } catch {}
       const callDuration = seconds;
       toast({ title: "Call Ended", description: isLocalDisconnect ? "You were disconnected." : "The other user has left the call." });
       try { room.disconnect(); } catch {}
@@ -442,9 +444,17 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     return () => {};
   }, [partnerProfile]);
 
+  const playCallSound = useNotificationSound();
+
+  // Play "pop" sound when call status switches to "talking" (connected)
+  const connectedSoundPlayed = useRef(false);
   useEffect(() => {
     const talkingTimer = setTimeout(() => {
       setCallStatus("talking");
+      if (!connectedSoundPlayed.current) {
+        connectedSoundPlayed.current = true;
+        try { playCallSound("pop"); } catch {}
+      }
     }, 1000);
     return () => clearTimeout(talkingTimer);
   }, []);

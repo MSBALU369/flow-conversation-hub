@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Users, Copy, Check, LogOut, ShieldBan, VolumeX } from "lucide-react";
+import { ArrowLeft, Send, Users, Copy, Check, LogOut, ShieldBan, VolumeX, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
@@ -9,6 +9,18 @@ import { useEnergySystem } from "@/hooks/useEnergySystem";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  LiveKitRoom,
+  RoomAudioRenderer,
+  useRoomContext,
+  useParticipants,
+  useLocalParticipant,
+  AudioConference,
+  StartAudio,
+} from "@livekit/components-react";
+import { RoomEvent } from "livekit-client";
+
+const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL;
 
 interface Message {
   id: string;
@@ -28,6 +40,55 @@ interface RoomInfo {
   max_members: number;
 }
 
+/** LiveKit voice controls inside the room */
+function RoomVoiceControls() {
+  const room = useRoomContext();
+  const { localParticipant } = useLocalParticipant();
+  const participants = useParticipants();
+  const [isMuted, setIsMuted] = useState(true); // start muted
+  const [activeSpeakers, setActiveSpeakers] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!room) return;
+    const handleSpeakers = (speakers: any[]) => {
+      setActiveSpeakers(speakers.map(s => s.identity));
+    };
+    room.on(RoomEvent.ActiveSpeakersChanged, handleSpeakers);
+    return () => { room.off(RoomEvent.ActiveSpeakersChanged, handleSpeakers); };
+  }, [room]);
+
+  useEffect(() => {
+    if (localParticipant && room?.state === 'connected') {
+      localParticipant.setMicrophoneEnabled(!isMuted);
+    }
+  }, [isMuted, localParticipant, room?.state]);
+
+  const remoteParticipants = participants.filter(p => !p.isLocal);
+  const speakingCount = activeSpeakers.length;
+
+  return (
+    <div className="bg-card border-b border-border px-4 py-2 flex items-center justify-between shrink-0">
+      <div className="flex items-center gap-2">
+        <div className="w-2 h-2 rounded-full bg-[hsl(var(--ef-online))] animate-pulse" />
+        <span className="text-xs text-muted-foreground">
+          {remoteParticipants.length + 1} in voice · {speakingCount} speaking
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <StartAudio label="Enable Audio" className="text-[10px] text-primary underline" />
+        <button
+          onClick={() => setIsMuted(!isMuted)}
+          className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+            isMuted ? "bg-destructive/20 text-destructive" : "bg-primary/20 text-primary"
+          }`}
+        >
+          {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function RoomDiscussion() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
@@ -43,6 +104,7 @@ export default function RoomDiscussion() {
       navigate("/rooms");
     }
   }, [isEmptyEnergy, isPremiumEnergy]);
+
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -53,20 +115,19 @@ export default function RoomDiscussion() {
   const [members, setMembers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
   const [mutedMembers, setMutedMembers] = useState<Set<string>>(new Set());
   const [showMembers, setShowMembers] = useState(false);
+  const [livekitToken, setLivekitToken] = useState<string | null>(null);
 
   const isHost = room?.host_id === user?.id;
 
   // Fetch room info
   useEffect(() => {
     if (!roomCode) return;
-
     const fetchRoom = async () => {
       const { data, error } = await supabase
         .from("rooms")
         .select("*")
         .eq("room_code", roomCode)
         .single();
-
       if (error || !data) {
         toast({ title: "Error", description: "Room not found" });
         navigate("/rooms");
@@ -75,21 +136,39 @@ export default function RoomDiscussion() {
       setRoom(data);
       setLoading(false);
     };
-
     fetchRoom();
   }, [roomCode]);
+
+  // Generate LiveKit token for voice
+  useEffect(() => {
+    if (!room || !user || !profile) return;
+    const generateToken = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-livekit-token", {
+          body: {
+            room_id: `room-${room.room_code}`,
+            participant_name: profile.username || "User",
+            participant_id: user.id,
+          },
+        });
+        if (error) throw error;
+        if (data?.token) setLivekitToken(data.token);
+      } catch (err) {
+        console.error("Failed to get LiveKit token for room:", err);
+      }
+    };
+    generateToken();
+  }, [room, user, profile]);
 
   // Fetch members with profiles
   useEffect(() => {
     if (!room) return;
-
     const fetchMembers = async () => {
       const { data, count } = await supabase
         .from("room_members")
         .select("user_id", { count: "exact" })
         .eq("room_id", room.id);
       setMemberCount(count ?? 0);
-
       if (data && data.length > 0) {
         const userIds = data.map(m => m.user_id);
         const { data: profiles } = await supabase
@@ -99,7 +178,6 @@ export default function RoomDiscussion() {
         setMembers((profiles || []).map(p => ({ user_id: p.id, username: p.username || "Unknown", avatar_url: p.avatar_url })));
       }
     };
-
     fetchMembers();
   }, [room]);
 
@@ -114,48 +192,31 @@ export default function RoomDiscussion() {
   const handleToggleMute = (targetUserId: string) => {
     setMutedMembers(prev => {
       const next = new Set(prev);
-      if (next.has(targetUserId)) {
-        next.delete(targetUserId);
-        toast({ title: "User unmuted" });
-      } else {
-        next.add(targetUserId);
-        toast({ title: "User muted" });
-      }
+      if (next.has(targetUserId)) { next.delete(targetUserId); toast({ title: "User unmuted" }); }
+      else { next.add(targetUserId); toast({ title: "User muted" }); }
       return next;
     });
   };
 
-  // Clean up room membership on tab close / unmount (prevent ghost members)
+  // Clean up room membership on tab close / unmount
   useEffect(() => {
     if (!room || !user) return;
-
-    const cleanupMembership = () => {
-      // Use sendBeacon for reliable tab-close cleanup
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/room_members?room_id=eq.${room.id}&user_id=eq.${user.id}`;
-      const headers = {
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        Authorization: `Bearer ${(supabase as any).auth.session?.()?.access_token || ""}`,
-      };
-      // Fallback: fire-and-forget delete
-      fetch(url, { method: "DELETE", headers, keepalive: true }).catch(() => {});
-    };
-
     const handleBeforeUnload = () => {
-      cleanupMembership();
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/room_members?room_id=eq.${room.id}&user_id=eq.${user.id}`;
+      fetch(url, {
+        method: "DELETE",
+        headers: {
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${(supabase as any).auth.session?.()?.access_token || ""}`,
+        },
+        keepalive: true,
+      }).catch(() => {});
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
-
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      // Component unmount cleanup (navigation away)
       if (room && user) {
-        supabase
-          .from("room_members")
-          .delete()
-          .eq("room_id", room.id)
-          .eq("user_id", user.id)
-          .then();
+        supabase.from("room_members").delete().eq("room_id", room.id).eq("user_id", user.id).then();
       }
     };
   }, [room, user]);
@@ -163,7 +224,6 @@ export default function RoomDiscussion() {
   // Fetch messages and subscribe to realtime
   useEffect(() => {
     if (!room) return;
-
     const fetchMessages = async () => {
       const { data } = await supabase
         .from("room_messages")
@@ -171,17 +231,13 @@ export default function RoomDiscussion() {
         .eq("room_id", room.id)
         .order("created_at", { ascending: true })
         .limit(200);
-
       if (data && data.length > 0) {
-        // Fetch sender profiles
         const senderIds = [...new Set(data.map((m) => m.sender_id))];
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, username, avatar_url")
           .in("id", senderIds);
-
         const profileMap = new Map(profiles?.map((p) => [p.id, p]) ?? []);
-
         setMessages(
           data.map((m) => ({
             ...m,
@@ -191,19 +247,10 @@ export default function RoomDiscussion() {
         );
       }
     };
-
     fetchMessages();
-
     const channel = supabase
       .channel(`room-${room.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "room_messages",
-          filter: `room_id=eq.${room.id}`,
-        },
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_messages", filter: `room_id=eq.${room.id}` },
         async (payload) => {
           const msg = payload.new as any;
           const { data: senderProfile } = await supabase
@@ -211,22 +258,11 @@ export default function RoomDiscussion() {
             .select("username, avatar_url")
             .eq("id", msg.sender_id)
             .single();
-
-          setMessages((prev) => [
-            ...prev,
-            {
-              ...msg,
-              sender_username: senderProfile?.username ?? "Unknown",
-              sender_avatar: senderProfile?.avatar_url,
-            },
-          ]);
+          setMessages((prev) => [...prev, { ...msg, sender_username: senderProfile?.username ?? "Unknown", sender_avatar: senderProfile?.avatar_url }]);
         }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [room]);
 
   // Auto-scroll on new messages
@@ -236,18 +272,8 @@ export default function RoomDiscussion() {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !room || !user) return;
-
-    const { error } = await supabase.from("room_messages").insert({
-      room_id: room.id,
-      sender_id: user.id,
-      content: newMessage.trim(),
-    });
-
-    if (error) {
-      toast({ title: "Error", description: "Failed to send message" });
-      return;
-    }
-
+    const { error } = await supabase.from("room_messages").insert({ room_id: room.id, sender_id: user.id, content: newMessage.trim() });
+    if (error) { toast({ title: "Error", description: "Failed to send message" }); return; }
     setNewMessage("");
   };
 
@@ -261,29 +287,15 @@ export default function RoomDiscussion() {
 
   const handleLeaveRoom = async () => {
     if (!room || !user) return;
-
-    await supabase
-      .from("room_members")
-      .delete()
-      .eq("room_id", room.id)
-      .eq("user_id", user.id);
-
-    // Auto-delete room if no members remain
-    const { count } = await supabase
-      .from("room_members")
-      .select("*", { count: "exact", head: true })
-      .eq("room_id", room.id);
-    if (count === 0) {
-      await supabase.from("rooms").delete().eq("id", room.id);
-    }
-
+    await supabase.from("room_members").delete().eq("room_id", room.id).eq("user_id", user.id);
+    const { count } = await supabase.from("room_members").select("*", { count: "exact", head: true }).eq("room_id", room.id);
+    if (count === 0) await supabase.from("rooms").delete().eq("id", room.id);
     toast({ title: "Left room", description: `You left "${room.title}"` });
     navigate("/rooms");
   };
 
   const handleCloseRoom = async () => {
     if (!room || !user) return;
-    // Any active member can close the room (delegation)
     await supabase.from("room_members").delete().eq("room_id", room.id);
     await supabase.from("rooms").delete().eq("id", room.id);
     toast({ title: "Room closed", description: `"${room.title}" has been permanently closed.` });
@@ -297,7 +309,6 @@ export default function RoomDiscussion() {
       </div>
     );
   }
-
   if (!room) return null;
 
   const formatTime = (dateStr: string) => {
@@ -305,7 +316,7 @@ export default function RoomDiscussion() {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  return (
+  const roomContent = (
     <div className="h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="bg-card border-b border-border px-4 py-3 flex items-center justify-between shrink-0">
@@ -339,6 +350,9 @@ export default function RoomDiscussion() {
           </button>
         </div>
       </div>
+
+      {/* Voice Controls (LiveKit) */}
+      {livekitToken && <RoomVoiceControls />}
 
       {/* Host Members Panel */}
       {showMembers && isHost && (
@@ -411,6 +425,32 @@ export default function RoomDiscussion() {
           <Send className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* Hidden AudioConference for WebRTC routing */}
+      {livekitToken && (
+        <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+          <AudioConference />
+        </div>
+      )}
     </div>
   );
+
+  // Wrap in LiveKitRoom if we have a token
+  if (livekitToken && LIVEKIT_URL) {
+    return (
+      <LiveKitRoom
+        serverUrl={LIVEKIT_URL}
+        token={livekitToken}
+        connect={true}
+        audio={false}
+        video={false}
+      >
+        <RoomAudioRenderer />
+        <StartAudio label="Click to enable audio" />
+        {roomContent}
+      </LiveKitRoom>
+    );
+  }
+
+  return roomContent;
 }

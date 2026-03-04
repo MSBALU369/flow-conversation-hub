@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { startOfWeek, getDay, isToday, isYesterday, isSameDay, format } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MessageCircle, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, MoreVertical, Send, Image, ArrowLeft, Check, CheckCheck, Mic, Eye, ImageIcon, BarChart3, BellOff, VolumeX, Images, Trash2, User, Volume2, UserPlus, Undo2, Crown, Pause, Play, Pencil, X, ShieldAlert, Ban, Copy } from "lucide-react";
+import { VoiceMessagePlayer } from "@/components/VoiceMessagePlayer";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useProfile } from "@/hooks/useProfile";
 import { useCallState } from "@/hooks/useCallState";
@@ -1547,7 +1548,7 @@ export default function Chat() {
                         <p className="truncate">{message.replyToContent}</p>
                       </div>
                     )}
-                    {/* Voice message with native audio player */}
+                    {/* Voice message with custom progress bar */}
                     {message.type === "voice" ? (
                       <div className="flex flex-col gap-1.5 min-w-[180px]">
                         <div className="flex items-center gap-1.5">
@@ -1557,13 +1558,7 @@ export default function Chat() {
                           </span>
                         </div>
                         {message.mediaUrl ? (
-                          <audio
-                            controls
-                            src={message.mediaUrl}
-                            preload="metadata"
-                            className="w-full max-w-[220px] h-8"
-                            style={{ filter: isMe ? "invert(1) brightness(2)" : "none" }}
-                          />
+                          <VoiceMessagePlayer url={message.mediaUrl} isMe={isMe} messageId={message.id} />
                         ) : (
                           <span className={cn("text-xs italic", isMe ? "text-primary-foreground/50" : "text-muted-foreground")}>Audio unavailable</span>
                         )}
