@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Mic, Play, Pause, Heart, MessageCircle, Star, Upload, Clock, Share2, Users, ArrowLeft, MoreVertical, EyeOff, Eye, Trash2, Flag, Send, Link, UserPlus, Reply, FolderOpen, ListMusic, Plus, Check, ThumbsDown, X, Lock, Globe, Coins } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -74,6 +74,7 @@ export default function Talent() {
     profile
   } = useProfile();
   const navigate = useNavigate();
+  const location = useLocation();
   const [posts, setPosts] = useState<TalentPost[]>([]);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -137,7 +138,7 @@ export default function Talent() {
       }));
     };
     fetchTalents();
-  }, []);
+  }, [location.key]);
 
   // Fetch real friends for sharing from mutual followers
   const [shareFriends, setShareFriends] = useState<{id: string;name: string;avatar: string | null;}[]>([]);

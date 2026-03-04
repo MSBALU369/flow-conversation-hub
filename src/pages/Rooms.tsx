@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Users, Plus, Lock, Globe, Copy, Check, Crown, ArrowLeft } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -45,6 +45,7 @@ export default function Rooms() {
   const { profile } = useProfile();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -109,7 +110,7 @@ export default function Rooms() {
     };
 
     fetchRooms();
-  }, []);
+  }, [location.key]);
 
   const [customRoomCode, setCustomRoomCode] = useState("");
 
