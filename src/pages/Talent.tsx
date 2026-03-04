@@ -172,6 +172,8 @@ export default function Talent() {
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [previewProgress, setPreviewProgress] = useState(0);
+  const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
+  const [previewDuration, setPreviewDuration] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [uploadTitle, setUploadTitle] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -183,6 +185,8 @@ export default function Talent() {
   // Real audio playback state per talent card
   const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
+  const [audioCurrentTime, setAudioCurrentTime] = useState<Record<string, number>>({});
+  const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
 
   // Recording timer
   useEffect(() => {
@@ -272,13 +276,30 @@ export default function Talent() {
 
   const handleUploadTalent = async () => {
     if (!recordedBlob || !profile?.id) return;
+    if (!uploadLanguage) {
+      toast({ title: "Select a language", variant: "destructive" });
+      return;
+    }
+    if (!uploadCategory) {
+      toast({ title: "Select a category", variant: "destructive" });
+      return;
+    }
     setUploading(true);
     try {
       const ext = recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
       const filePath = `talents/${profile.id}/talent_${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("chat_media").upload(filePath, recordedBlob, { contentType: recordedBlob.type });
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Talent storage upload failed:", uploadError);
+        toast({ title: "Storage upload failed", description: uploadError.message, variant: "destructive" });
+        return;
+      }
       const { data: urlData } = supabase.storage.from("chat_media").getPublicUrl(filePath);
+      if (!urlData?.publicUrl) {
+        console.error("Failed to get public URL for talent");
+        toast({ title: "Failed to get file URL", variant: "destructive" });
+        return;
+      }
       const { error: insertError } = await supabase.from("talent_uploads").insert({
         user_id: profile.id,
         audio_url: urlData.publicUrl,
@@ -287,16 +308,20 @@ export default function Talent() {
         duration_sec: recordingTime,
         is_private: uploadVisibility === "private",
       });
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("Talent DB insert failed:", insertError);
+        toast({ title: "Failed to save talent", description: insertError.message, variant: "destructive" });
+        return;
+      }
       toast({ title: "Talent uploaded!", description: "Your recording is now live." });
       setShowUploadModal(false);
       cancelTalentRecording();
       setUploadTitle("");
       setUploadLanguage("");
       setUploadCategory("");
-      // Refresh feed
       window.location.reload();
     } catch (err: any) {
+      console.error("Talent upload error:", err);
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
@@ -322,14 +347,21 @@ export default function Talent() {
         if (!audio) {
           audio = new Audio(talent.audio_url);
           audioElementsRef.current.set(id, audio);
+          audio.onloadedmetadata = () => {
+            if (audio!.duration && isFinite(audio!.duration)) {
+              setAudioDuration(prev => ({ ...prev, [id]: audio!.duration }));
+            }
+          };
           audio.ontimeupdate = () => {
             if (audio!.duration) {
               setAudioProgress(prev => ({ ...prev, [id]: (audio!.currentTime / audio!.duration) * 100 }));
+              setAudioCurrentTime(prev => ({ ...prev, [id]: audio!.currentTime }));
             }
           };
           audio.onended = () => {
             setPlayingId(null);
             setAudioProgress(prev => ({ ...prev, [id]: 0 }));
+            setAudioCurrentTime(prev => ({ ...prev, [id]: 0 }));
           };
         }
         audio.play().catch(() => {});
@@ -628,12 +660,18 @@ export default function Talent() {
                     <button onClick={() => togglePlay(post.id)} className={cn("w-7 h-7 rounded-full flex items-center justify-center transition-all", playingId === post.id ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80")}>
                       {playingId === post.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
                     </button>
-                    <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full transition-all duration-200" style={{ width: `${audioProgress[post.id] || 0}%` }} />
+                    <div className="flex-1">
+                      <div className="h-1 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${audioProgress[post.id] || 0}%` }} />
+                      </div>
                     </div>
-                    <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
-                      <Clock className="w-2.5 h-2.5" />
-                      {post.duration}
+                    <span className="text-[9px] text-muted-foreground tabular-nums">
+                      {playingId === post.id && audioCurrentTime[post.id] != null
+                        ? `${Math.floor(audioCurrentTime[post.id] / 60)}:${Math.floor(audioCurrentTime[post.id] % 60).toString().padStart(2, '0')} / `
+                        : ""}
+                      {audioDuration[post.id] && isFinite(audioDuration[post.id])
+                        ? `${Math.floor(audioDuration[post.id] / 60)}:${Math.floor(audioDuration[post.id] % 60).toString().padStart(2, '0')}`
+                        : post.duration}
                     </span>
                   </div>
 
@@ -927,20 +965,29 @@ export default function Talent() {
                   </button>
                   <div className="flex-1">
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full transition-all duration-200" style={{ width: `${previewProgress}%` }} />
+                      <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${previewProgress}%` }} />
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">{Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 tabular-nums">
+                      {Math.floor(previewCurrentTime / 60)}:{Math.floor(previewCurrentTime % 60).toString().padStart(2, '0')} / {Math.floor((previewDuration || recordingTime) / 60)}:{Math.floor((previewDuration || recordingTime) % 60).toString().padStart(2, '0')}
+                    </p>
                   </div>
                 </div>
                 {recordedUrl && (
                   <audio
                     ref={previewAudioRef}
                     src={recordedUrl}
+                    onLoadedMetadata={() => {
+                      const a = previewAudioRef.current;
+                      if (a && a.duration && isFinite(a.duration)) setPreviewDuration(a.duration);
+                    }}
                     onTimeUpdate={() => {
                       const a = previewAudioRef.current;
-                      if (a && a.duration) setPreviewProgress((a.currentTime / a.duration) * 100);
+                      if (a && a.duration) {
+                        setPreviewProgress((a.currentTime / a.duration) * 100);
+                        setPreviewCurrentTime(a.currentTime);
+                      }
                     }}
-                    onEnded={() => { setIsPreviewPlaying(false); setPreviewProgress(0); }}
+                    onEnded={() => { setIsPreviewPlaying(false); setPreviewProgress(0); setPreviewCurrentTime(0); }}
                     className="hidden"
                   />
                 )}

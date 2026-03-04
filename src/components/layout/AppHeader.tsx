@@ -331,7 +331,7 @@ export function AppHeader({
         </button>
 
         {/* Notification Bell with Popover */}
-        <Popover>
+        <Popover onOpenChange={(open) => { if (open && unreadCount > 0) markAllRead(); }}>
           <PopoverTrigger asChild>
             <button className="p-1 relative hover:bg-muted rounded-lg transition-colors">
               <Bell className="w-5 h-5 text-muted-foreground" />
