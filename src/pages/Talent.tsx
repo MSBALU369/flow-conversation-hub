@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { MentionInput } from "@/components/MentionInput";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 interface TalentPost {
   id: string;
@@ -94,6 +95,7 @@ export default function Talent() {
   const [playlistLangFilter, setPlaylistLangFilter] = useState("All");
   const [previewPostId, setPreviewPostId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Fetch real talent posts from Supabase
   useEffect(() => {
@@ -214,8 +216,13 @@ export default function Talent() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
       audioChunksRef.current = [];
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-      const recorder = new MediaRecorder(stream, { mimeType });
+
+      const preferredMimeTypes = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+      const supportedMimeType = preferredMimeTypes.find((type) => MediaRecorder.isTypeSupported(type));
+      const recorder = supportedMimeType
+        ? new MediaRecorder(stream, { mimeType: supportedMimeType })
+        : new MediaRecorder(stream);
+
       mediaRecorderRef.current = recorder;
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
@@ -225,7 +232,11 @@ export default function Talent() {
       setRecordingTime(0);
       setRecordedBlob(null);
       setRecordedUrl(null);
-    } catch {
+      setPreviewProgress(0);
+      setPreviewCurrentTime(0);
+      setPreviewDuration(0);
+    } catch (error) {
+      console.error("Talent recording start failed:", error);
       toast({ title: "Microphone access denied", description: "Please allow microphone access.", variant: "destructive" });
     }
   };
@@ -275,44 +286,75 @@ export default function Talent() {
   };
 
   const handleUploadTalent = async () => {
-    if (!recordedBlob || !profile?.id) return;
+    if (!user?.id) {
+      toast({ title: "Login required", description: "Please log in to upload talent.", variant: "destructive" });
+      return;
+    }
+
+    if (!recordedBlob || recordedBlob.size === 0) {
+      toast({ title: "No valid recording", description: "Please record your voice before uploading.", variant: "destructive" });
+      return;
+    }
+
     if (!uploadLanguage) {
       toast({ title: "Select a language", variant: "destructive" });
       return;
     }
+
     if (!uploadCategory) {
       toast({ title: "Select a category", variant: "destructive" });
       return;
     }
+
     setUploading(true);
+
     try {
-      const ext = recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
-      const filePath = `talents/${profile.id}/talent_${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("chat_media").upload(filePath, recordedBlob, { contentType: recordedBlob.type });
+      const extension = recordedBlob.type.includes("mp4") ? "mp4" : "webm";
+      const normalizedBlob = recordedBlob.type
+        ? recordedBlob
+        : new Blob([recordedBlob], { type: "audio/webm" });
+      const filePath = `${user.id}/talents/talent_${Date.now()}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("chat_media")
+        .upload(filePath, normalizedBlob, {
+          contentType: normalizedBlob.type || "audio/webm",
+          upsert: false,
+        });
+
       if (uploadError) {
-        console.error("Talent storage upload failed:", uploadError);
+        console.error("Talent storage upload failed:", { uploadError, filePath, userId: user.id });
         toast({ title: "Storage upload failed", description: uploadError.message, variant: "destructive" });
         return;
       }
+
       const { data: urlData } = supabase.storage.from("chat_media").getPublicUrl(filePath);
-      if (!urlData?.publicUrl) {
-        console.error("Failed to get public URL for talent");
-        toast({ title: "Failed to get file URL", variant: "destructive" });
+      const publicUrl = urlData?.publicUrl;
+
+      if (!publicUrl) {
+        console.error("Talent public URL generation failed:", { filePath, userId: user.id });
+        toast({ title: "Failed to get file URL", description: "Upload succeeded but URL generation failed.", variant: "destructive" });
         return;
       }
-      const { error: insertError } = await supabase.from("talent_uploads").insert({
-        user_id: profile.id,
-        audio_url: urlData.publicUrl,
+
+      const durationSeconds = Math.max(1, Math.round(previewDuration || recordingTime));
+      const insertPayload = {
+        user_id: user.id,
+        audio_url: publicUrl,
         language: uploadLanguage,
         title: uploadTitle.trim() || `${uploadCategory} in ${uploadLanguage}`,
-        duration_sec: recordingTime,
+        duration_sec: durationSeconds,
         is_private: uploadVisibility === "private",
-      });
+      };
+
+      const { error: insertError } = await supabase.from("talent_uploads").insert(insertPayload);
+
       if (insertError) {
-        console.error("Talent DB insert failed:", insertError);
+        console.error("Talent DB insert failed:", { insertError, insertPayload });
         toast({ title: "Failed to save talent", description: insertError.message, variant: "destructive" });
         return;
       }
+
       toast({ title: "Talent uploaded!", description: "Your recording is now live." });
       setShowUploadModal(false);
       cancelTalentRecording();
@@ -320,9 +362,9 @@ export default function Talent() {
       setUploadLanguage("");
       setUploadCategory("");
       window.location.reload();
-    } catch (err: any) {
-      console.error("Talent upload error:", err);
-      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } catch (error: any) {
+      console.error("Talent upload error:", error);
+      toast({ title: "Upload failed", description: error?.message || "Unexpected upload error", variant: "destructive" });
     } finally {
       setUploading(false);
     }

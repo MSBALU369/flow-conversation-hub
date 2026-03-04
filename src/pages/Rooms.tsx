@@ -116,79 +116,120 @@ export default function Rooms() {
       toast({ title: "Error", description: "Please enter a room title" });
       return;
     }
-    if (!user) return;
+
+    if (!user?.id) {
+      toast({ title: "Login required", description: "Please log in to create a room", variant: "destructive" });
+      return;
+    }
 
     if (roomType === "private" && !isPremium) {
       toast({ title: "Premium Required", description: "Private rooms are available for Premium users only" });
       return;
     }
 
-    // Premium users can use a custom/previous room code
-    const newCode = (isPremium && customRoomCode.trim()) ? customRoomCode.trim() : generateRoomCode();
+    try {
+      // Premium users can use a custom/previous room code
+      const newCode = (isPremium && customRoomCode.trim()) ? customRoomCode.trim() : generateRoomCode();
 
-    // Check if code already exists (for premium recreation)
-    if (isPremium && customRoomCode.trim()) {
-      const { data: existing } = await supabase.from("rooms").select("id").eq("room_code", newCode).maybeSingle();
-      if (existing) {
-        toast({ title: "Code already in use", description: "That room code is currently active. Choose another." });
+      // Check if code already exists (for premium recreation)
+      if (isPremium && customRoomCode.trim()) {
+        const { data: existing, error: codeCheckError } = await supabase
+          .from("rooms")
+          .select("id")
+          .eq("room_code", newCode)
+          .maybeSingle();
+
+        if (codeCheckError) {
+          console.error("Room code check failed:", codeCheckError);
+          toast({ title: "Error", description: "Unable to validate room code", variant: "destructive" });
+          return;
+        }
+
+        if (existing) {
+          toast({ title: "Code already in use", description: "That room code is currently active. Choose another." });
+          return;
+        }
+      }
+
+      // Insert room first
+      const { data: newRoom, error: roomInsertError } = await supabase
+        .from("rooms")
+        .insert({
+          room_code: newCode,
+          title: roomTitle.trim(),
+          is_private: roomType === "private",
+          language: roomLanguage,
+          host_id: user.id,
+        })
+        .select("id, room_code")
+        .maybeSingle();
+
+      if (roomInsertError || !newRoom) {
+        console.error("Room creation failed:", roomInsertError);
+        toast({ title: "Room creation failed", description: roomInsertError?.message || "Failed to create room", variant: "destructive" });
         return;
       }
+
+      // Auto-join host as member
+      const { error: memberInsertError } = await supabase
+        .from("room_members")
+        .insert({ room_id: newRoom.id, user_id: user.id });
+
+      if (memberInsertError) {
+        console.error("Room member insert failed:", memberInsertError);
+        await supabase.from("rooms").delete().eq("id", newRoom.id);
+        toast({ title: "Room join failed", description: memberInsertError.message, variant: "destructive" });
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(newCode);
+      } catch (clipboardError) {
+        console.error("Room code clipboard copy failed:", clipboardError);
+      }
+
+      toast({ title: "Room Created!", description: `Room ID: ${newCode}${" (copied). Share to invite others."}` });
+
+      setShowCreateModal(false);
+      setRoomTitle("");
+      setRoomType("public");
+      setRoomLanguage("English");
+      setCustomRoomCode("");
+
+      navigate(`/room/${newCode}`);
+    } catch (error: any) {
+      console.error("Unexpected room creation error:", error);
+      toast({ title: "Room creation failed", description: error?.message || "Unexpected error", variant: "destructive" });
     }
-
-    // Insert room
-    const { data: newRoom, error } = await supabase
-      .from("rooms")
-      .insert({
-        room_code: newCode,
-        title: roomTitle.trim(),
-        is_private: roomType === "private",
-        language: roomLanguage,
-        host_id: user.id,
-      })
-      .select()
-      .single();
-
-    if (error || !newRoom) {
-      console.error("Room creation failed:", error);
-      toast({ title: "Error", description: error?.message || "Failed to create room", variant: "destructive" });
-      return;
-    }
-
-    // Auto-join as member
-    await supabase.from("room_members").insert({ room_id: newRoom.id, user_id: user.id });
-
-    navigator.clipboard.writeText(newCode);
-    toast({ title: "Room Created!", description: `Room ID: ${newCode} (copied). Share to invite others.` });
-
-    setShowCreateModal(false);
-    setRoomTitle("");
-    setRoomType("public");
-    setRoomLanguage("English");
-    setCustomRoomCode("");
-
-    // Navigate to discussion
-    navigate(`/room/${newCode}`);
   };
 
   const handleJoinRoom = async () => {
-    if (!joinRoomId.trim() || !user) {
+    if (!joinRoomId.trim() || !user?.id) {
       toast({ title: "Error", description: "Please enter a Room ID" });
       return;
     }
 
     const { data: room, error } = await supabase
       .from("rooms")
-      .select("*")
+      .select("id, room_code")
       .eq("room_code", joinRoomId.trim())
-      .single();
+      .maybeSingle();
 
     if (error || !room) {
+      console.error("Room lookup failed:", error);
       toast({ title: "Not Found", description: "No room found with that ID" });
       return;
     }
 
-    // Join as member (upsert to avoid duplicate)
-    await supabase.from("room_members").upsert({ room_id: room.id, user_id: user.id }, { onConflict: "room_id,user_id" });
+    const { error: joinError } = await supabase
+      .from("room_members")
+      .upsert({ room_id: room.id, user_id: user.id }, { onConflict: "room_id,user_id" });
+
+    if (joinError) {
+      console.error("Room join failed:", joinError);
+      toast({ title: "Join failed", description: joinError.message, variant: "destructive" });
+      return;
+    }
 
     setShowJoinModal(false);
     setJoinRoomId("");
@@ -207,10 +248,22 @@ export default function Rooms() {
       toast({ title: "Premium Required", description: "Private rooms are available for Premium users only" });
       return;
     }
-    if (!user) return;
 
-    // Join as member
-    await supabase.from("room_members").upsert({ room_id: room.id, user_id: user.id }, { onConflict: "room_id,user_id" });
+    if (!user?.id) {
+      toast({ title: "Login required", description: "Please log in to enter rooms", variant: "destructive" });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("room_members")
+      .upsert({ room_id: room.id, user_id: user.id }, { onConflict: "room_id,user_id" });
+
+    if (error) {
+      console.error("Room enter upsert failed:", error);
+      toast({ title: "Unable to enter room", description: error.message, variant: "destructive" });
+      return;
+    }
+
     navigate(`/room/${room.room_code}`);
   };
 
