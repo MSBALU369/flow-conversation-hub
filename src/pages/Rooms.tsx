@@ -226,9 +226,9 @@ export default function Rooms() {
 
     const { error: joinError } = await supabase
       .from("room_members")
-      .upsert({ room_id: room.id, user_id: user.id }, { onConflict: "room_id,user_id" });
+      .insert({ room_id: room.id, user_id: user.id });
 
-    if (joinError) {
+    if (joinError && !joinError.message?.includes("duplicate")) {
       console.error("Room join failed:", joinError);
       toast({ title: "Join failed", description: joinError.message, variant: "destructive" });
       return;
@@ -259,10 +259,10 @@ export default function Rooms() {
 
     const { error } = await supabase
       .from("room_members")
-      .upsert({ room_id: room.id, user_id: user.id }, { onConflict: "room_id,user_id" });
+      .insert({ room_id: room.id, user_id: user.id });
 
-    if (error) {
-      console.error("Room enter upsert failed:", error);
+    if (error && !error.message?.includes("duplicate")) {
+      console.error("Room enter failed:", error);
       toast({ title: "Unable to enter room", description: error.message, variant: "destructive" });
       return;
     }
