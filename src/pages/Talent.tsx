@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Mic, Play, Pause, Heart, MessageCircle, Star, Upload, Clock, Share2, Users, ArrowLeft, MoreVertical, EyeOff, Eye, Trash2, Flag, Send, Link, UserPlus, Reply, FolderOpen, ListMusic, Plus, Check, ThumbsDown, X, Lock, Globe, Coins } from "lucide-react";
@@ -164,19 +164,184 @@ export default function Talent() {
   const [uploadVisibility, setUploadVisibility] = useState<"public" | "private">("public");
   const [myTalentVisibility, setMyTalentVisibility] = useState<"all" | "public" | "private">("all");
   const [playedIds, setPlayedIds] = useState<Set<string>>(new Set());
+
+  // Recording states for talent upload
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [previewProgress, setPreviewProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Real audio playback state per talent card
+  const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const [audioProgress, setAudioProgress] = useState<Record<string, number>>({});
+
+  // Recording timer
+  useEffect(() => {
+    if (isRecording) {
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => {
+          if (prev >= 120) {
+            // Auto-stop at 2 minutes
+            stopTalentRecording();
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } else if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+    }
+    return () => {
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    };
+  }, [isRecording]);
+
+  const startTalentRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      audioChunksRef.current = [];
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.start(250);
+      setIsRecording(true);
+      setRecordingTime(0);
+      setRecordedBlob(null);
+      setRecordedUrl(null);
+    } catch {
+      toast({ title: "Microphone access denied", description: "Please allow microphone access.", variant: "destructive" });
+    }
+  };
+
+  const stopTalentRecording = async () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) return;
+    setIsRecording(false);
+    await new Promise<void>(resolve => {
+      recorder.onstop = () => resolve();
+      recorder.stop();
+    });
+    mediaStreamRef.current?.getTracks().forEach(t => t.stop());
+    mediaStreamRef.current = null;
+    mediaRecorderRef.current = null;
+    const mimeType = audioChunksRef.current[0]?.type || 'audio/webm';
+    const blob = new Blob(audioChunksRef.current, { type: mimeType });
+    audioChunksRef.current = [];
+    setRecordedBlob(blob);
+    setRecordedUrl(URL.createObjectURL(blob));
+  };
+
+  const cancelTalentRecording = () => {
+    mediaRecorderRef.current?.stop();
+    mediaStreamRef.current?.getTracks().forEach(t => t.stop());
+    mediaRecorderRef.current = null;
+    mediaStreamRef.current = null;
+    audioChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingTime(0);
+    setRecordedBlob(null);
+    if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+    setRecordedUrl(null);
+    setPreviewProgress(0);
+    setIsPreviewPlaying(false);
+  };
+
+  const togglePreviewPlay = () => {
+    if (!previewAudioRef.current || !recordedUrl) return;
+    if (isPreviewPlaying) {
+      previewAudioRef.current.pause();
+      setIsPreviewPlaying(false);
+    } else {
+      previewAudioRef.current.play();
+      setIsPreviewPlaying(true);
+    }
+  };
+
+  const handleUploadTalent = async () => {
+    if (!recordedBlob || !profile?.id) return;
+    setUploading(true);
+    try {
+      const ext = recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
+      const filePath = `talents/${profile.id}/talent_${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("chat_media").upload(filePath, recordedBlob, { contentType: recordedBlob.type });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("chat_media").getPublicUrl(filePath);
+      const { error: insertError } = await supabase.from("talent_uploads").insert({
+        user_id: profile.id,
+        audio_url: urlData.publicUrl,
+        language: uploadLanguage,
+        title: uploadTitle.trim() || `${uploadCategory} in ${uploadLanguage}`,
+        duration_sec: recordingTime,
+        is_private: uploadVisibility === "private",
+      });
+      if (insertError) throw insertError;
+      toast({ title: "Talent uploaded!", description: "Your recording is now live." });
+      setShowUploadModal(false);
+      cancelTalentRecording();
+      setUploadTitle("");
+      setUploadLanguage("");
+      setUploadCategory("");
+      // Refresh feed
+      window.location.reload();
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
   const togglePlay = async (id: string) => {
     if (playingId === id) {
+      // Pause current
+      const audio = audioElementsRef.current.get(id);
+      if (audio) audio.pause();
       setPlayingId(null);
     } else {
+      // Stop any currently playing
+      if (playingId) {
+        const prevAudio = audioElementsRef.current.get(playingId);
+        if (prevAudio) { prevAudio.pause(); prevAudio.currentTime = 0; }
+      }
       setPlayingId(id);
+      // Fetch audio URL and play
+      const { data: talent } = await supabase.from("talent_uploads").select("audio_url").eq("id", id).single();
+      if (talent?.audio_url) {
+        let audio = audioElementsRef.current.get(id);
+        if (!audio) {
+          audio = new Audio(talent.audio_url);
+          audioElementsRef.current.set(id, audio);
+          audio.ontimeupdate = () => {
+            if (audio!.duration) {
+              setAudioProgress(prev => ({ ...prev, [id]: (audio!.currentTime / audio!.duration) * 100 }));
+            }
+          };
+          audio.onended = () => {
+            setPlayingId(null);
+            setAudioProgress(prev => ({ ...prev, [id]: 0 }));
+          };
+        }
+        audio.play().catch(() => {});
+      }
       // Increment plays_count in DB on first play per session
       if (!playedIds.has(id)) {
         setPlayedIds((prev) => new Set(prev).add(id));
         setPosts((prev) => prev.map((p) => p.id === id ? { ...p, plays: p.plays + 1 } : p));
-        await supabase.
-        from("talent_uploads").
-        update({ plays_count: posts.find((p) => p.id === id)!.plays + 1 }).
-        eq("id", id);
+        await supabase
+          .from("talent_uploads")
+          .update({ plays_count: posts.find((p) => p.id === id)!.plays + 1 })
+          .eq("id", id);
       }
     }
   };
@@ -464,7 +629,7 @@ export default function Talent() {
                       {playingId === post.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
                     </button>
                     <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                      <div className={cn("h-full bg-primary rounded-full transition-all", playingId === post.id ? "w-1/3 animate-pulse" : "w-0")} />
+                      <div className="h-full bg-primary rounded-full transition-all duration-200" style={{ width: `${audioProgress[post.id] || 0}%` }} />
                     </div>
                     <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
                       <Clock className="w-2.5 h-2.5" />
@@ -708,10 +873,88 @@ export default function Talent() {
               </p>
             </div>
 
-            <Button className="w-full bg-primary text-primary-foreground" disabled={false}>
-              <Mic className="w-4 h-4 mr-2" />
-              {canRecord ? "Start Recording" : "Select Language & Category"}
-            </Button>
+            {/* Title */}
+            <div className="text-left mb-3">
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Title (optional)</label>
+              <Input
+                value={uploadTitle}
+                onChange={(e) => setUploadTitle(e.target.value)}
+                placeholder="Give your talent a title..."
+                maxLength={100}
+                className="glass-button border-border"
+              />
+            </div>
+
+            {/* Recording Controls */}
+            {!recordedBlob ? (
+              <div className="space-y-3">
+                {isRecording ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center animate-pulse">
+                      <Mic className="w-8 h-8 text-destructive" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Recording... {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</p>
+                    <p className="text-[10px] text-muted-foreground">Max 2:00</p>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-destructive rounded-full transition-all" style={{ width: `${(recordingTime / 120) * 100}%` }} />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" size="sm" onClick={cancelTalentRecording}>
+                        <X className="w-3.5 h-3.5 mr-1" /> Cancel
+                      </Button>
+                      <Button size="sm" onClick={stopTalentRecording} className="bg-primary text-primary-foreground">
+                        <Pause className="w-3.5 h-3.5 mr-1" /> Stop
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full bg-primary text-primary-foreground"
+                    disabled={!canRecord}
+                    onClick={startTalentRecording}
+                  >
+                    <Mic className="w-4 h-4 mr-2" />
+                    {canRecord ? "Start Recording" : "Select Language & Category"}
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Preview recorded audio */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+                  <button onClick={togglePreviewPlay} className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground shrink-0">
+                    {isPreviewPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                  </button>
+                  <div className="flex-1">
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full transition-all duration-200" style={{ width: `${previewProgress}%` }} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">{Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</p>
+                  </div>
+                </div>
+                {recordedUrl && (
+                  <audio
+                    ref={previewAudioRef}
+                    src={recordedUrl}
+                    onTimeUpdate={() => {
+                      const a = previewAudioRef.current;
+                      if (a && a.duration) setPreviewProgress((a.currentTime / a.duration) * 100);
+                    }}
+                    onEnded={() => { setIsPreviewPlaying(false); setPreviewProgress(0); }}
+                    className="hidden"
+                  />
+                )}
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={cancelTalentRecording}>
+                    <Trash2 className="w-3.5 h-3.5 mr-1" /> Discard
+                  </Button>
+                  <Button className="flex-1 bg-primary text-primary-foreground" onClick={handleUploadTalent} disabled={uploading}>
+                    <Upload className="w-3.5 h-3.5 mr-1" />
+                    {uploading ? "Uploading..." : "Save & Upload"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
