@@ -331,20 +331,20 @@ export default function Home() {
           </div>
 
 
-          {/* Recommended Books & Courses Button (premium) / Ad Area (free) */}
-          {isPremium ? (
-            <div className="mt-4 space-y-3">
-              <div className="flex justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowBooksModal(true)}
-                  className="gap-2 text-sm px-5 py-2.5 h-auto border-primary/30 text-primary hover:bg-primary/10"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  Recommended Books & Courses
-                </Button>
-              </div>
-              {/* Speak With - Premium only on Home */}
+          {/* Recommended Books & Courses Button - Available to ALL users */}
+          <div className="mt-4 space-y-3">
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => setShowBooksModal(true)}
+                className="gap-2 text-sm px-5 py-2.5 h-auto border-primary/30 text-primary hover:bg-primary/10"
+              >
+                <BookOpen className="w-4 h-4" />
+                Recommended Books & Courses
+              </Button>
+            </div>
+            {/* Speak With - Premium only on Home */}
+            {isPremium && (
               <div className="flex justify-center">
                 <Button
                   onClick={() => setShowSpeakWith(true)}
@@ -355,9 +355,11 @@ export default function Home() {
                   Speak With (Filter by Level)
                 </Button>
               </div>
-              <div className="h-24" />
-            </div>
-          ) : (
+            )}
+          </div>
+
+          {/* Ad Area for non-premium */}
+          {!isPremium && (
             <div className="mt-4 glass-card p-4">
               <div className="text-center">
                 {!adPlaying && !adFinished && (

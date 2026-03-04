@@ -472,6 +472,20 @@ export default function Profile() {
       });
       return;
     }
+    // Case-insensitive username uniqueness check
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("username", editName.trim())
+      .maybeSingle();
+    if (existing && existing.id !== profile?.id) {
+      toast({
+        title: "Username already taken",
+        description: "This username is already in use. Please choose a different one.",
+        variant: "destructive"
+      });
+      return;
+    }
     const { error } = await updateProfile({
       username: editName,
       last_username_change: new Date().toISOString()
