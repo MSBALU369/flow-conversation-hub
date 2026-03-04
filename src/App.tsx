@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, memo } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,20 +9,20 @@ import { useProfile, ProfileProvider } from "@/hooks/useProfile";
 import { CallStateProvider } from "@/hooks/useCallState";
 import { AuthorizedGlobals } from "@/components/AuthorizedGlobals";
 
-// Eager-loaded critical pages
+// Eager-loaded critical pages (Home, Chat, Call, Talent, Rooms)
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
 import Home from "./pages/Home";
+import Chat from "./pages/Chat";
+import Call from "./pages/Call";
+import Talent from "./pages/Talent";
+import Rooms from "./pages/Rooms";
 
-// Lazy-loaded pages
-const Chat = lazy(() => import("./pages/Chat"));
+// Lazy-loaded secondary pages
 const Premium = lazy(() => import("./pages/Premium"));
 const Profile = lazy(() => import("./pages/Profile"));
-const Call = lazy(() => import("./pages/Call"));
 const FindingUser = lazy(() => import("./pages/FindingUser"));
-const Talent = lazy(() => import("./pages/Talent"));
 const Learn = lazy(() => import("./pages/Learn"));
-const Rooms = lazy(() => import("./pages/Rooms"));
 const RoomDiscussion = lazy(() => import("./pages/RoomDiscussion"));
 const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -38,21 +38,21 @@ const queryClient = new QueryClient({
       staleTime: 300000,
       refetchOnWindowFocus: false,
       retry: 1,
+      gcTime: 600000,
     },
   },
 });
 
 function isProfileComplete(profile: any): boolean {
-  // Founder rule: gender defaults to 'male' — users can always access home.
-  // Only block if username is completely missing (null).
   return !!(profile?.username);
 }
 
-const LoadingSpinner = () => (
+const LoadingSpinner = memo(() => (
   <div className="min-h-screen bg-background flex items-center justify-center">
     <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
   </div>
-);
+));
+LoadingSpinner.displayName = "LoadingSpinner";
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -63,31 +63,20 @@ function AppRoutes() {
     return <LoadingSpinner />;
   }
 
-  // Not logged in — only allow /login
   if (!user) {
     if (location.pathname !== "/login") {
       return <Navigate to="/login" replace />;
     }
-    return (
-      <Suspense fallback={<LoadingSpinner />}>
-        <Login />
-      </Suspense>
-    );
+    return <Login />;
   }
 
-  // Logged in but profile incomplete — only allow /onboarding
   if (!isProfileComplete(profile)) {
     if (location.pathname !== "/onboarding") {
       return <Navigate to="/onboarding" replace />;
     }
-    return (
-      <Suspense fallback={<LoadingSpinner />}>
-        <Onboarding />
-      </Suspense>
-    );
+    return <Onboarding />;
   }
 
-  // Logged in + profile complete — block /login and /onboarding
   if (location.pathname === "/login" || location.pathname === "/onboarding") {
     return <Navigate to="/" replace />;
   }

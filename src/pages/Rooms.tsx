@@ -58,13 +58,14 @@ export default function Rooms() {
 
   const isPremium = profile?.is_premium || false;
 
-  // Fetch rooms from DB
+  // Fetch rooms from DB — parallelized queries
   useEffect(() => {
     const fetchRooms = async () => {
       const { data, error } = await supabase
         .from("rooms")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("id, room_code, title, is_private, host_id, max_members, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
       if (error) {
         console.error("Error fetching rooms:", error);
@@ -73,21 +74,22 @@ export default function Rooms() {
       }
 
       if (data && data.length > 0) {
-        // Fetch host profiles
         const hostIds = [...new Set(data.map((r) => r.host_id))];
-        const { data: hostProfiles } = await supabase
-          .from("profiles")
-          .select("id, username, avatar_url")
-          .in("id", hostIds);
-        const hostMap = new Map(hostProfiles?.map((p) => [p.id, p]) ?? []);
-
-        // Fetch member counts
         const roomIds = data.map((r) => r.id);
-        const { data: members } = await supabase
-          .from("room_members")
-          .select("room_id")
-          .in("room_id", roomIds);
 
+        // Fetch host profiles and member counts in parallel
+        const [{ data: hostProfiles }, { data: members }] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("id, username, avatar_url")
+            .in("id", hostIds),
+          supabase
+            .from("room_members")
+            .select("room_id")
+            .in("room_id", roomIds),
+        ]);
+
+        const hostMap = new Map(hostProfiles?.map((p) => [p.id, p]) ?? []);
         const countMap = new Map<string, number>();
         members?.forEach((m) => {
           countMap.set(m.room_id, (countMap.get(m.room_id) ?? 0) + 1);
