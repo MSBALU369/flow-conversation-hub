@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 interface TalentPost {
   id: string;
+  user_id: string;
   username: string;
   avatar: string | null;
   language: string;
@@ -119,6 +120,7 @@ export default function Talent() {
         const durSec = (t.duration_sec || 0) % 60;
         return {
           id: t.id,
+          user_id: t.user_id,
           username: p?.username || "User",
           avatar: p?.avatar_url || null,
           language: t.language || "English",
@@ -458,7 +460,16 @@ export default function Talent() {
     toast({ title: "Unhidden", description: "This talent is visible in your feed again." });
   };
 
-  const handleDeleteHidden = (id: string) => {
+  const handleDeleteHidden = async (id: string) => {
+    const post = posts.find((p) => p.id === id);
+    const isOwn = post?.user_id === user?.id;
+    if (isOwn) {
+      const { error } = await supabase.from("talent_uploads").delete().eq("id", id);
+      if (error) {
+        toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
     setHiddenIds((prev) => {
       const next = new Set(prev);
       next.delete(id);
@@ -509,13 +520,16 @@ export default function Talent() {
 
   const totalPlaylistCount = Object.values(playlist).reduce((sum, set) => sum + set.size, 0);
 
-  const handleDelete = (id: string, isOwn: boolean) => {
+  const handleDelete = async (id: string, isOwn: boolean) => {
     if (isOwn) {
-      // Only truly delete if the user owns this talent
+      const { error } = await supabase.from("talent_uploads").delete().eq("id", id);
+      if (error) {
+        toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+        return;
+      }
       setPosts((prev) => prev.filter((p) => p.id !== id));
       toast({ title: "Deleted", description: "Your talent post has been deleted." });
     } else {
-      // For other users' talents, just hide it from this user's feed (per-user action)
       setHiddenIds((prev) => new Set(prev).add(id));
       toast({ title: "Removed", description: "This talent has been removed from your feed." });
     }
