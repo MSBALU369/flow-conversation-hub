@@ -42,19 +42,19 @@ export default function Home() {
   const { role } = useRole();
   const [onlineCount, setOnlineCount] = useState(0);
 
-  // Fetch real online count using last_seen threshold (2 minutes)
+  // Fetch real online count using last_seen threshold (2 minutes) — lightweight HEAD query
   useEffect(() => {
     const fetchOnlineCount = async () => {
       const threshold = new Date(Date.now() - 2 * 60 * 1000).toISOString();
       const { count } = await supabase
         .from("profiles")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .gte("last_seen", threshold);
       setOnlineCount(count || 0);
     };
     fetchOnlineCount();
-    // Re-fetch every 30 seconds
-    const interval = setInterval(fetchOnlineCount, 30000);
+    // Re-fetch every 60 seconds (was 30s — halved frequency)
+    const interval = setInterval(fetchOnlineCount, 60000);
     return () => clearInterval(interval);
   }, []);
   const [adPlaying, setAdPlaying] = useState(false);
@@ -117,7 +117,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [adPlaying]);
 
-  // Check and update streak on new day — also runs a background midnight interval
+  // Check and update streak on new day — only once per mount (no aggressive polling)
   useEffect(() => {
     if (!profile?.id) return;
 
@@ -139,13 +139,6 @@ export default function Home() {
     };
 
     checkStreak();
-
-    // Background interval: check every 60s if midnight has passed
-    const midnightInterval = setInterval(() => {
-      checkStreak();
-    }, 60_000);
-
-    return () => clearInterval(midnightInterval);
   }, [profile?.id]);
   const handleStartCall = () => {
     // Free users always get random — premium filters enforced server-side too

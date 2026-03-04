@@ -1,16 +1,17 @@
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Home, MessageCircle, Crown, Mic, BookOpen, ShieldCheck } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { isAdminOrRoot } from "@/pages/Admin";
 
-export function BottomNav() {
+export const BottomNav = memo(function BottomNav() {
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useAuth();
   const showAdmin = isAdminOrRoot(user?.email);
+  const lastFetchRef = useRef(0);
 
   const navItems = [
     { icon: Home, label: "Connect", path: "/" },
@@ -22,57 +23,56 @@ export function BottomNav() {
     { icon: BookOpen, label: "Learn", path: "/learn" },
   ];
 
-  useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+  const fetchUnread = useCallback(async () => {
+    // Throttle: skip if called within 2s
+    const now = Date.now();
+    if (now - lastFetchRef.current < 2000) return;
+    lastFetchRef.current = now;
 
-    const fetchUnread = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) return;
+    if (!user?.id) return;
 
-      // Count unread text/image messages (exclude call logs starting with 📞)
-      const { data: unreadMsgs } = await supabase
+    // Use count-only queries (no data transfer)
+    const [{ count: msgCount }, { count: missedCalls }] = await Promise.all([
+      supabase
         .from("chat_messages")
-        .select("content", { count: "exact", head: false })
-        .eq("receiver_id", currentUser.id)
-        .eq("is_read", false);
-
-      const nonCallUnread = (unreadMsgs || []).filter(m => !(m.content || "").startsWith("📞 ")).length;
-
-      // Count missed calls
-      const { count: missedCalls } = await supabase
+        .select("id", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("is_read", false),
+      supabase
         .from("call_history")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", currentUser.id)
-        .eq("status", "missed_incoming");
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "missed_incoming"),
+    ]);
 
-      setUnreadCount(nonCallUnread + (missedCalls ?? 0));
+    setUnreadCount((msgCount ?? 0) + (missedCalls ?? 0));
+  }, [user?.id]);
 
-      channel = supabase
-        .channel("unread-badge")
-        .on("postgres_changes", {
-          event: "*",
-          schema: "public",
-          table: "chat_messages",
-          filter: `receiver_id=eq.${currentUser.id}`,
-        }, () => {
-          fetchUnread();
-        })
-        .subscribe();
-    };
+  useEffect(() => {
+    if (!user?.id) return;
 
     fetchUnread();
 
-    // Re-fetch on visibility change (tab focus / app foreground)
+    const channel = supabase
+      .channel("unread-badge")
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "chat_messages",
+        filter: `receiver_id=eq.${user.id}`,
+      }, fetchUnread)
+      .subscribe();
+
     const handleVisibility = () => {
       if (document.visibilityState === "visible") fetchUnread();
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      channel?.unsubscribe();
+      channel.unsubscribe();
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, []);
+  }, [user?.id, fetchUnread]);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 glass-nav safe-bottom z-50">
@@ -112,4 +112,4 @@ export function BottomNav() {
       </div>
     </nav>
   );
-}
+});

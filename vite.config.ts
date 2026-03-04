@@ -15,15 +15,27 @@ export default defineConfig(({ mode }) => ({
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   build: {
     target: 'esnext',
+    cssMinify: true,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           supabase: ['@supabase/supabase-js'],
-          ui: ['lucide-react', 'recharts'],
+          ui: ['lucide-react'],
+          charts: ['recharts'],
+          livekit: ['livekit-client', '@livekit/components-react'],
         },
       },
     },
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@supabase/supabase-js',
+      'lucide-react',
+    ],
   },
   resolve: {
     alias: {
