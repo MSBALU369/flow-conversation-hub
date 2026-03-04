@@ -26,14 +26,14 @@ export function BottomNav() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const fetchUnread = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
 
       // Count unread text/image messages (exclude call logs starting with 📞)
       const { data: unreadMsgs } = await supabase
         .from("chat_messages")
         .select("content", { count: "exact", head: false })
-        .eq("receiver_id", user.id)
+        .eq("receiver_id", currentUser.id)
         .eq("is_read", false);
 
       const nonCallUnread = (unreadMsgs || []).filter(m => !(m.content || "").startsWith("📞 ")).length;
@@ -42,7 +42,7 @@ export function BottomNav() {
       const { count: missedCalls } = await supabase
         .from("call_history")
         .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
+        .eq("user_id", currentUser.id)
         .eq("status", "missed_incoming");
 
       setUnreadCount(nonCallUnread + (missedCalls ?? 0));
@@ -53,7 +53,7 @@ export function BottomNav() {
           event: "*",
           schema: "public",
           table: "chat_messages",
-          filter: `receiver_id=eq.${user.id}`,
+          filter: `receiver_id=eq.${currentUser.id}`,
         }, () => {
           fetchUnread();
         })
@@ -61,7 +61,17 @@ export function BottomNav() {
     };
 
     fetchUnread();
-    return () => { channel?.unsubscribe(); };
+
+    // Re-fetch on visibility change (tab focus / app foreground)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchUnread();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      channel?.unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   return (

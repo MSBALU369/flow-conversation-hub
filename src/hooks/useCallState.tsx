@@ -99,6 +99,50 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
 
+  // ─── Helper: fetch any active ringing calls for current user ───
+  const checkForRingingCalls = useCallback(async () => {
+    if (!user?.id) return;
+    const { data: ringingCalls } = await supabase
+      .from("calls")
+      .select("*")
+      .eq("receiver_id", user.id)
+      .eq("status", "ringing")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (ringingCalls && ringingCalls.length > 0) {
+      const row = ringingCalls[0];
+      // Don't re-trigger if already showing this call
+      if (incomingCall.active && incomingCall.callId === row.id) return;
+
+      const { data: callerProfile } = await supabase
+        .from("profiles")
+        .select("username, avatar_url")
+        .eq("id", row.caller_id)
+        .single();
+
+      setIncomingCall({
+        active: true,
+        callerName: callerProfile?.username || "Unknown",
+        callerAvatar: callerProfile?.avatar_url || null,
+        callId: row.id,
+        roomId: `direct_${row.id}`,
+        callerId: row.caller_id,
+      });
+    }
+  }, [user?.id, incomingCall.active, incomingCall.callId]);
+
+  // ─── Visibilitychange: re-check ringing calls after sleep/background ───
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkForRingingCalls();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [checkForRingingCalls]);
+
   // ─── Realtime: listen for INCOMING calls (receiver side) ───
   useEffect(() => {
     if (!user?.id) return;
