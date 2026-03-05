@@ -40,9 +40,20 @@ export default function Home() {
     toast
   } = useToast();
   const { role } = useRole();
-  const [onlineCount, setOnlineCount] = useState(0);
+  const [realOnlineCount, setRealOnlineCount] = useState(0);
 
-  // Fetch real online count using last_seen threshold (2 minutes) — lightweight HEAD query
+  // Stable fake count per session (126–211)
+  const [fakeCount] = useState(() => {
+    const stored = sessionStorage.getItem("ef_fake_online");
+    if (stored) return parseInt(stored, 10);
+    const fake = Math.floor(Math.random() * (211 - 126 + 1)) + 126;
+    sessionStorage.setItem("ef_fake_online", String(fake));
+    return fake;
+  });
+
+  const isAdmin = role === "admin" || role === "root";
+
+  // Fetch real online count using last_seen threshold (2 minutes)
   useEffect(() => {
     const fetchOnlineCount = async () => {
       const threshold = new Date(Date.now() - 2 * 60 * 1000).toISOString();
@@ -50,10 +61,9 @@ export default function Home() {
         .from("profiles")
         .select("id", { count: "exact", head: true })
         .gte("last_seen", threshold);
-      setOnlineCount(count || 0);
+      setRealOnlineCount(count || 0);
     };
     fetchOnlineCount();
-    // Re-fetch every 60 seconds (was 30s — halved frequency)
     const interval = setInterval(fetchOnlineCount, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -169,7 +179,7 @@ export default function Home() {
       <div className="fixed inset-0 gradient-mesh pointer-events-none" />
       
       <div className="relative z-10">
-        <AppHeader streakDays={streakDays} level={profile?.level ?? 1} showLogout onlineCount={onlineCount} onHistoryClick={() => setShowHistoryModal(true)} />
+        <AppHeader streakDays={streakDays} level={profile?.level ?? 1} showLogout onlineCount={realOnlineCount + fakeCount} onHistoryClick={() => setShowHistoryModal(true)} />
 
         <main className="px-3 pt-2 relative">
           {/* Battery indicator (hidden for premium) */}
@@ -249,10 +259,18 @@ export default function Home() {
             {/* Top Row: Online Count (left) + History */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                {/* Online Count */}
+               {/* Online Count */}
                 <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-full shadow-sm">
                   <div className="w-1.5 h-1.5 bg-[hsl(var(--ef-online))] rounded-full animate-pulse" />
-                  <span className="text-xs font-bold text-[hsl(var(--ef-online))]">{onlineCount} Online</span>
+                  {isAdmin ? (
+                    <span className="text-xs font-bold text-[hsl(var(--ef-online))]">
+                      Real: {realOnlineCount} | Fake: {fakeCount}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-[hsl(var(--ef-online))]">
+                      {realOnlineCount + fakeCount} Online
+                    </span>
+                  )}
                 </div>
               </div>
               
