@@ -240,8 +240,8 @@ export default function Home() {
                 </div>
                 <div className="flex-1 flex items-center justify-between">
                    <p className="text-sm font-bold text-foreground">You can't be perfect until you start speaking.</p>
-                   <Button size="sm" variant="secondary" onClick={() => setShowGuide(true)} className="ml-3 rounded-full text-xs h-7 shrink-0">
-                     Open ✨
+                   <Button size="sm" onClick={() => setShowGuide(true)} className="ml-3 rounded-full text-xs h-7 shrink-0 bg-green-600 hover:bg-green-700 text-white">
+                     Open
                    </Button>
                  </div>
               </div>
