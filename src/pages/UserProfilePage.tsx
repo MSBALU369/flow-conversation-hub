@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, MapPin, BarChart3, UserPlus, UserMinus, MessageCircle, MoreVertical, VolumeX, Ban, Copy, Calendar, Music, EyeOff, Users, Heart, Crown, Lock, ExternalLink, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { sendFollowNotification } from "@/lib/followNotification";
+import { haveMutuallyTalked } from "@/lib/mutualTalkCheck";
 import { useProfile } from "@/hooks/useProfile";
 import { formatSpeakTime, calculateTogetherTotal } from "@/lib/mockData";
 
@@ -113,6 +114,8 @@ export default function UserProfilePage() {
   const { toast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [hasMutualCall, setHasMutualCall] = useState(false);
+  const [pendingRequest, setPendingRequest] = useState(false);
 
   const [userStatus, setUserStatus] = useState<string | null>(null);
 
