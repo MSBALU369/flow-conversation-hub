@@ -239,7 +239,7 @@ export default function Home() {
                   <Crown className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 flex items-center justify-between">
-                   <p className="text-sm font-bold text-foreground">You can't be perfect until you start speaking.</p>
+                   <p className="text-sm font-bold text-foreground">You can't be perfect in English until you start speaking.</p>
                    <Button size="sm" onClick={() => setShowGuide(true)} className="ml-3 rounded-full text-[10px] h-5 px-2 shrink-0 bg-green-600 hover:bg-green-700 text-white">
                      Open
                    </Button>
