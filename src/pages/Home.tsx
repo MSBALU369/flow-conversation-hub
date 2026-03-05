@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap, Users, BadgeCheck, Coins, Crown } from "lucide-react";
+import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap, Users, BadgeCheck, Coins, Crown, ShieldAlert, Target } from "lucide-react";
 import { AdBanner } from "@/components/AdBanner";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
 import { LevelsModal } from "@/components/LevelsModal";
@@ -77,6 +77,7 @@ export default function Home() {
   const [showSpeakWith, setShowSpeakWith] = useState(false);
   const [premiumContent, setPremiumContent] = useState<PremiumContentItem[]>([]);
   const [contentLoading, setContentLoading] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   // Fetch premium content from Supabase
   useEffect(() => {
@@ -237,18 +238,12 @@ export default function Home() {
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center flex-shrink-0">
                   <Crown className="w-5 h-5 text-primary" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-foreground">Unlock Your Full Potential 🚀</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    See who viewed your profile, filter by gender, unlimited calls & more!
-                  </p>
-                  <button
-                    onClick={() => setShowPremiumModal(true)}
-                    className="mt-2 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
-                  >
-                    Go Premium
-                  </button>
-                </div>
+                <div className="flex-1 flex items-center justify-between">
+                   <p className="text-sm font-bold text-foreground">You can't be perfect until you start speaking.</p>
+                   <Button size="sm" variant="secondary" onClick={() => setShowGuide(true)} className="ml-3 rounded-full text-xs h-7 shrink-0">
+                     Open ✨
+                   </Button>
+                 </div>
               </div>
             </div>
           )}
@@ -433,6 +428,38 @@ export default function Home() {
 
       {/* Speak With Modal (Premium) */}
       {showSpeakWith && <SpeakWithModal open={showSpeakWith} onOpenChange={setShowSpeakWith} />}
+
+      {/* Safe Space Guide Modal */}
+      <Dialog open={showGuide} onOpenChange={setShowGuide}>
+        <DialogContent className="glass-card max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">🛡️ Your Safe Space to Speak!</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="flex gap-3">
+              <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground"><span className="font-semibold">Zero Tolerance:</span> Ignore bad talks. If someone misbehaves, cut the call and Report. We permanently ban toxic users.</p>
+            </div>
+            <div className="flex gap-3">
+              <Target className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground"><span className="font-semibold">Eyes on the Prize:</span> Your goal is to be perfect in English. Focus only on that. Make mistakes and learn.</p>
+            </div>
+            <div className="flex gap-3">
+              <Lock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground"><span className="font-semibold">Privacy First:</span> Never share your contact numbers or personal details. Stay anonymous.</p>
+            </div>
+            <div className="flex gap-3">
+              <Flame className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground"><span className="font-semibold">Consistency is Magic:</span> Practice daily for perfection. Speaking regularly is the only way to fluency.</p>
+            </div>
+            <div className="flex gap-3">
+              <Crown className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground"><span className="font-semibold">The VIP Shield:</span> Go premium to avoid unwanted stuff and connect only with verified, serious learners.</p>
+            </div>
+          </div>
+          <Button className="w-full mt-6 bg-primary text-primary-foreground" onClick={() => setShowGuide(false)}>Got it, let's speak! 🎤</Button>
+        </DialogContent>
+      </Dialog>
 
       {/* Levels Modal */}
       {showLevelsModal && <LevelsModal
