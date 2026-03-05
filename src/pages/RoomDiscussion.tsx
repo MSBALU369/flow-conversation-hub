@@ -464,6 +464,10 @@ export default function RoomDiscussion() {
             hostId={room.host_id}
             currentUserId={user?.id}
             activeSpeakers={activeSpeakers}
+            mutedMembers={mutedMembers}
+            isHost={isHost}
+            onKick={handleKickMember}
+            onToggleMute={handleToggleMute}
           />
         </div>
       )}
