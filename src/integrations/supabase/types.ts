@@ -706,6 +706,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          media_url: string | null
           room_id: string
           sender_id: string
         }
@@ -713,6 +714,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          media_url?: string | null
           room_id: string
           sender_id: string
         }
@@ -720,6 +722,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          media_url?: string | null
           room_id?: string
           sender_id?: string
         }
