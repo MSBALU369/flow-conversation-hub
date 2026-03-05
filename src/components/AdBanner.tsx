@@ -19,18 +19,18 @@ export function AdBanner({ variant = "standard", className = "" }: AdBannerProps
       <div className={`relative border border-dashed border-border rounded-xl bg-muted/30 ${className}`}>
         <button
           onClick={() => setDismissed(true)}
-          className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-muted flex items-center justify-center z-10"
-        >
+          className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-muted flex items-center justify-center z-10">
+          
           <X className="w-3 h-3 text-muted-foreground" />
         </button>
-        <div className={`flex items-center justify-between gap-3 ${variant === "compact" ? "py-3 px-4" : "py-4 px-4"}`}>
-          <p className="text-xs text-foreground font-semibold flex-1">
-            You can't be perfect until you start speaking.
-          </p>
-          <Button size="sm" variant="secondary" onClick={() => setShowGuide(true)} className="rounded-full text-xs h-7">
-            Open ✨
-          </Button>
-        </div>
+        
+
+
+
+
+
+
+        
       </div>
 
       <Dialog open={showGuide} onOpenChange={setShowGuide}>
@@ -65,6 +65,6 @@ export function AdBanner({ variant = "standard", className = "" }: AdBannerProps
           </Button>
         </DialogContent>
       </Dialog>
-    </>
-  );
+    </>);
+
 }
