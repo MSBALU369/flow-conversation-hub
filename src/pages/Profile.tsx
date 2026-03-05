@@ -1320,10 +1320,10 @@ export default function Profile() {
             listUsers.map((user) =>
             <div
               key={user.id}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors">
+              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted/60 transition-colors">
 
                     <button
-                className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                className="flex items-center gap-2 flex-1 min-w-0 text-left"
                 onClick={() => {
                   setShowUsersList(null);
                   navigate(`/user/${user.id}`, {
@@ -1345,7 +1345,7 @@ export default function Profile() {
                 }}>
 
                       <div className="relative flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-foreground overflow-hidden">
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-foreground overflow-hidden">
                           {user.avatar_url ?
                     <img src={user.avatar_url} alt="" className="w-full h-full object-cover" /> :
 
@@ -1353,11 +1353,11 @@ export default function Profile() {
                     }
                         </div>
                         {user.is_online &&
-                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
+                  <div className="absolute bottom-0 right-0 w-2 h-2 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
                   }
                       </div>
                       <div className="min-w-0 overflow-hidden">
-                        <p className="text-xs font-medium text-foreground truncate">{user.username || "User"}</p>
+                        <p className="text-[11px] font-medium text-foreground break-all line-clamp-2 leading-tight">{user.username || "User"}</p>
                         <p className="text-[9px] text-muted-foreground truncate">Lv.{user.level ?? 1} • {user.location_city || "Unknown"}</p>
                       </div>
                     </button>
