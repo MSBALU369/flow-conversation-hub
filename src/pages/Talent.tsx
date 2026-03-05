@@ -1299,9 +1299,16 @@ export default function Talent() {
                             {playingId === post.id ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
                           </button>
                           <div className="flex-1 h-0.5 bg-border rounded-full overflow-hidden">
-                            <div className={cn("h-full bg-primary rounded-full transition-all", playingId === post.id ? "w-1/3 animate-pulse" : "w-0")} />
+                            <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${audioProgress[post.id] || 0}%` }} />
                           </div>
-                          <span className="text-[8px] text-muted-foreground shrink-0">{post.duration}</span>
+                          <span className="text-[8px] text-muted-foreground shrink-0 tabular-nums">
+                            {playingId === post.id && audioCurrentTime[post.id] != null
+                              ? `${Math.floor(audioCurrentTime[post.id] / 60)}:${Math.floor(audioCurrentTime[post.id] % 60).toString().padStart(2, '0')} / `
+                              : ""}
+                            {audioDuration[post.id] && isFinite(audioDuration[post.id])
+                              ? `${Math.floor(audioDuration[post.id] / 60)}:${Math.floor(audioDuration[post.id] % 60).toString().padStart(2, '0')}`
+                              : post.duration}
+                          </span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button className="p-0.5 rounded-full hover:bg-muted transition-colors shrink-0">
@@ -1382,9 +1389,16 @@ export default function Talent() {
                           {playingId === post.id ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
                         </button>
                         <div className="flex-1 h-0.5 bg-border rounded-full overflow-hidden">
-                          <div className={cn("h-full bg-primary rounded-full transition-all", playingId === post.id ? "w-1/3 animate-pulse" : "w-0")} />
+                          <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${audioProgress[post.id] || 0}%` }} />
                         </div>
-                        <span className="text-[8px] text-muted-foreground shrink-0">{post.duration}</span>
+                        <span className="text-[8px] text-muted-foreground shrink-0 tabular-nums">
+                          {playingId === post.id && audioCurrentTime[post.id] != null
+                            ? `${Math.floor(audioCurrentTime[post.id] / 60)}:${Math.floor(audioCurrentTime[post.id] % 60).toString().padStart(2, '0')} / `
+                            : ""}
+                          {audioDuration[post.id] && isFinite(audioDuration[post.id])
+                            ? `${Math.floor(audioDuration[post.id] / 60)}:${Math.floor(audioDuration[post.id] % 60).toString().padStart(2, '0')}`
+                            : post.duration}
+                        </span>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="p-0.5 rounded-full hover:bg-muted transition-colors shrink-0">
@@ -1461,9 +1475,16 @@ export default function Talent() {
                   {playingId === previewPost.id ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
                 </button>
                 <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden">
-                  <div className={cn("h-full bg-primary rounded-full transition-all", playingId === previewPost.id ? "w-1/3 animate-pulse" : "w-0")} />
+                  <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${audioProgress[previewPost.id] || 0}%` }} />
                 </div>
-                <span className="text-[8px] text-muted-foreground shrink-0">{previewPost.duration}</span>
+                <span className="text-[8px] text-muted-foreground shrink-0 tabular-nums">
+                  {playingId === previewPost.id && audioCurrentTime[previewPost.id] != null
+                    ? `${Math.floor(audioCurrentTime[previewPost.id] / 60)}:${Math.floor(audioCurrentTime[previewPost.id] % 60).toString().padStart(2, '0')} / `
+                    : ""}
+                  {audioDuration[previewPost.id] && isFinite(audioDuration[previewPost.id])
+                    ? `${Math.floor(audioDuration[previewPost.id] / 60)}:${Math.floor(audioDuration[previewPost.id] % 60).toString().padStart(2, '0')}`
+                    : previewPost.duration}
+                </span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="p-1 rounded-full hover:bg-muted transition-colors shrink-0">
