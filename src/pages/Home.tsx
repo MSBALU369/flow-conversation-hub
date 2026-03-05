@@ -433,31 +433,31 @@ export default function Home() {
       <Dialog open={showGuide} onOpenChange={setShowGuide}>
         <DialogContent className="glass-card max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2">🛡️ Your Safe Space to Speak!</DialogTitle>
+            <DialogTitle className="text-xl flex items-center gap-2">🛡️ Speak Without Fear!</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="flex gap-3">
               <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-              <p className="text-sm text-foreground"><span className="font-semibold">Zero Tolerance:</span> Ignore bad talks. If someone misbehaves, cut the call and Report. We permanently ban toxic users.</p>
+              <p className="text-sm text-foreground"><span className="font-semibold">Strict Rules:</span> Ignore bad comments. If anyone behaves badly, just cut the call and hit 'Report'. We will ban them forever.</p>
             </div>
             <div className="flex gap-3">
               <Target className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-              <p className="text-sm text-foreground"><span className="font-semibold">Eyes on the Prize:</span> Your goal is to be perfect in English. Focus only on that. Make mistakes and learn.</p>
+              <p className="text-sm text-foreground"><span className="font-semibold">Focus on Your Goal:</span> You are here to learn English. Don't worry about what others think. Make mistakes and learn.</p>
             </div>
             <div className="flex gap-3">
               <Lock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-              <p className="text-sm text-foreground"><span className="font-semibold">Privacy First:</span> Never share your contact numbers or personal details. Stay anonymous.</p>
+              <p className="text-sm text-foreground"><span className="font-semibold">Keep It Private:</span> Never share your phone number, real name, or personal details with strangers.</p>
             </div>
             <div className="flex gap-3">
               <Flame className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-              <p className="text-sm text-foreground"><span className="font-semibold">Consistency is Magic:</span> Practice daily for perfection. Speaking regularly is the only way to fluency.</p>
+              <p className="text-sm text-foreground"><span className="font-semibold">Practice Daily:</span> English speaking comes only with daily practice. Speak a little every day to become fluent.</p>
             </div>
             <div className="flex gap-3">
               <Crown className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
-              <p className="text-sm text-foreground"><span className="font-semibold">The VIP Shield:</span> Go premium to avoid unwanted stuff and connect only with verified, serious learners.</p>
+              <p className="text-sm text-foreground"><span className="font-semibold">VIP Premium:</span> Want to avoid time-passers? Go Premium to connect only with verified and serious learners.</p>
             </div>
           </div>
-          <Button className="w-full mt-6 bg-primary text-primary-foreground" onClick={() => setShowGuide(false)}>Got it, let's speak! 🎤</Button>
+          <Button className="w-full mt-6 bg-primary text-primary-foreground" onClick={() => setShowGuide(false)}>Understood, let's speak! 🎤</Button>
         </DialogContent>
       </Dialog>
 
