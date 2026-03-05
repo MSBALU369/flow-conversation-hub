@@ -219,7 +219,7 @@ export function AppHeader({
     if (result.type === "room" && result.roomCode) {
       navigate(`/room/${result.roomCode}`);
     } else if (result.userId) {
-      navigate(`/profile`); // TODO: navigate to /profile/:id when public profiles exist
+      navigate(`/user/${result.userId}`);
     }
   };
 
