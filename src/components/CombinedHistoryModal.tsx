@@ -12,11 +12,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface CallHistoryItem {
+interface CallHistoryRow {
   id: string;
+  user_id: string;       // caller
+  partner_id: string | null; // receiver
   partner_name: string;
   duration: number;
-  status: "incoming" | "outgoing" | "missed" | "missed_outgoing" | "missed_incoming" | "completed";
+  status: string;
+  created_at: string;
+}
+
+interface DisplayCall {
+  id: string;
+  partner_name: string;
+  partner_user_id: string | null; // the other person's ID
+  duration: number;
+  direction: "outgoing" | "incoming" | "missed";
   created_at: string;
 }
 
@@ -33,7 +44,7 @@ interface CombinedHistoryModalProps {
 }
 
 export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModalProps) {
-  const [callHistory, setCallHistory] = useState<CallHistoryItem[]>([]);
+  const [displayCalls, setDisplayCalls] = useState<DisplayCall[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [partnerProfiles, setPartnerProfiles] = useState<Record<string, PartnerProfile>>({});
@@ -47,24 +58,66 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Fetch all call_history where I'm caller (user_id) or receiver (partner_id)
       const { data: calls } = await supabase
         .from("call_history")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(50);
 
-      const items = (calls as unknown as CallHistoryItem[]) || [];
-      setCallHistory(items);
+      const rows = (calls as unknown as CallHistoryRow[]) || [];
 
-      // Fetch partner profiles by username
-      const uniqueNames = [...new Set(items.map(c => c.partner_name))].filter(Boolean);
-      if (uniqueNames.length > 0) {
+      // Transform into display calls with direction
+      const transformed: DisplayCall[] = rows.map(row => {
+        const isCaller = row.user_id === user.id;
+        const isMissed = row.status === "missed" || row.status === "missed_outgoing" || row.status === "missed_incoming";
+        
+        return {
+          id: row.id,
+          partner_name: isCaller ? row.partner_name : row.partner_name, // We'll resolve below
+          partner_user_id: isCaller ? row.partner_id : row.user_id,
+          duration: row.duration,
+          direction: isMissed ? "missed" : (isCaller ? "outgoing" : "incoming"),
+          created_at: row.created_at,
+        };
+      });
+
+      // For records where current user is the receiver, we need the caller's name
+      const callerIds = rows.filter(r => r.user_id !== user.id).map(r => r.user_id);
+      let callerNameMap: Record<string, string> = {};
+      if (callerIds.length > 0) {
+        const { data: callerProfiles } = await supabase
+          .from("profiles")
+          .select("id, username")
+          .in("id", [...new Set(callerIds)]);
+        if (callerProfiles) {
+          callerProfiles.forEach(p => { callerNameMap[p.id] = p.username || "User"; });
+        }
+      }
+
+      // Fix partner names for incoming calls
+      const finalCalls = transformed.map((call, i) => {
+        const row = rows[i];
+        if (row.user_id !== user.id) {
+          // I'm the receiver — partner is the caller
+          return { ...call, partner_name: callerNameMap[row.user_id] || row.partner_name };
+        }
+        return call;
+      });
+
+      setDisplayCalls(finalCalls);
+
+      // Fetch partner profiles by partner_user_id
+      const partnerIds = [...new Set(finalCalls.map(c => c.partner_user_id).filter(Boolean))] as string[];
+      if (partnerIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, username, avatar_url, level")
-          .in("username", uniqueNames);
+          .in("id", partnerIds);
         if (profiles) {
           const map: Record<string, PartnerProfile> = {};
+          profiles.forEach(p => { map[p.id] = p as PartnerProfile; });
+          // Also map by username for grouping lookup
           profiles.forEach(p => { if (p.username) map[p.username] = p as PartnerProfile; });
           setPartnerProfiles(map);
         }
@@ -120,22 +173,18 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
     return `${mins}m ${secs}s`;
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (direction: string) => {
+    switch (direction) {
       case "incoming": return <PhoneIncoming className="w-3.5 h-3.5" />;
-      case "missed":
-      case "missed_incoming": return <PhoneMissed className="w-3.5 h-3.5" />;
-      case "missed_outgoing": return <PhoneMissed className="w-3.5 h-3.5" />;
+      case "missed": return <PhoneMissed className="w-3.5 h-3.5" />;
       default: return <PhoneOutgoing className="w-3.5 h-3.5" />;
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (direction: string) => {
+    switch (direction) {
       case "incoming": return { bg: "bg-green-500/15", text: "text-green-500", icon: "text-green-500" };
-      case "missed":
-      case "missed_incoming":
-      case "missed_outgoing": return { bg: "bg-destructive/15", text: "text-destructive", icon: "text-destructive" };
+      case "missed": return { bg: "bg-destructive/15", text: "text-destructive", icon: "text-destructive" };
       default: return { bg: "bg-blue-500/15", text: "text-blue-500", icon: "text-blue-500" };
     }
   };
@@ -150,17 +199,16 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
     return `${hours}h ago`;
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
+  const getStatusLabel = (direction: string) => {
+    switch (direction) {
       case "incoming": return "Incoming";
       case "missed": return "Missed";
-      case "missed_outgoing": return "No Answer (You called)";
-      case "missed_incoming": return "Missed (They called)";
       default: return "Outgoing";
     }
   };
 
-  const groupedCalls = callHistory.reduce<Record<string, CallHistoryItem[]>>((acc, item) => {
+  // Group by partner name
+  const groupedCalls = displayCalls.reduce<Record<string, DisplayCall[]>>((acc, item) => {
     if (!acc[item.partner_name]) acc[item.partner_name] = [];
     acc[item.partner_name].push(item);
     return acc;
@@ -168,7 +216,7 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
 
   const uniqueMembers = Object.keys(groupedCalls).length;
 
-  const getTotalDuration = (calls: CallHistoryItem[]) =>
+  const getTotalDuration = (calls: DisplayCall[]) =>
     calls.reduce((sum, c) => sum + c.duration, 0);
 
   return (
@@ -181,7 +229,7 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
           </DialogTitle>
         </DialogHeader>
 
-        {!loading && callHistory.length > 0 && (
+        {!loading && displayCalls.length > 0 && (
           <div className="flex items-center justify-center gap-2 py-2 rounded-xl bg-muted/60">
             <Users className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold text-foreground">{uniqueMembers}</span>
@@ -194,7 +242,7 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
             <div className="flex items-center justify-center py-8">
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : callHistory.length === 0 ? (
+          ) : displayCalls.length === 0 ? (
             <div className="text-center py-8">
               <Phone className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
               <p className="text-muted-foreground text-sm">No calls yet</p>
@@ -205,14 +253,13 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
               {Object.entries(groupedCalls).map(([name, calls]) => {
                 const isExpanded = expandedUser === name;
                 const lastCall = calls[0];
-                const lastColors = getStatusColor(lastCall.status);
-                const partner = partnerProfiles[name];
+                const lastColors = getStatusColor(lastCall.direction);
+                const partner = lastCall.partner_user_id ? (partnerProfiles[lastCall.partner_user_id] || partnerProfiles[name]) : partnerProfiles[name];
                 const isFollowing = partner ? followingIds.has(partner.id) : false;
 
                 return (
                   <li key={name}>
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors">
-                      {/* Avatar – clickable to profile */}
                       <button
                         onClick={() => partner && handleProfileClick(partner.id)}
                         className="shrink-0"
@@ -223,12 +270,11 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                             <AvatarImage src={partner.avatar_url} alt={name} />
                           ) : null}
                           <AvatarFallback className={`${lastColors.bg} ${lastColors.icon}`}>
-                            {getStatusIcon(lastCall.status)}
+                            {getStatusIcon(lastCall.direction)}
                           </AvatarFallback>
                         </Avatar>
                       </button>
 
-                      {/* Name, timestamp & total calls */}
                       <button
                         onClick={() => partner && handleProfileClick(partner.id)}
                         className="flex-1 min-w-0 text-left"
@@ -241,7 +287,6 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                         <p className="text-[9px] text-muted-foreground">Total calls ({calls.length})</p>
                       </button>
 
-                      {/* Follow button + dropdown stacked on right */}
                       <div className="flex flex-col items-center gap-1 shrink-0">
                         {partner && (
                           <Button
@@ -270,12 +315,12 @@ export function CombinedHistoryModal({ open, onOpenChange }: CombinedHistoryModa
                         </div>
                         <ul className="space-y-1">
                         {calls.map((item) => {
-                          const colors = getStatusColor(item.status);
+                          const colors = getStatusColor(item.direction);
                           return (
                             <li key={item.id} className="flex items-center gap-2 py-2 px-2 rounded-lg bg-background/60">
-                              <span className={`${colors.icon}`}>{getStatusIcon(item.status)}</span>
+                              <span className={`${colors.icon}`}>{getStatusIcon(item.direction)}</span>
                               <div className="flex-1 min-w-0">
-                                <p className={`text-[11px] font-medium ${colors.text}`}>{getStatusLabel(item.status)}</p>
+                                <p className={`text-[11px] font-medium ${colors.text}`}>{getStatusLabel(item.direction)}</p>
                                 <p className="text-[10px] text-muted-foreground">
                                   {format(new Date(item.created_at), "EEEE, MMM d, yyyy · h:mm a")}
                                 </p>
