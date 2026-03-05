@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LevelBadge } from "@/components/ui/LevelBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, BarChart3, Users, UserPlus, UserMinus, MessageCircle, MoreVertical, VolumeX, Ban, Heart, ArrowLeft, Loader2 } from "lucide-react";
+import { MapPin, BarChart3, Users, UserPlus, UserMinus, MessageCircle, MoreVertical, VolumeX, Ban, Heart, ArrowLeft, Loader2, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { sendFollowNotification } from "@/lib/followNotification";
+import { PremiumModal } from "@/components/PremiumModal";
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -111,6 +112,8 @@ function CompareGraphInline({
 export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName = "You", myWeeklyData }: UserProfilePopupProps) {
   const { profile: myProfile } = useProfile();
   const { toast } = useToast();
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(false);
 
   // Stack for infinite drill-down
   const [userStack, setUserStack] = useState<UserProfilePopupProps["user"][]>([]);
@@ -361,23 +364,71 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
 
               {/* Action buttons */}
               {currentUser.id !== myProfile?.id && (
-                <div className="flex items-center gap-2 mt-3 w-full">
-                  <Button
-                    onClick={handleFollow}
-                    variant={isFollowing ? "outline" : "default"}
-                    size="sm"
-                    className="flex-1 text-xs"
-                    disabled={followLoading}
-                  >
-                    {isFollowing ? (
-                      <><UserMinus className="w-3.5 h-3.5 mr-1" /> Unfollow</>
-                    ) : (
-                      <><UserPlus className="w-3.5 h-3.5 mr-1" /> Follow</>
-                    )}
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1 text-xs">
-                    <MessageCircle className="w-3.5 h-3.5 mr-1" /> Message
-                  </Button>
+                <div className="flex flex-col gap-2 mt-3 w-full">
+                  <div className="flex items-center gap-2 w-full">
+                    <Button
+                      onClick={handleFollow}
+                      variant={isFollowing ? "outline" : "default"}
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={followLoading}
+                    >
+                      {isFollowing ? (
+                        <><UserMinus className="w-3.5 h-3.5 mr-1" /> Unfollow</>
+                      ) : (
+                        <><UserPlus className="w-3.5 h-3.5 mr-1" /> Follow</>
+                      )}
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs">
+                      <MessageCircle className="w-3.5 h-3.5 mr-1" /> Message
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={requestLoading}
+                      onClick={async () => {
+                        if (!myProfile?.is_premium) {
+                          setPremiumModalOpen(true);
+                          return;
+                        }
+                        setRequestLoading(true);
+                        await supabase.from("connection_requests").insert({
+                          sender_id: myProfile.id,
+                          receiver_id: currentUser.id,
+                          request_type: "follow",
+                        });
+                        toast({ title: "Request Sent!", description: "Follow request sent successfully." });
+                        setRequestLoading(false);
+                      }}
+                    >
+                      <UserPlus className="w-3.5 h-3.5 mr-1" /> Request Follow
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={requestLoading}
+                      onClick={async () => {
+                        if (!myProfile?.is_premium) {
+                          setPremiumModalOpen(true);
+                          return;
+                        }
+                        setRequestLoading(true);
+                        await supabase.from("connection_requests").insert({
+                          sender_id: myProfile.id,
+                          receiver_id: currentUser.id,
+                          request_type: "call",
+                        });
+                        toast({ title: "Request Sent!", description: "Call request sent successfully." });
+                        setRequestLoading(false);
+                      }}
+                    >
+                      <Phone className="w-3.5 h-3.5 mr-1" /> Ask to Call
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -451,6 +502,8 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
           </div>
         )}
       </DialogContent>
+
+      <PremiumModal open={premiumModalOpen} onOpenChange={setPremiumModalOpen} />
     </Dialog>
   );
 }
