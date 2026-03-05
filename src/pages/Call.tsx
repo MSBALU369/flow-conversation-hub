@@ -544,14 +544,14 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const directCallId = (location.state as any)?.directCallId;
-        const callerId = (location.state as any)?.callerId;
+        const effectivePartnerId2 = partnerId || stateMatchedUserId;
         const isLogResponsible2 = directCallId
           ? (callerId === undefined || user.id === callerId)
-          : (effectivePartnerId ? user.id < effectivePartnerId : true);
-        if (isLogResponsible2 && effectivePartnerId) {
+          : (effectivePartnerId2 ? user.id < effectivePartnerId2 : true);
+        if (isLogResponsible2 && effectivePartnerId2) {
           supabase.rpc("log_call_for_both" as any, {
             p_caller_id: user.id,
-            p_receiver_id: effectivePartnerId,
+            p_receiver_id: effectivePartnerId2,
             p_caller_name: profile?.username || "Partner",
             p_receiver_name: partnerProfile?.username || "Partner",
             p_duration: callDuration,
@@ -563,7 +563,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString(), duration_sec: callDuration }).eq("id", directCallId).then();
         }
         const chatPartnerId = partnerId || stateMatchedUserId;
-        if (isFriendCall && chatPartnerId && isCallerOrInitiator) {
+        if (isFriendCall && chatPartnerId && isLogResponsible2) {
           const mins = Math.floor(callDuration / 60);
           const secs = callDuration % 60;
           const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
