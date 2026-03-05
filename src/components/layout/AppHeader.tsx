@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bell, Play, Search, X, Flame, Crown, ShieldCheck, UserPlus, Check } from "lucide-react";
+import { Bell, Play, Search, X, Flame, Crown, ShieldCheck, UserPlus, Check, Loader2 } from "lucide-react";
 import { EFLogo } from "@/components/ui/EFLogo";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { sendFollowNotification } from "@/lib/followNotification";
+import { useToast } from "@/hooks/use-toast";
 
 interface AppHeaderProps {
   streakDays?: number;
@@ -64,7 +65,10 @@ export function AppHeader({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [followedBackIds, setFollowedBackIds] = useState<Set<string>>(new Set());
   const [followLoading, setFollowLoading] = useState<string | null>(null);
+  const [requestSentIds, setRequestSentIds] = useState<Set<string>>(new Set());
+  const [requestLoadingId, setRequestLoadingId] = useState<string | null>(null);
   const showAdmin = isAdminOrRoot(user?.email);
+  const { toast } = useToast();
 
   const userLevel = profile?.level ?? level;
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -252,28 +256,108 @@ export function AppHeader({
           {!searching && searchQuery.length < 2 && (
             <p className="text-xs text-muted-foreground text-center py-4">Type at least 2 characters to search</p>
           )}
-          {searchResults.map((result) => (
-            <button
-              key={`${result.type}-${result.id}`}
-              onClick={() => handleResultClick(result)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors text-left"
-            >
-              <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden shrink-0">
-                {result.type === "user" && result.avatar ? (
-                  <img src={result.avatar} alt="" className="w-full h-full object-cover rounded-full" />
-                ) : (
-                  <span className="text-sm">{result.type === "user" ? "👤" : result.type === "room" ? "🏠" : "🎙️"}</span>
+          {searchResults.map((result) => {
+            const isUser = result.type === "user";
+            const isSelf = isUser && result.userId === profile?.id;
+            const alreadySent = isUser && result.userId ? requestSentIds.has(result.userId) : false;
+            const isLoadingReq = isUser && result.userId === requestLoadingId;
+
+            const handleRequestFollow = async (e: React.MouseEvent) => {
+              e.stopPropagation();
+              if (!profile?.id || !result.userId || alreadySent || isLoadingReq) return;
+              setRequestLoadingId(result.userId);
+              // Check if already following
+              const { data: existing } = await supabase
+                .from("friendships")
+                .select("id")
+                .eq("user_id", profile.id)
+                .eq("friend_id", result.userId)
+                .eq("status", "accepted")
+                .maybeSingle();
+              if (existing) {
+                toast({ title: "Already following", description: "You already follow this user." });
+                setRequestLoadingId(null);
+                return;
+              }
+              // Check if request already sent
+              const { data: existingReq } = await supabase
+                .from("connection_requests")
+                .select("id")
+                .eq("sender_id", profile.id)
+                .eq("receiver_id", result.userId)
+                .eq("request_type", "follow")
+                .eq("status", "pending")
+                .maybeSingle();
+              if (existingReq) {
+                toast({ title: "Request already sent" });
+                setRequestSentIds(prev => new Set(prev).add(result.userId!));
+                setRequestLoadingId(null);
+                return;
+              }
+              await supabase.from("connection_requests").insert({
+                sender_id: profile.id,
+                receiver_id: result.userId,
+                request_type: "follow",
+                status: "pending",
+              });
+              // Send notification
+              await supabase.from("notifications").insert({
+                user_id: result.userId,
+                from_user_id: profile.id,
+                type: "follow_request",
+                title: `${profile.username || "Someone"} sent you a follow request`,
+                message: "Go to Requests to accept or reject",
+                is_read: false,
+              });
+              setRequestSentIds(prev => new Set(prev).add(result.userId!));
+              toast({ title: "Follow request sent!" });
+              setRequestLoadingId(null);
+            };
+
+            return (
+              <div
+                key={`${result.type}-${result.id}`}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors text-left"
+              >
+                <button
+                  onClick={() => handleResultClick(result)}
+                  className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden shrink-0"
+                >
+                  {isUser && result.avatar ? (
+                    <img src={result.avatar} alt="" className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    <span className="text-sm">{isUser ? "👤" : result.type === "room" ? "🏠" : "🎙️"}</span>
+                  )}
+                </button>
+                <button onClick={() => handleResultClick(result)} className="min-w-0 flex-1 text-left">
+                  <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{result.subtitle}</p>
+                </button>
+                {isUser && !isSelf && (
+                  <Button
+                    size="sm"
+                    variant={alreadySent ? "outline" : "default"}
+                    className="h-7 text-[10px] px-2 gap-1 shrink-0"
+                    disabled={alreadySent || isLoadingReq}
+                    onClick={handleRequestFollow}
+                  >
+                    {isLoadingReq ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : alreadySent ? (
+                      <><Check className="w-3 h-3" /> Sent</>
+                    ) : (
+                      <><UserPlus className="w-3 h-3" /> Request</>
+                    )}
+                  </Button>
+                )}
+                {!isUser && (
+                  <span className="text-[8px] uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+                    {result.type}
+                  </span>
                 )}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{result.subtitle}</p>
-              </div>
-              <span className="text-[8px] uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
-                {result.type}
-              </span>
-            </button>
-          ))}
+            );
+          })}
         </div>
       </div>
     );

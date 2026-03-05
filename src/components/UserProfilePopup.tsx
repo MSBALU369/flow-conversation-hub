@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LevelBadge } from "@/components/ui/LevelBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, BarChart3, Users, UserPlus, UserMinus, MessageCircle, MoreVertical, VolumeX, Ban, Heart, ArrowLeft, Loader2, Phone } from "lucide-react";
+import { MapPin, BarChart3, Users, UserPlus, UserMinus, MessageCircle, MoreVertical, VolumeX, Ban, Heart, ArrowLeft, Loader2, Phone, Send, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { sendFollowNotification } from "@/lib/followNotification";
 import { PremiumModal } from "@/components/PremiumModal";
+import { haveMutuallyTalked } from "@/lib/mutualTalkCheck";
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -114,6 +115,8 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
   const { toast } = useToast();
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
+  const [hasMutualTalk, setHasMutualTalk] = useState(false);
+  const [followRequestSent, setFollowRequestSent] = useState(false);
 
   // Stack for infinite drill-down
   const [userStack, setUserStack] = useState<UserProfilePopupProps["user"][]>([]);
@@ -134,8 +137,16 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
       setUserStack([]);
       setViewMode("profile");
       setListUsers([]);
+      setHasMutualTalk(false);
+      setFollowRequestSent(false);
     }
   }, [open, initialUser.id]);
+
+  // Check mutual talk status
+  useEffect(() => {
+    if (!open || !myProfile?.id || !currentUser.id || myProfile.id === currentUser.id) return;
+    haveMutuallyTalked(myProfile.id, currentUser.id).then(setHasMutualTalk);
+  }, [open, myProfile?.id, currentUser.id]);
 
   // Fetch real counts & follow state for current user
   useEffect(() => {
@@ -190,18 +201,53 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
   const handleFollow = useCallback(async () => {
     if (!myProfile?.id || followLoading) return;
     setFollowLoading(true);
-    const newState = !isFollowing;
-    setIsFollowing(newState);
-    if (newState) {
+
+    if (isFollowing) {
+      // Unfollow: remove both directions
+      await supabase.from("friendships").delete().eq("user_id", myProfile.id).eq("friend_id", currentUser.id);
+      await supabase.from("friendships").delete().eq("user_id", currentUser.id).eq("friend_id", myProfile.id);
+      setIsFollowing(false);
+      setFollowedIds(prev => { const n = new Set(prev); n.delete(currentUser.id); return n; });
+    } else if (hasMutualTalk) {
+      // Direct follow (mutually talked) - create bidirectional
       await supabase.from("friendships").insert({ user_id: myProfile.id, friend_id: currentUser.id, status: "accepted" });
+      await supabase.from("friendships").insert({ user_id: currentUser.id, friend_id: myProfile.id, status: "accepted" });
       sendFollowNotification(myProfile.id, currentUser.id);
+      setIsFollowing(true);
       setFollowedIds(prev => new Set(prev).add(currentUser.id));
     } else {
-      await supabase.from("friendships").delete().eq("user_id", myProfile.id).eq("friend_id", currentUser.id);
-      setFollowedIds(prev => { const n = new Set(prev); n.delete(currentUser.id); return n; });
+      // Send follow request via connection_requests
+      const { data: existingReq } = await supabase
+        .from("connection_requests")
+        .select("id")
+        .eq("sender_id", myProfile.id)
+        .eq("receiver_id", currentUser.id)
+        .eq("request_type", "follow")
+        .eq("status", "pending")
+        .maybeSingle();
+      if (existingReq) {
+        toast({ title: "Follow request already sent" });
+      } else {
+        await supabase.from("connection_requests").insert({
+          sender_id: myProfile.id,
+          receiver_id: currentUser.id,
+          request_type: "follow",
+          status: "pending",
+        });
+        await supabase.from("notifications").insert({
+          user_id: currentUser.id,
+          from_user_id: myProfile.id,
+          type: "follow_request",
+          title: `${myProfile.username || "Someone"} sent you a follow request`,
+          message: "Go to Requests to accept or reject",
+          is_read: false,
+        });
+        toast({ title: "Follow request sent!" });
+      }
+      setFollowRequestSent(true);
     }
     setFollowLoading(false);
-  }, [myProfile?.id, isFollowing, currentUser.id, followLoading]);
+  }, [myProfile?.id, isFollowing, currentUser.id, followLoading, hasMutualTalk, toast]);
 
   const handleToggleFollowInList = useCallback(async (targetId: string) => {
     if (!myProfile?.id) return;
@@ -448,65 +494,23 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
                   <div className="flex items-center gap-2 w-full">
                     <Button
                       onClick={handleFollow}
-                      variant={isFollowing ? "outline" : "default"}
+                      variant={isFollowing ? "outline" : followRequestSent ? "outline" : "default"}
                       size="sm"
                       className="flex-1 text-xs"
-                      disabled={followLoading}
+                      disabled={followLoading || followRequestSent}
                     >
                       {isFollowing ? (
                         <><UserMinus className="w-3.5 h-3.5 mr-1" /> Unfollow</>
-                      ) : (
+                      ) : followRequestSent ? (
+                        <><Check className="w-3.5 h-3.5 mr-1" /> Request Sent</>
+                      ) : hasMutualTalk ? (
                         <><UserPlus className="w-3.5 h-3.5 mr-1" /> Follow</>
+                      ) : (
+                        <><Send className="w-3.5 h-3.5 mr-1" /> Request Follow</>
                       )}
                     </Button>
                     <Button variant="outline" size="sm" className="flex-1 text-xs">
                       <MessageCircle className="w-3.5 h-3.5 mr-1" /> Message
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-2 w-full">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 text-xs"
-                      disabled={requestLoading}
-                      onClick={async () => {
-                        if (!myProfile?.is_premium) {
-                          setPremiumModalOpen(true);
-                          return;
-                        }
-                        setRequestLoading(true);
-                        await supabase.from("connection_requests").insert({
-                          sender_id: myProfile.id,
-                          receiver_id: currentUser.id,
-                          request_type: "follow",
-                        });
-                        toast({ title: "Request Sent!", description: "Follow request sent successfully." });
-                        setRequestLoading(false);
-                      }}
-                    >
-                      <UserPlus className="w-3.5 h-3.5 mr-1" /> Request Follow
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 text-xs"
-                      disabled={requestLoading}
-                      onClick={async () => {
-                        if (!myProfile?.is_premium) {
-                          setPremiumModalOpen(true);
-                          return;
-                        }
-                        setRequestLoading(true);
-                        await supabase.from("connection_requests").insert({
-                          sender_id: myProfile.id,
-                          receiver_id: currentUser.id,
-                          request_type: "call",
-                        });
-                        toast({ title: "Request Sent!", description: "Call request sent successfully." });
-                        setRequestLoading(false);
-                      }}
-                    >
-                      <Phone className="w-3.5 h-3.5 mr-1" /> Ask to Call
                     </Button>
                   </div>
                 </div>
