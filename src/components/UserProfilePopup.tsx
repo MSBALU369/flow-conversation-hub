@@ -320,7 +320,49 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
                     <MoreVertical className="w-4 h-4 text-foreground" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-[140px]">
+                <DropdownMenuContent align="end" className="min-w-[160px]">
+                  {currentUser.id !== myProfile?.id && (
+                    <>
+                      <DropdownMenuItem
+                        className="gap-2 text-sm"
+                        onClick={async () => {
+                          if (!myProfile?.is_premium) {
+                            setPremiumModalOpen(true);
+                            return;
+                          }
+                          setRequestLoading(true);
+                          await supabase.from("connection_requests").insert({
+                            sender_id: myProfile.id,
+                            receiver_id: currentUser.id,
+                            request_type: "follow",
+                          });
+                          toast({ title: "Request Sent!", description: "Follow request sent." });
+                          setRequestLoading(false);
+                        }}
+                      >
+                        <UserPlus className="w-4 h-4" /> Request Follow
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="gap-2 text-sm"
+                        onClick={async () => {
+                          if (!myProfile?.is_premium) {
+                            setPremiumModalOpen(true);
+                            return;
+                          }
+                          setRequestLoading(true);
+                          await supabase.from("connection_requests").insert({
+                            sender_id: myProfile.id,
+                            receiver_id: currentUser.id,
+                            request_type: "call",
+                          });
+                          toast({ title: "Request Sent!", description: "Call request sent." });
+                          setRequestLoading(false);
+                        }}
+                      >
+                        <Phone className="w-4 h-4" /> Ask to Call
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuItem className="gap-2 text-sm">
                     <VolumeX className="w-4 h-4" /> Mute
                   </DropdownMenuItem>
