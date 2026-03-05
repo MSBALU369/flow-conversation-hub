@@ -329,7 +329,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
         }).then(() => {});
       }
       const chatPartnerId = partnerId || stateMatchedUserId;
-      if (isFriendCall && chatPartnerId && isCallerOrInitiator) {
+      if (isFriendCall && chatPartnerId && isLogResponsible) {
         const mins = Math.floor(callDuration / 60);
         const secs = callDuration % 60;
         const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
