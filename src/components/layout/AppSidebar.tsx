@@ -21,6 +21,7 @@ import {
   Coins,
   Phone,
   ShieldCheck,
+  Inbox,
 } from "lucide-react";
 import {
   Sheet,
@@ -56,10 +57,25 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
   const [trustScoreModalOpen, setTrustScoreModalOpen] = useState(false);
   const [speakWithOpen, setSpeakWithOpen] = useState(false);
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const { profile, updateProfile } = useProfile();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Fetch pending requests count
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from("connection_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("status", "pending");
+      setPendingRequestsCount(count || 0);
+    };
+    fetchCount();
+  }, [user?.id]);
 
 
 
@@ -129,6 +145,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
     { icon: Trophy, label: "Levels", action: handleLevelsClick, badge: `Lv.${profile?.level ?? 1}` },
     { icon: Clock, label: "History", action: handleHistoryClick },
     { icon: Shield, label: "Trust Score", action: handleTrustScoreClick },
+    { icon: Inbox, label: "📬 Requests", path: "/requests", badge: pendingRequestsCount > 0 ? String(pendingRequestsCount) : undefined },
     ...(isAdminOrRoot(user?.email) ? [{ icon: ShieldCheck, label: "Admin Dashboard", path: "/admin" }] : []),
   ];
 
