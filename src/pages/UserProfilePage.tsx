@@ -526,29 +526,73 @@ export default function UserProfilePage() {
           <Button
             onClick={async () => {
               if (!user?.id || !myProfile?.id) return;
-              const newState = !isFollowing;
-              setIsFollowing(newState);
-              if (newState) {
+
+              // Already following → unfollow
+              if (isFollowing) {
+                setIsFollowing(false);
+                await supabase.from("friendships").delete().eq("user_id", myProfile.id).eq("friend_id", user.id);
+                const [{ count: newFollowing }, { count: newFollowers }] = await Promise.all([
+                  supabase.from("friendships").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "accepted"),
+                  supabase.from("friendships").select("*", { count: "exact", head: true }).eq("friend_id", user.id).eq("status", "accepted"),
+                ]);
+                setUser(prev => prev ? { ...prev, followersCount: newFollowers ?? 0, followingCount: newFollowing ?? 0 } : prev);
+                return;
+              }
+
+              // Pending request already sent
+              if (pendingRequest) {
+                toast({ title: "Request already sent", description: "Wait for the user to accept your follow request." });
+                return;
+              }
+
+              // Has mutual call → direct follow
+              if (hasMutualCall) {
+                setIsFollowing(true);
                 await supabase.from("friendships").insert({ user_id: myProfile.id, friend_id: user.id, status: "accepted" });
                 sendFollowNotification(myProfile.id, user.id);
+                const [{ count: newFollowing }, { count: newFollowers }] = await Promise.all([
+                  supabase.from("friendships").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "accepted"),
+                  supabase.from("friendships").select("*", { count: "exact", head: true }).eq("friend_id", user.id).eq("status", "accepted"),
+                ]);
+                setUser(prev => prev ? { ...prev, followersCount: newFollowers ?? 0, followingCount: newFollowing ?? 0 } : prev);
               } else {
-                await supabase.from("friendships").delete().eq("user_id", myProfile.id).eq("friend_id", user.id);
+                // No mutual call → send connection request
+                const { error } = await supabase.from("connection_requests").insert({
+                  sender_id: myProfile.id,
+                  receiver_id: user.id,
+                  request_type: "follow",
+                  status: "pending",
+                });
+                if (!error) {
+                  setPendingRequest(true);
+                  toast({ title: "Follow request sent!", description: "They'll see your request in their notifications." });
+                  // Send notification to the target user
+                  const myName = myProfile.username || "Someone";
+                  await supabase.from("notifications").insert({
+                    user_id: user.id,
+                    type: "connection_request",
+                    title: "Follow Request",
+                    message: `${myName} wants to follow you.`,
+                    from_user_id: myProfile.id,
+                  });
+                } else {
+                  toast({ title: "Failed to send request", variant: "destructive" });
+                }
               }
-              // Refetch real counts from friendships
-              const [{ count: newFollowing }, { count: newFollowers }] = await Promise.all([
-                supabase.from("friendships").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "accepted"),
-                supabase.from("friendships").select("*", { count: "exact", head: true }).eq("friend_id", user.id).eq("status", "accepted"),
-              ]);
-              setUser(prev => prev ? { ...prev, followersCount: newFollowers ?? 0, followingCount: newFollowing ?? 0 } : prev);
             }}
-            variant={isFollowing ? "outline" : "default"}
+            variant={isFollowing ? "outline" : pendingRequest ? "secondary" : "default"}
             size="sm"
             className="flex-1"
+            disabled={pendingRequest && !isFollowing}
           >
             {isFollowing ? (
               <><UserMinus className="w-4 h-4 mr-1.5" /> Unfollow</>
-            ) : (
+            ) : pendingRequest ? (
+              <>Requested</>
+            ) : hasMutualCall ? (
               <><UserPlus className="w-4 h-4 mr-1.5" /> Follow</>
+            ) : (
+              <><UserPlus className="w-4 h-4 mr-1.5" /> Follow Request</>
             )}
           </Button>
           <Button
