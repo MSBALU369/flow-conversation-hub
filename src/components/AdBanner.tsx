@@ -41,7 +41,7 @@ export function AdBanner({ variant = "standard", className = "" }: AdBannerProps
           <div className="space-y-4 mt-4">
             <div className="flex gap-3">
               <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-              <p className="text-sm text-foreground"><span className="font-semibold">Zero Tolerance:</span> Ignore bad talks. If someone misbehaves, just cut the call and hit 'Report'. We monitor and permanently ban toxic users.</p>
+              <p className="text-sm text-foreground"><span className="font-semibold">Strict Rules:</span> Ignore bad comments. If anyone behaves badly, just cut the call and hit 'Report'. We will take strict action against them.</p>
             </div>
             <div className="flex gap-3">
               <Target className="w-5 h-5 text-primary shrink-0 mt-0.5" />
