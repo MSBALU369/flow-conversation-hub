@@ -59,17 +59,43 @@ export default function Requests() {
     fetchRequests();
   }, [user?.id]);
 
-  const handleAction = async (requestId: string, newStatus: "accepted" | "rejected") => {
+  const handleAction = async (requestId: string, newStatus: "accepted" | "rejected", senderId?: string) => {
     setActionLoading(requestId);
     await supabase
       .from("connection_requests")
       .update({ status: newStatus })
       .eq("id", requestId);
 
+    // If accepted follow request, create bidirectional friendships
+    if (newStatus === "accepted" && senderId && user?.id) {
+      const req = requests.find(r => r.id === requestId);
+      if (req?.request_type === "follow") {
+        // Create both directions
+        await supabase.from("friendships").upsert(
+          { user_id: senderId, friend_id: user.id, status: "accepted" },
+          { onConflict: "user_id,friend_id" }
+        );
+        await supabase.from("friendships").upsert(
+          { user_id: user.id, friend_id: senderId, status: "accepted" },
+          { onConflict: "user_id,friend_id" }
+        );
+        // Send notification to sender
+        const { data: myProf } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+        await supabase.from("notifications").insert({
+          user_id: senderId,
+          from_user_id: user.id,
+          type: "follow_accepted",
+          title: `${myProf?.username || "Someone"} accepted your follow request`,
+          message: "You are now following each other!",
+          is_read: false,
+        });
+      }
+    }
+
     setRequests((prev) => prev.filter((r) => r.id !== requestId));
     toast({
       title: newStatus === "accepted" ? "Request Accepted" : "Request Rejected",
-      description: newStatus === "accepted" ? "You accepted the request." : "You rejected the request.",
+      description: newStatus === "accepted" ? "You are now following each other!" : "You rejected the request.",
     });
     setActionLoading(null);
   };
@@ -128,7 +154,7 @@ export default function Requests() {
                   size="sm"
                   className="h-8 px-3 text-xs bg-[hsl(142,71%,45%)] hover:bg-[hsl(142,71%,40%)] text-white"
                   disabled={actionLoading === req.id}
-                  onClick={() => handleAction(req.id, "accepted")}
+                  onClick={() => handleAction(req.id, "accepted", req.sender_id)}
                 >
                   <Check className="w-3.5 h-3.5" />
                 </Button>
