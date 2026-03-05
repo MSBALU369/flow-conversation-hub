@@ -438,7 +438,7 @@ export default function Home() {
           <div className="space-y-4 mt-4">
             <div className="flex gap-3">
               <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-              <p className="text-sm text-foreground"><span className="font-semibold">Strict Rules:</span> Ignore bad comments. If anyone behaves badly, just cut the call and hit 'Report'. We will ban them forever.</p>
+              <p className="text-sm text-foreground"><span className="font-semibold">Strict Rules:</span> Ignore bad comments. If anyone behaves badly, just cut the call and hit 'Report'. We will take strict action against them.</p>
             </div>
             <div className="flex gap-3">
               <Target className="w-5 h-5 text-primary shrink-0 mt-0.5" />
