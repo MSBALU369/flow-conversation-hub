@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           duration: number
           id: string
+          partner_id: string | null
           partner_name: string
           status: string
           user_id: string
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string
           duration?: number
           id?: string
+          partner_id?: string | null
           partner_name?: string
           status?: string
           user_id: string
@@ -35,11 +37,19 @@ export type Database = {
           created_at?: string
           duration?: number
           id?: string
+          partner_id?: string | null
           partner_name?: string
           status?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "call_history_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "call_history_user_id_fkey"
             columns: ["user_id"]
