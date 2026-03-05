@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Mic, Play, Pause, Heart, MessageCircle, Star, Upload, Clock, Share2, Users, ArrowLeft, MoreVertical, EyeOff, Eye, Trash2, Flag, Send, Link, UserPlus, Reply, FolderOpen, ListMusic, Plus, Check, ThumbsDown, X, Lock, Globe, Coins } from "lucide-react";
+import { UserProfilePopup } from "@/components/UserProfilePopup";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,7 @@ export default function Talent() {
   const [previewPostId, setPreviewPostId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [profilePopupUser, setProfilePopupUser] = useState<any>(null);
 
   // Fetch real talent posts from Supabase
   useEffect(() => {
@@ -671,14 +673,38 @@ export default function Talent() {
         filteredPosts.map((post) => <div key={post.id} className="glass-card p-2.5">
               <div className="flex items-start gap-2.5">
                 {/* Avatar - Smaller */}
-                <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <button
+                  className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0"
+                  onClick={() => post.user_id !== user?.id && setProfilePopupUser({
+                    id: post.user_id,
+                    name: post.username,
+                    avatar: post.avatar,
+                    level: 1,
+                    isOnline: false,
+                    followersCount: 0,
+                    followingCount: 0,
+                  })}
+                >
                   {post.avatar ? <img src={post.avatar} alt={post.username} className="w-full h-full rounded-full object-cover" /> : <span className="text-sm">{post.username[0].toUpperCase()}</span>}
-                </div>
+                </button>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="font-semibold text-foreground text-sm">{post.username}</span>
+                    <button
+                      className="font-semibold text-foreground text-sm hover:underline"
+                      onClick={() => post.user_id !== user?.id && setProfilePopupUser({
+                        id: post.user_id,
+                        name: post.username,
+                        avatar: post.avatar,
+                        level: 1,
+                        isOnline: false,
+                        followersCount: 0,
+                        followingCount: 0,
+                      })}
+                    >
+                      {post.username}
+                    </button>
                     <span className="text-[9px] text-primary bg-primary/20 px-1.5 py-0.5 rounded-full font-medium">
                       {post.category}
                     </span>
@@ -1481,5 +1507,14 @@ export default function Talent() {
     })()}
 
       <BottomNav />
+
+      {profilePopupUser && (
+        <UserProfilePopup
+          open={!!profilePopupUser}
+          onOpenChange={(open) => !open && setProfilePopupUser(null)}
+          user={profilePopupUser}
+          myName={profile?.username || "You"}
+        />
+      )}
     </div>;
 }
