@@ -1628,67 +1628,8 @@ export default function Chat() {
                               </div>
                             )}
                           </div>
-                          {/* Download request button — only for received images, NOT view-once */}
-                          {!isMe && message.mediaUrl && (
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                if (!selectedFriend || !profile?.id) return;
-                                // Send system message requesting download permission
-                                await supabase.from("chat_messages").insert({
-                                  sender_id: profile.id,
-                                  receiver_id: selectedFriend.id,
-                                  content: `[📥 Image Download Request] Can I save this image?`,
-                                  is_read: false,
-                                });
-                                toast({ title: "Download Request Sent", description: "Waiting for approval..." });
-                              }}
-                              className="absolute top-1 right-1 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/50 hover:bg-background transition-colors"
-                              title="Request download"
-                            >
-                              <ArrowLeft className="w-3.5 h-3.5 text-foreground rotate-[-90deg]" />
-                            </button>
-                          )}
                         </div>
                       )
-                    ) : message.content.startsWith("[📥 Image Download Request]") ? (
-                      // Download request message with Accept/Reject for the receiver
-                      <div className="space-y-1.5">
-                        <p className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>
-                          📥 Image Download Request
-                        </p>
-                        <p className={cn("text-xs", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                          {isMe ? "You requested to save an image" : `${selectedFriend?.name} wants to save your image`}
-                        </p>
-                        {!isMe && !message.content.includes("[Accepted]") && !message.content.includes("[Rejected]") && (
-                          <div className="flex gap-2 mt-1">
-                            <button
-                              onClick={async () => {
-                                await supabase.from("chat_messages").update({ content: message.content + " [Accepted] ✅" }).eq("id", message.id);
-                                toast({ title: "Download Approved", description: "They can now save the image." });
-                              }}
-                              className="px-3 py-1 rounded-lg bg-primary/20 text-primary text-xs font-medium hover:bg-primary/30 transition-colors"
-                            >
-                              ✅ Accept
-                            </button>
-                            <button
-                              onClick={async () => {
-                                await supabase.from("chat_messages").update({ content: message.content + " [Rejected] ❌" }).eq("id", message.id);
-                                toast({ title: "Download Rejected" });
-                              }}
-                              className="px-3 py-1 rounded-lg bg-destructive/20 text-destructive text-xs font-medium hover:bg-destructive/30 transition-colors"
-                            >
-                              ❌ Reject
-                            </button>
-                          </div>
-                        )}
-                        {message.content.includes("[Accepted]") && (
-                          <p className="text-xs text-primary font-medium">✅ Download approved</p>
-                        )}
-                        {message.content.includes("[Rejected]") && (
-                          <p className="text-xs text-destructive font-medium">❌ Download rejected</p>
-                        )}
-                      </div>
                     ) : (
                       <p className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>
                         {message.content}
