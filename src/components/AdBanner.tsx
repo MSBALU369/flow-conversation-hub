@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Play, Volume2, X } from "lucide-react";
+import { ShieldAlert, Target, Lock, Flame, Crown, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface AdBannerProps {
   variant?: "standard" | "compact";
@@ -8,28 +10,61 @@ interface AdBannerProps {
 
 export function AdBanner({ variant = "standard", className = "" }: AdBannerProps) {
   const [dismissed, setDismissed] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   if (dismissed) return null;
 
   return (
-    <div className={`relative border border-dashed border-border rounded-xl bg-muted/30 ${className}`}>
-      <button
-        onClick={() => setDismissed(true)}
-        className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-muted flex items-center justify-center z-10"
-      >
-        <X className="w-3 h-3 text-muted-foreground" />
-      </button>
-      <div className={`flex flex-col items-center justify-center gap-1.5 ${variant === "compact" ? "py-3 px-4" : "py-6 px-4"}`}>
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-          <Play className="w-4 h-4 text-primary fill-primary" />
+    <>
+      <div className={`relative border border-dashed border-border rounded-xl bg-muted/30 ${className}`}>
+        <button
+          onClick={() => setDismissed(true)}
+          className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-muted flex items-center justify-center z-10"
+        >
+          <X className="w-3 h-3 text-muted-foreground" />
+        </button>
+        <div className={`flex items-center justify-between gap-3 ${variant === "compact" ? "py-3 px-4" : "py-4 px-4"}`}>
+          <p className="text-xs text-foreground font-semibold flex-1">
+            You can't be perfect until you start speaking.
+          </p>
+          <Button size="sm" variant="secondary" onClick={() => setShowGuide(true)} className="rounded-full text-xs h-7">
+            Open ✨
+          </Button>
         </div>
-        <p className="text-[10px] text-muted-foreground text-center">
-          Ad Space — Sponsor Banner
-        </p>
-        <span className="text-[8px] uppercase tracking-wider text-muted-foreground/60 bg-muted px-2 py-0.5 rounded">
-          Advertisement
-        </span>
       </div>
-    </div>
+
+      <Dialog open={showGuide} onOpenChange={setShowGuide}>
+        <DialogContent className="glass-card max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">🛡️ Your Safe Space to Speak!</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="flex gap-3">
+              <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground"><span className="font-semibold">Zero Tolerance:</span> Ignore bad talks. If someone misbehaves, just cut the call and hit 'Report'. We monitor and permanently ban toxic users.</p>
+            </div>
+            <div className="flex gap-3">
+              <Target className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground"><span className="font-semibold">Eyes on the Prize:</span> Your goal is to be perfect in English. Focus only on that. Make mistakes and learn.</p>
+            </div>
+            <div className="flex gap-3">
+              <Lock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground"><span className="font-semibold">Privacy First:</span> Never share your contact numbers or personal details with anyone. Stay anonymous.</p>
+            </div>
+            <div className="flex gap-3">
+              <Flame className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground"><span className="font-semibold">Consistency is Magic:</span> Practice daily for perfection. Speaking regularly is the only way to fluency.</p>
+            </div>
+            <div className="flex gap-3">
+              <Crown className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground"><span className="font-semibold">The VIP Shield:</span> Go premium to avoid unwanted stuff and connect only with verified, serious learners.</p>
+            </div>
+          </div>
+          <Button className="w-full mt-6 bg-primary text-primary-foreground" onClick={() => setShowGuide(false)}>
+            Got it, let's speak! 🎤
+          </Button>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
