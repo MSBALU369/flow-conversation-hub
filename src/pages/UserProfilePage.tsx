@@ -279,6 +279,26 @@ export default function UserProfilePage() {
     fetchMyFollowing();
   }, [id]);
 
+  // Check mutual call history + pending connection request
+  useEffect(() => {
+    if (!id || !myProfile?.id || id === myProfile.id) return;
+    const check = async () => {
+      const [mutual, { data: pending }] = await Promise.all([
+        haveMutuallyTalked(myProfile.id, id),
+        supabase
+          .from("connection_requests")
+          .select("id")
+          .eq("sender_id", myProfile.id)
+          .eq("receiver_id", id)
+          .eq("status", "pending")
+          .limit(1),
+      ]);
+      setHasMutualCall(mutual);
+      setPendingRequest(!!(pending && pending.length > 0));
+    };
+    check();
+  }, [id, myProfile?.id]);
+
   const openListModal = async (type: "following" | "followers" | "fans") => {
     if (!user) return;
     const title = type === "following" ? "Following" : type === "followers" ? "Followers" : "Fans";
