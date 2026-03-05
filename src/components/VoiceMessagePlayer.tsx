@@ -71,9 +71,9 @@ export function VoiceMessagePlayer({ url, isMe, messageId }: VoiceMessagePlayerP
         {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
       </button>
       <div className="flex-1 flex flex-col gap-0.5">
-        <div className={cn("h-1.5 rounded-full overflow-hidden", isMe ? "bg-primary-foreground/20" : "bg-muted")}>
+        <div className="h-1.5 rounded-full overflow-hidden bg-white/40">
           <div
-            className={cn("h-full rounded-full transition-all duration-100", isMe ? "bg-primary-foreground/70" : "bg-primary")}
+            className="h-full rounded-full transition-all duration-100 bg-green-500"
             style={{ width: `${progress}%` }}
           />
         </div>
