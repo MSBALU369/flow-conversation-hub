@@ -1356,9 +1356,9 @@ export default function Profile() {
                   <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[hsl(var(--ef-online))] rounded-full border-2 border-background" />
                   }
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{user.username || "User"}</p>
-                        <p className="text-[10px] text-muted-foreground">Level {user.level ?? 1} • {user.location_city || "Unknown"}</p>
+                      <div className="min-w-0 overflow-hidden">
+                        <p className="text-xs font-medium text-foreground truncate">{user.username || "User"}</p>
+                        <p className="text-[9px] text-muted-foreground truncate">Lv.{user.level ?? 1} • {user.location_city || "Unknown"}</p>
                       </div>
                     </button>
                     {/* Action buttons */}
