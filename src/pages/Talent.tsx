@@ -675,7 +675,7 @@ export default function Talent() {
                 {/* Avatar - Smaller */}
                 <button
                   className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0"
-                  onClick={() => post.user_id !== user?.id && setProfilePopupUser({
+                  onClick={() => setProfilePopupUser({
                     id: post.user_id,
                     name: post.username,
                     avatar: post.avatar,
@@ -693,7 +693,7 @@ export default function Talent() {
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <button
                       className="font-semibold text-foreground text-sm hover:underline"
-                      onClick={() => post.user_id !== user?.id && setProfilePopupUser({
+                      onClick={() => setProfilePopupUser({
                         id: post.user_id,
                         name: post.username,
                         avatar: post.avatar,
@@ -720,6 +720,17 @@ export default function Talent() {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="min-w-[140px]">
+                        <DropdownMenuItem onClick={() => setProfilePopupUser({
+                          id: post.user_id,
+                          name: post.username,
+                          avatar: post.avatar,
+                          level: 1,
+                          isOnline: false,
+                          followersCount: 0,
+                          followingCount: 0,
+                        })}>
+                          <Eye className="w-4 h-4 mr-2" /> View Profile
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleAddToPlaylist(post.id, post.category)}>
                           {isInPlaylist(post.id) ? <Check className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
                           {isInPlaylist(post.id) ? "Saved" : "Save"}
