@@ -308,8 +308,11 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       if (directCallId) {
         supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString(), duration_sec: callDuration }).eq("id", directCallId).then();
       }
-      const isCallerOrInitiator = !directCallId || callerId === undefined || user.id === callerId;
       const effectivePartnerId = partnerId || stateMatchedUserId;
+      // For direct calls: only the caller logs. For random calls: only the user with the smaller ID logs to prevent duplicates.
+      const isCallerOrInitiator = directCallId
+        ? (callerId === undefined || user.id === callerId)
+        : (effectivePartnerId ? user.id < effectivePartnerId : true);
       if (isCallerOrInitiator && effectivePartnerId) {
         supabase.rpc("log_call_for_both" as any, {
           p_caller_id: user.id,
