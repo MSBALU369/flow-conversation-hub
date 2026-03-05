@@ -277,8 +277,46 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
 
   const canGoBack = viewMode !== "profile" || userStack.length > 0;
 
-  const defaultMyData = dayLabels.map((day) => ({ day, minutes: Math.floor(Math.random() * 40) + 5 }));
-  const defaultFriendData = currentUser.weeklyData || dayLabels.map((day) => ({ day, minutes: Math.floor(Math.random() * 45) + 5 }));
+  // Fetch real weekly speaking data for both users
+  const [myWeeklyReal, setMyWeeklyReal] = useState(dayLabels.map(day => ({ day, minutes: 0 })));
+  const [friendWeeklyReal, setFriendWeeklyReal] = useState(dayLabels.map(day => ({ day, minutes: 0 })));
+
+  useEffect(() => {
+    if (!open || !myProfile?.id || !currentUser.id) return;
+
+    const fetchWeeklyData = async (userId: string) => {
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun
+      // Monday of this week
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+      monday.setHours(0, 0, 0, 0);
+
+      const { data } = await supabase
+        .from("call_history")
+        .select("duration, created_at")
+        .eq("user_id", userId)
+        .gte("created_at", monday.toISOString());
+
+      const weekMap: Record<string, number> = {};
+      dayLabels.forEach(d => { weekMap[d] = 0; });
+
+      (data || []).forEach((row: any) => {
+        const d = new Date(row.created_at);
+        const idx = (d.getDay() + 6) % 7; // 0=Mon
+        weekMap[dayLabels[idx]] += Math.round((row.duration || 0) / 60);
+      });
+
+      return dayLabels.map(day => ({ day, minutes: weekMap[day] }));
+    };
+
+    Promise.all([fetchWeeklyData(myProfile.id), fetchWeeklyData(currentUser.id)]).then(
+      ([myData, friendData]) => {
+        setMyWeeklyReal(myData);
+        setFriendWeeklyReal(friendData);
+      }
+    );
+  }, [open, myProfile?.id, currentUser.id]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -483,8 +521,8 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
                 <CompareGraphInline
                   userName={myName}
                   friendName={currentUser.name}
-                  myData={myWeeklyData || defaultMyData}
-                  friendData={defaultFriendData}
+                  myData={myWeeklyReal}
+                  friendData={friendWeeklyReal}
                 />
               </div>
             </div>
