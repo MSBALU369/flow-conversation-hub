@@ -545,9 +545,10 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       if (user) {
         const directCallId = (location.state as any)?.directCallId;
         const callerId = (location.state as any)?.callerId;
-        const isCallerOrInitiator = !directCallId || callerId === undefined || user.id === callerId;
-        const effectivePartnerId = partnerId || stateMatchedUserId;
-        if (isCallerOrInitiator && effectivePartnerId) {
+        const isLogResponsible2 = directCallId
+          ? (callerId === undefined || user.id === callerId)
+          : (effectivePartnerId ? user.id < effectivePartnerId : true);
+        if (isLogResponsible2 && effectivePartnerId) {
           supabase.rpc("log_call_for_both" as any, {
             p_caller_id: user.id,
             p_receiver_id: effectivePartnerId,
