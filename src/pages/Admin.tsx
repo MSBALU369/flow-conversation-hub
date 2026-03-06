@@ -473,6 +473,11 @@ export default function Admin() {
             )}
           </TabsContent>
 
+          {/* TAB: PENDING DELETIONS */}
+          <TabsContent value="deletions">
+            <PendingDeletionsTab />
+          </TabsContent>
+
           {/* TAB: SUPPORT TICKETS */}
           <TabsContent value="tickets" className="space-y-4 mt-4">
             <h3 className="text-sm font-semibold flex items-center gap-1.5">
