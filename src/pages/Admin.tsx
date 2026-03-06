@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ToolMetricsModal } from "@/components/admin/ToolMetricsModal";
 import { AdminUserActionModal } from "@/components/admin/AdminUserActionModal";
+import { PendingDeletionsTab } from "@/components/admin/PendingDeletionsTab";
 
 const ADMIN_EMAILS = [
   "balumothe@gmail.com", "balumothe+test1@gmail.com",
