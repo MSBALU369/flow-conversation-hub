@@ -65,10 +65,15 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
   };
 
   const handleDeleteAccount = async () => {
-    // In a real implementation, this would call an edge function to delete the user
+    if (!profile) return;
+    // Freeze the account and mark deletion requested
+    await supabase.from("profiles").update({
+      is_banned: true,
+      deletion_requested_at: new Date().toISOString(),
+    } as any).eq("id", profile.id);
     toast({
       title: "Account Deletion Requested",
-      description: "Your account deletion request has been submitted. This process may take up to 7 days.",
+      description: "Your account has been frozen and will be permanently deleted within 48 hours.",
       variant: "destructive",
     });
     setShowDeleteConfirm(false);
@@ -235,8 +240,8 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
               Delete Account
             </AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              This action cannot be undone. This will permanently delete your account
-              and remove all your data from our servers.
+              Your account will be frozen immediately and permanently deleted within 48 hours.
+              This action cannot be undone. All your data will be removed from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
