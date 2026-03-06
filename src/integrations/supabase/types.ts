@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          id: string
+          latest_version: string
+          min_required_version: string
+          store_url: string
+          update_message: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          latest_version?: string
+          min_required_version?: string
+          store_url?: string
+          update_message?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          latest_version?: string
+          min_required_version?: string
+          store_url?: string
+          update_message?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       call_history: {
         Row: {
           created_at: string
