@@ -234,12 +234,15 @@ export default function Admin() {
 
       <div className="px-4 mt-4">
         <Tabs defaultValue="health" className="w-full">
-          <TabsList className="w-full grid grid-cols-5 h-10 bg-muted/50">
+          <TabsList className="w-full grid grid-cols-6 h-10 bg-muted/50">
             <TabsTrigger value="health" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
               <Activity className="w-3.5 h-3.5 mr-0.5" /> Health
             </TabsTrigger>
             <TabsTrigger value="users" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
               <Users className="w-3.5 h-3.5 mr-0.5" /> Users
+            </TabsTrigger>
+            <TabsTrigger value="deletions" className="text-[10px] data-[state=active]:bg-destructive/15 data-[state=active]:text-destructive relative">
+              <UserMinus className="w-3.5 h-3.5 mr-0.5" /> Del
             </TabsTrigger>
             <TabsTrigger value="tickets" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary relative">
               <Ticket className="w-3.5 h-3.5 mr-0.5" /> Tickets
