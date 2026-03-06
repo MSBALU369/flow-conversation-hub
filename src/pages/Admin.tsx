@@ -42,6 +42,7 @@ interface UserRow {
   created_at: string;
   is_premium: boolean | null;
   is_banned: boolean | null;
+  deletion_requested_at?: string | null;
 }
 
 interface ReportRow {
@@ -71,6 +72,7 @@ export default function Admin() {
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [tickets, setTickets] = useState<any[]>([]);
   const [grantingPremium, setGrantingPremium] = useState<string | null>(null);
+  const [showDeletedAccounts, setShowDeletedAccounts] = useState(false);
 
   // Guard
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function Admin() {
     setLoading(true);
 
     const [usersRes, todayTxRes, monthTxRes, callsRes, roomsRes, talentsRes, reportsRes, ticketsRes] = await Promise.all([
-      supabase.from("profiles").select("id, username, email, energy_bars, coins, created_at, is_premium, is_banned").order("created_at", { ascending: false }).limit(500),
+      supabase.from("profiles").select("id, username, email, energy_bars, coins, created_at, is_premium, is_banned, deletion_requested_at").order("created_at", { ascending: false }).limit(500),
       (() => {
         const todayStart = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).toISOString();
         return supabase.from("coin_transactions").select("amount").gte("created_at", todayStart).eq("status", "completed");
@@ -295,7 +297,73 @@ export default function Admin() {
               <div className="bg-muted/50 rounded-xl p-3 text-center">
                 <p className="text-xl font-bold text-foreground">{freeCount}</p>
                 <p className="text-[10px] text-muted-foreground">Free</p>
-              </div>
+            </div>
+
+            {/* Deleted Accounts Monitor */}
+            {(() => {
+              const deletedAccounts = users.filter(u => (u as any).deletion_requested_at);
+              return (
+                <div>
+                  <button
+                    onClick={() => setShowDeletedAccounts(!showDeletedAccounts)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-destructive">Deleted Accounts</p>
+                        <p className="text-[10px] text-muted-foreground">Frozen & pending permanent deletion</p>
+                      </div>
+                    </div>
+                    <span className="text-lg font-bold text-destructive">{deletedAccounts.length}</span>
+                  </button>
+                  {showDeletedAccounts && deletedAccounts.length > 0 && (
+                    <div className="mt-2 space-y-1.5 max-h-[30vh] overflow-y-auto">
+                      {deletedAccounts.map(u => {
+                        const reqAt = new Date((u as any).deletion_requested_at);
+                        const deleteBy = new Date(reqAt.getTime() + 48 * 60 * 60 * 1000);
+                        const hoursLeft = Math.max(0, Math.round((deleteBy.getTime() - Date.now()) / (1000 * 60 * 60)));
+                        return (
+                          <div key={u.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-muted/30">
+                            <div>
+                              <p className="text-xs font-medium text-foreground">{u.username || u.email || "Unknown"}</p>
+                              <p className="text-[9px] text-muted-foreground">Requested: {reqAt.toLocaleString()}</p>
+                              <p className="text-[9px] text-destructive font-medium">
+                                {hoursLeft > 0 ? `${hoursLeft}h left` : "Ready to delete"}
+                              </p>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-[9px] h-6 px-2"
+                                onClick={async () => {
+                                  await supabase.from("profiles").update({ is_banned: false, deletion_requested_at: null } as any).eq("id", u.id);
+                                  fetchAll();
+                                }}
+                              >
+                                Restore
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="text-[9px] h-6 px-2"
+                                onClick={async () => {
+                                  await supabase.rpc("delete_user_account", { p_user_id: u.id });
+                                  fetchAll();
+                                }}
+                              >
+                                Delete Now
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             </div>
 
             {/* Tool Cards — Clickable */}
@@ -379,7 +447,9 @@ export default function Admin() {
                           <TableCell className="text-xs py-2">{u.energy_bars ?? 0}/7</TableCell>
                           <TableCell className="text-xs py-2">{u.coins ?? 0}</TableCell>
                           <TableCell className="py-2">
-                            {u.is_banned ? (
+                            {(u as any).deletion_requested_at ? (
+                              <span className="text-[9px] bg-orange-500/20 text-orange-500 px-1.5 py-0.5 rounded font-medium">FROZEN</span>
+                            ) : u.is_banned ? (
                               <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded font-medium">BANNED</span>
                             ) : u.is_premium ? (
                               <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-medium">PREMIUM</span>
