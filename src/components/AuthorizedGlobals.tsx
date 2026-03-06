@@ -8,6 +8,7 @@ import { RenewalReminder } from "@/components/RenewalReminder";
 import { BatteryWarningModal } from "@/components/BatteryWarningModal";
 import { GlobalListeners } from "@/components/GlobalListeners";
 import { SessionEnforcer } from "@/components/SessionEnforcer";
+import { AppUpdateChecker } from "@/components/AppUpdateChecker";
 
 export function AuthorizedGlobals() {
   const { user } = useAuth();
@@ -24,6 +25,7 @@ export function AuthorizedGlobals() {
       <BatteryWarningModal />
       <GlobalListeners />
       <SessionEnforcer />
+      <AppUpdateChecker />
     </>
   );
 }
