@@ -42,6 +42,7 @@ interface UserRow {
   created_at: string;
   is_premium: boolean | null;
   is_banned: boolean | null;
+  deletion_requested_at?: string | null;
 }
 
 interface ReportRow {
@@ -71,6 +72,7 @@ export default function Admin() {
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [tickets, setTickets] = useState<any[]>([]);
   const [grantingPremium, setGrantingPremium] = useState<string | null>(null);
+  const [showDeletedAccounts, setShowDeletedAccounts] = useState(false);
 
   // Guard
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function Admin() {
     setLoading(true);
 
     const [usersRes, todayTxRes, monthTxRes, callsRes, roomsRes, talentsRes, reportsRes, ticketsRes] = await Promise.all([
-      supabase.from("profiles").select("id, username, email, energy_bars, coins, created_at, is_premium, is_banned").order("created_at", { ascending: false }).limit(500),
+      supabase.from("profiles").select("id, username, email, energy_bars, coins, created_at, is_premium, is_banned, deletion_requested_at").order("created_at", { ascending: false }).limit(500),
       (() => {
         const todayStart = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).toISOString();
         return supabase.from("coin_transactions").select("amount").gte("created_at", todayStart).eq("status", "completed");
