@@ -447,7 +447,9 @@ export default function Admin() {
                           <TableCell className="text-xs py-2">{u.energy_bars ?? 0}/7</TableCell>
                           <TableCell className="text-xs py-2">{u.coins ?? 0}</TableCell>
                           <TableCell className="py-2">
-                            {u.is_banned ? (
+                            {(u as any).deletion_requested_at ? (
+                              <span className="text-[9px] bg-orange-500/20 text-orange-500 px-1.5 py-0.5 rounded font-medium">FROZEN</span>
+                            ) : u.is_banned ? (
                               <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded font-medium">BANNED</span>
                             ) : u.is_premium ? (
                               <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-medium">PREMIUM</span>
