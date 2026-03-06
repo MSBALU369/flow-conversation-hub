@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { ToolMetricsModal } from "@/components/admin/ToolMetricsModal";
 import { AdminUserActionModal } from "@/components/admin/AdminUserActionModal";
 import { PendingDeletionsTab } from "@/components/admin/PendingDeletionsTab";
+import { AdminVersionControl } from "@/components/admin/AdminVersionControl";
 
 const ADMIN_EMAILS = [
   "balumothe@gmail.com", "balumothe+test1@gmail.com",
@@ -403,6 +404,9 @@ export default function Admin() {
                 ))}
               </div>
             </div>
+
+            {/* App Version Control */}
+            <AdminVersionControl />
           </TabsContent>
 
           {/* TAB 2: DEEP USER MANAGEMENT */}
