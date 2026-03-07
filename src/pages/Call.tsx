@@ -65,7 +65,7 @@ const LudoGame = lazy(() => import("@/components/games/LudoGame").then(m => ({ d
 const SnakeLadderGame = lazy(() => import("@/components/games/SnakeLadderGame").then(m => ({ default: m.SnakeLadderGame })));
 const ArcheryGame = lazy(() => import("@/components/games/ArcheryGame").then(m => ({ default: m.ArcheryGame })));
 const SudokuGame = lazy(() => import("@/components/games/SudokuGame").then(m => ({ default: m.SudokuGame })));
-const FloatingGameBubble = lazy(() => import("@/components/games/FloatingGameBubble").then(m => ({ default: m.FloatingGameBubble }})));
+const FloatingGameBubble = lazy(() => import("@/components/games/FloatingGameBubble").then(m => ({ default: m.FloatingGameBubble })));
 
 const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL;
 
