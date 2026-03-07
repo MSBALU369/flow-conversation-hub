@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Chess, type Square, type Move } from "chess.js";
+import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
+import type { PieceDropHandlerArgs, PieceHandlerArgs } from "react-chessboard/dist/types";
 import { Button } from "@/components/ui/button";
 import { X, Trophy, Coins, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
