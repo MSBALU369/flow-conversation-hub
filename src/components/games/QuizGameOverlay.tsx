@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Trophy, Coins, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { GameCallBubble } from "./GameCallBubble";
+import { useGameSync, type GameMessage } from "@/hooks/useGameSync";
 
 interface QuizQuestion {
   question: string;
@@ -20,16 +21,48 @@ interface QuizGameOverlayProps {
   onMinimize?: () => void;
   partnerName: string;
   room?: any;
+  isHost: boolean;
+  syncedQuestions?: QuizQuestion[] | null;
 }
 
-const QUESTION_TIME = 15; // seconds per question
+const QUESTION_TIME = 15;
 
-export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, partnerName }: QuizGameOverlayProps) {
-  const { profile, updateProfile } = useProfile();
+// OpenTDB category mapping
+const CATEGORY_MAP: Record<string, number> = {
+  all: 0,
+  upsc: 24, // Politics
+  medical: 17, // Science & Nature
+  iit: 18, // Computers
+  gk: 9, // General Knowledge
+  movies: 11, // Film
+};
+
+// Fallback mock questions
+const MOCK_QUESTIONS: QuizQuestion[] = [
+  { question: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Madrid"], correctIndex: 2 },
+  { question: "What planet is known as the Red Planet?", options: ["Venus", "Mars", "Jupiter", "Saturn"], correctIndex: 1 },
+  { question: "Who painted the Mona Lisa?", options: ["Picasso", "Da Vinci", "Van Gogh", "Michelangelo"], correctIndex: 1 },
+  { question: "What is the largest ocean on Earth?", options: ["Atlantic", "Indian", "Arctic", "Pacific"], correctIndex: 3 },
+  { question: "How many continents are there?", options: ["5", "6", "7", "8"], correctIndex: 2 },
+  { question: "What gas do plants breathe in?", options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Helium"], correctIndex: 2 },
+  { question: "Which element has the symbol 'Au'?", options: ["Silver", "Gold", "Iron", "Copper"], correctIndex: 1 },
+  { question: "What year did World War II end?", options: ["1943", "1944", "1945", "1946"], correctIndex: 2 },
+  { question: "What is the speed of light (km/s)?", options: ["150,000", "300,000", "450,000", "600,000"], correctIndex: 1 },
+  { question: "Which country invented paper?", options: ["India", "Egypt", "China", "Greece"], correctIndex: 2 },
+];
+
+function decodeHtml(html: string) {
+  const txt = document.createElement("textarea");
+  txt.innerHTML = html;
+  return txt.value;
+}
+
+export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, partnerName, room, isHost, syncedQuestions }: QuizGameOverlayProps) {
+  const { profile } = useProfile();
   const { toast } = useToast();
+  const { sendMessage, onMessage } = useGameSync(room);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -37,49 +70,92 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
   const [partnerScore, setPartnerScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME);
   const [gameOver, setGameOver] = useState(false);
+  const answerTimeRef = useRef<number>(0);
+  const partnerAnswersRef = useRef<Map<number, { isCorrect: boolean; timeTaken: number }>>(new Map());
+  const myAnswersRef = useRef<Map<number, { isCorrect: boolean; timeTaken: number }>>(new Map());
+  const questionStartRef = useRef<number>(Date.now());
 
-  // Fetch questions from AI
-  const fetchQuestions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke("generate-quiz", {
-        body: { category, difficulty: "medium" },
-      });
-
-      if (fnError) throw new Error(fnError.message);
-      if (data?.error) throw new Error(data.error);
-      if (!data?.questions?.length) throw new Error("No questions returned");
-
-      setQuestions(data.questions);
-    } catch (err: any) {
-      console.error("Quiz fetch error:", err);
-      setError(err.message || "Failed to load quiz");
-    } finally {
+  // Host: fetch questions and sync to partner
+  useEffect(() => {
+    if (isHost) {
+      fetchAndSync();
+    } else if (syncedQuestions && syncedQuestions.length > 0) {
+      setQuestions(syncedQuestions);
       setLoading(false);
     }
-  }, [category]);
+  }, [isHost, syncedQuestions]);
 
+  // Non-host: listen for synced questions if not provided yet
   useEffect(() => {
-    fetchQuestions();
-  }, [fetchQuestions]);
-
-  // Deduct bet on start
-  useEffect(() => {
-    if (betAmount > 0 && questions.length > 0) {
-      const currentCoins = profile?.coins ?? 0;
-      updateProfile({ coins: Math.max(0, currentCoins - betAmount) });
+    if (!isHost && (!syncedQuestions || syncedQuestions.length === 0)) {
+      return onMessage('QUIZ_SYNC_QUESTIONS', (msg: any) => {
+        setQuestions(msg.questions);
+        setLoading(false);
+      });
     }
-  }, [questions.length > 0]); // only once when questions load
+  }, [isHost, syncedQuestions, onMessage]);
+
+  // Listen for partner answers
+  useEffect(() => {
+    return onMessage('QUIZ_ANSWER', (msg: any) => {
+      partnerAnswersRef.current.set(msg.index, { isCorrect: msg.isCorrect, timeTaken: msg.timeTaken });
+      // Update partner score
+      if (msg.isCorrect) {
+        setPartnerScore(prev => {
+          // Check if my answer for this question was also correct & faster
+          const myAnswer = myAnswersRef.current.get(msg.index);
+          if (myAnswer?.isCorrect && myAnswer.timeTaken <= msg.timeTaken) {
+            // I was faster or equal — partner doesn't get point
+            return prev;
+          }
+          return prev + 1;
+        });
+      }
+    });
+  }, [onMessage]);
+
+  const fetchAndSync = async () => {
+    setLoading(true);
+    let fetched: QuizQuestion[] = [];
+    try {
+      const catId = CATEGORY_MAP[category] || 0;
+      const url = catId > 0
+        ? `https://opentdb.com/api.php?amount=10&category=${catId}&type=multiple`
+        : `https://opentdb.com/api.php?amount=10&type=multiple`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.results && data.results.length > 0) {
+        fetched = data.results.map((r: any) => {
+          const incorrect = r.incorrect_answers.map(decodeHtml);
+          const correct = decodeHtml(r.correct_answer);
+          const options = [...incorrect];
+          const correctIndex = Math.floor(Math.random() * 4);
+          options.splice(correctIndex, 0, correct);
+          return { question: decodeHtml(r.question), options, correctIndex };
+        });
+      }
+    } catch {
+      // API failed
+    }
+
+    if (fetched.length === 0) {
+      fetched = MOCK_QUESTIONS;
+    }
+
+    setQuestions(fetched);
+    setLoading(false);
+    // Sync to partner
+    sendMessage({ type: 'QUIZ_SYNC_QUESTIONS', questions: fetched });
+  };
 
   // Timer per question
   useEffect(() => {
     if (loading || gameOver || showResult || questions.length === 0) return;
     setTimeLeft(QUESTION_TIME);
+    questionStartRef.current = Date.now();
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          // Time's up — auto-wrong
           handleAnswer(-1);
           return QUESTION_TIME;
         }
@@ -95,18 +171,31 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
     setShowResult(true);
 
     const correct = questions[currentQ]?.correctIndex;
-    if (index === correct) {
-      setMyScore((s) => s + 1);
+    const isCorrect = index === correct;
+    const timeTaken = Date.now() - questionStartRef.current;
+
+    myAnswersRef.current.set(currentQ, { isCorrect, timeTaken });
+
+    // Send answer to partner
+    sendMessage({ type: 'QUIZ_ANSWER', index: currentQ, isCorrect, timeTaken });
+
+    // Score: award point only if correct AND (no partner answer yet OR I was faster)
+    if (isCorrect) {
+      const partnerAns = partnerAnswersRef.current.get(currentQ);
+      if (!partnerAns || !partnerAns.isCorrect || timeTaken <= partnerAns.timeTaken) {
+        setMyScore((s) => s + 1);
+        // If partner also answered correctly but slower, revoke their point
+        if (partnerAns?.isCorrect && timeTaken < partnerAns.timeTaken) {
+          setPartnerScore((s) => Math.max(0, s - 1));
+        }
+      }
     }
 
-    // Simulate partner answer (50-70% accuracy)
-    const partnerCorrect = Math.random() > 0.4;
-    if (partnerCorrect) setPartnerScore((s) => s + 1);
-
-    // Advance after delay
     setTimeout(() => {
       if (currentQ + 1 >= questions.length) {
-        finishGame(index === correct ? myScore + 1 : myScore, partnerCorrect ? partnerScore + 1 : partnerScore);
+        const finalMy = isCorrect ? myScore + 1 : myScore;
+        const finalPartner = partnerScore; // partner score updated reactively
+        finishGame(finalMy, finalPartner);
       } else {
         setCurrentQ((q) => q + 1);
         setSelectedAnswer(null);
@@ -117,21 +206,23 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
 
   const finishGame = async (finalMyScore: number, finalPartnerScore: number) => {
     setGameOver(true);
+    if (betAmount <= 0 || !profile?.id) return;
+
     const won = finalMyScore > finalPartnerScore;
     const tied = finalMyScore === finalPartnerScore;
 
-    if (betAmount > 0) {
-      const currentCoins = profile?.coins ?? 0;
-      if (won) {
-        const winnings = betAmount * 2;
-        await updateProfile({ coins: currentCoins + winnings });
-        toast({ title: `🎉 You won ${winnings} coins!`, duration: 3000 });
-      } else if (tied) {
-        await updateProfile({ coins: currentCoins + betAmount });
-        toast({ title: "🤝 It's a tie! Bet refunded.", duration: 3000 });
-      } else {
-        toast({ title: `😔 You lost ${betAmount} coins`, duration: 3000 });
-      }
+    const { data } = await supabase.from("profiles").select("coins").eq("id", profile.id).single();
+    const currentCoins = data?.coins ?? 0;
+
+    if (won) {
+      const winnings = betAmount * 2;
+      await supabase.from("profiles").update({ coins: currentCoins + winnings }).eq("id", profile.id);
+      toast({ title: `🎉 You won ${winnings} coins!`, duration: 3000 });
+    } else if (tied) {
+      // No refunds — tie = both lose
+      toast({ title: `🤝 It's a tie! No refunds.`, duration: 3000 });
+    } else {
+      toast({ title: `😔 You lost ${betAmount} coins`, duration: 3000 });
     }
   };
 
@@ -139,22 +230,12 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
     return (
       <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-foreground font-semibold">Generating Quiz Questions...</p>
-        <p className="text-xs text-muted-foreground">AI is crafting your questions</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4 px-6">
-        <XCircle className="w-10 h-10 text-destructive" />
-        <p className="text-foreground font-semibold">Failed to load quiz</p>
-        <p className="text-xs text-muted-foreground text-center">{error}</p>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onClose}>Close</Button>
-          <Button onClick={fetchQuestions}>Retry</Button>
-        </div>
+        <p className="text-foreground font-semibold">
+          {isHost ? "Fetching Quiz Questions..." : "Waiting for host to load questions..."}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {isHost ? "Syncing with opponent" : "Almost ready"}
+        </p>
       </div>
     );
   }
@@ -174,7 +255,6 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
         <h2 className="text-2xl font-bold text-foreground">
           {won ? "You Win! 🎉" : tied ? "It's a Tie! 🤝" : "You Lost 😔"}
         </h2>
-
         <div className="flex gap-8 mt-2">
           <div className="text-center">
             <p className="text-2xl font-bold text-primary">{myScore}</p>
@@ -185,16 +265,14 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
             <p className="text-xs text-muted-foreground">{partnerName}</p>
           </div>
         </div>
-
         {betAmount > 0 && (
           <div className="flex items-center gap-1.5 mt-2">
             <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
             <span className="text-sm text-foreground font-semibold">
-              {won ? `+${betAmount * 2} coins` : tied ? "Bet refunded" : `-${betAmount} coins`}
+              {won ? `+${betAmount * 2} coins` : tied ? "No refund" : `-${betAmount} coins`}
             </span>
           </div>
         )}
-
         <Button onClick={onClose} className="mt-4 w-full max-w-[200px]">
           Back to Call
         </Button>
@@ -219,12 +297,10 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
           </div>
         </div>
 
-        {betAmount > 0 && (
-          <div className="flex items-center gap-1">
-            <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
-            <span className="text-xs font-bold text-[hsl(45,100%,50%)]">{betAmount}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-1">
+          <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+          <span className="text-xs font-bold text-[hsl(45,100%,50%)]">{betAmount}</span>
+        </div>
 
         <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted">
           <X className="w-4 h-4 text-muted-foreground" />
@@ -262,13 +338,13 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
         <div className="space-y-2">
           {q?.options.map((option, i) => {
             const isSelected = selectedAnswer === i;
-            const isCorrect = i === correct;
+            const isCorrectOpt = i === correct;
             let optionStyle = "bg-muted/50 border-transparent hover:bg-primary/10";
 
             if (showResult) {
-              if (isCorrect) {
+              if (isCorrectOpt) {
                 optionStyle = "bg-green-500/20 border-green-500/60";
-              } else if (isSelected && !isCorrect) {
+              } else if (isSelected && !isCorrectOpt) {
                 optionStyle = "bg-destructive/20 border-destructive/60";
               } else {
                 optionStyle = "bg-muted/30 border-transparent opacity-50";
@@ -286,12 +362,12 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
               >
                 <span className={cn(
                   "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-                  showResult && isCorrect ? "bg-green-500 text-white" :
-                  showResult && isSelected && !isCorrect ? "bg-destructive text-white" :
+                  showResult && isCorrectOpt ? "bg-green-500 text-white" :
+                  showResult && isSelected && !isCorrectOpt ? "bg-destructive text-white" :
                   "bg-muted text-foreground"
                 )}>
-                  {showResult && isCorrect ? <CheckCircle2 className="w-4 h-4" /> :
-                   showResult && isSelected && !isCorrect ? <XCircle className="w-4 h-4" /> :
+                  {showResult && isCorrectOpt ? <CheckCircle2 className="w-4 h-4" /> :
+                   showResult && isSelected && !isCorrectOpt ? <XCircle className="w-4 h-4" /> :
                    String.fromCharCode(65 + i)}
                 </span>
                 <span className="text-sm text-foreground">{option}</span>

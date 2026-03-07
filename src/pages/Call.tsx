@@ -49,11 +49,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useEnergySystem } from "@/hooks/useEnergySystem";
 import { useNotificationSound } from "@/hooks/useNotificationSound";
 import { cn, isInAppBrowser } from "@/lib/utils";
+import { useGameSync, type GameMessage } from "@/hooks/useGameSync";
 
 // Lazy-load heavy game components — only loaded when user opens a game
 const GameListModal = lazy(() => import("@/components/games/GameListModal").then(m => ({ default: m.GameListModal })));
 const QuizBetModal = lazy(() => import("@/components/games/QuizBetModal").then(m => ({ default: m.QuizBetModal })));
 const GameBetModal = lazy(() => import("@/components/games/GameBetModal").then(m => ({ default: m.GameBetModal })));
+const GameInviteDialog = lazy(() => import("@/components/games/GameInviteDialog").then(m => ({ default: m.GameInviteDialog })));
+const GameInviteWaiting = lazy(() => import("@/components/games/GameInviteDialog").then(m => ({ default: m.GameInviteWaiting })));
 const QuizGameOverlay = lazy(() => import("@/components/games/QuizGameOverlay").then(m => ({ default: m.QuizGameOverlay })));
 const WordChainGame = lazy(() => import("@/components/games/WordChainGame").then(m => ({ default: m.WordChainGame })));
 const WouldYouRatherGame = lazy(() => import("@/components/games/WouldYouRatherGame").then(m => ({ default: m.WouldYouRatherGame })));
@@ -176,9 +179,14 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const [quizActive, setQuizActive] = useState(false);
   const [quizCategory, setQuizCategory] = useState("general");
   const [quizBetAmount, setQuizBetAmount] = useState(0);
+  const [quizIsHost, setQuizIsHost] = useState(false);
+  const [quizSyncedQuestions, setQuizSyncedQuestions] = useState<any[] | null>(null);
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [gameBetAmount, setGameBetAmount] = useState(0);
   const [gameMinimized, setGameMinimized] = useState(false);
+  // Handshake protocol state
+  const [showInviteWaiting, setShowInviteWaiting] = useState(false);
+  const [incomingInvite, setIncomingInvite] = useState<{ gameId: string; category: string; betAmount: number } | null>(null);
   const [showPostCallModal, setShowPostCallModal] = useState(false);
 
   const [selectedReportReasons, setSelectedReportReasons] = useState<string[]>([]);
@@ -196,7 +204,36 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const [showEndCallWarning, setShowEndCallWarning] = useState(false);
   const [hasFollowedPartner, setHasFollowedPartner] = useState(false);
 
-  const callStartTime = useRef<number>(Date.now());
+  // Game sync via LiveKit Data Channels
+  const { sendMessage: gameSendMessage, onMessage: gameOnMessage } = useGameSync(room);
+
+  // Handshake: listen for incoming game invites
+  useEffect(() => {
+    const unsub1 = gameOnMessage('GAME_INVITE', (msg: any) => {
+      setIncomingInvite({ gameId: msg.gameId, category: msg.category, betAmount: msg.betAmount });
+    });
+    const unsub2 = gameOnMessage('INVITE_ACCEPTED', (_msg: any) => {
+      // Partner accepted — deduct coins (escrow) and start game
+      setShowInviteWaiting(false);
+      deductEscrow(quizBetAmount);
+      setQuizIsHost(true);
+      setQuizActive(true);
+    });
+    const unsub3 = gameOnMessage('INVITE_DECLINED', (_msg: any) => {
+      setShowInviteWaiting(false);
+      toast({ title: "😕 Opponent declined the invite", duration: 3000 });
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
+  }, [gameOnMessage, quizBetAmount]);
+
+  // Escrow: deduct coins from local user
+  const deductEscrow = async (amount: number) => {
+    if (amount <= 0 || !profile?.id) return;
+    const { data } = await supabase.from("profiles").select("coins").eq("id", profile.id).single();
+    const currentCoins = data?.coins ?? 0;
+    await supabase.from("profiles").update({ coins: Math.max(0, currentCoins - amount) }).eq("id", profile.id);
+  };
+
   // Stores the call duration at the moment User A clicks "End Call" (before feedback)
   const pendingEndDurationRef = useRef<number>(0);
   // True when User A has clicked End but hasn't submitted feedback yet (room still connected)
@@ -375,6 +412,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       setQuizActive(false);
       setActiveGame(null);
       setGameMinimized(false);
+      setShowInviteWaiting(false);
+      setIncomingInvite(null);
       try { localParticipant?.setMicrophoneEnabled(false); } catch {}
       setIsMuted(true);
       try { await room.disconnect(); } catch {}
@@ -573,6 +612,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       setQuizActive(false);
       setActiveGame(null);
       setGameMinimized(false);
+      setShowInviteWaiting(false);
+      setIncomingInvite(null);
       try { localParticipant?.setMicrophoneEnabled(false); } catch {}
       setIsMuted(true);
 
@@ -710,6 +751,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     setQuizActive(false);
     setActiveGame(null);
     setGameMinimized(false);
+    setShowInviteWaiting(false);
+    setIncomingInvite(null);
     try { localParticipant?.setMicrophoneEnabled(false); } catch {}
     setIsMuted(true);
     try { await room?.disconnect(); } catch {}
@@ -1284,8 +1327,42 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               setQuizCategory(cat);
               setQuizBetAmount(bet);
               setShowQuizBet(false);
-              setQuizActive(true);
+              // Send invite via Data Channel — don't start yet
+              gameSendMessage({ type: 'GAME_INVITE', gameId: 'quiz', category: cat, betAmount: bet });
+              setShowInviteWaiting(true);
             }}
+          />
+        )}
+
+        {showInviteWaiting && (
+          <GameInviteWaiting
+            open={showInviteWaiting}
+            onCancel={() => setShowInviteWaiting(false)}
+          />
+        )}
+
+        {incomingInvite && (
+          <GameInviteDialog
+            open={!!incomingInvite}
+            onAccept={() => {
+              // Accept: send acceptance, deduct escrow, start as non-host
+              gameSendMessage({ type: 'INVITE_ACCEPTED', gameId: incomingInvite.gameId });
+              deductEscrow(incomingInvite.betAmount);
+              setQuizCategory(incomingInvite.category);
+              setQuizBetAmount(incomingInvite.betAmount);
+              setQuizIsHost(false);
+              setQuizSyncedQuestions(null);
+              setQuizActive(true);
+              setIncomingInvite(null);
+            }}
+            onDecline={() => {
+              gameSendMessage({ type: 'INVITE_DECLINED', gameId: incomingInvite.gameId });
+              setIncomingInvite(null);
+            }}
+            gameId={incomingInvite.gameId}
+            category={incomingInvite.category}
+            betAmount={incomingInvite.betAmount}
+            partnerName={partnerProfile?.username || "Partner"}
           />
         )}
 
@@ -1308,9 +1385,11 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             category={quizCategory}
             betAmount={quizBetAmount}
             partnerName={partnerProfile?.username || "Partner"}
-            onClose={() => { setQuizActive(false); setGameMinimized(false); }}
+            onClose={() => { setQuizActive(false); setGameMinimized(false); setQuizSyncedQuestions(null); }}
             onMinimize={() => setGameMinimized(true)}
             room={room}
+            isHost={quizIsHost}
+            syncedQuestions={quizSyncedQuestions}
           />
         )}
 
