@@ -327,6 +327,10 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           p_duration: callDuration,
           p_status: "completed",
         }).then(() => {});
+        // Award call reward coins (5 coins per 10-min call, max 20/day)
+        if (callDuration >= 600) {
+          supabase.rpc("reward_call_coins" as any, { p_user_id: user.id, p_duration_seconds: callDuration }).then(() => {});
+        }
       }
       const chatPartnerId = partnerId || stateMatchedUserId;
       if (isFriendCall && chatPartnerId && isLogResponsible) {
@@ -558,6 +562,10 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             p_duration: callDuration,
             p_status: "completed",
           }).then(() => {});
+          // Award call reward coins (5 coins per 10-min call, max 20/day)
+          if (callDuration >= 600) {
+            supabase.rpc("reward_call_coins" as any, { p_user_id: user.id, p_duration_seconds: callDuration }).then(() => {});
+          }
         }
         supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
         if (directCallId) {
