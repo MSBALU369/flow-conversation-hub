@@ -1273,8 +1273,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       </Suspense>
 
       {/* Post-Call Modal */}
-      <Dialog open={showPostCallModal} onOpenChange={setShowPostCallModal}>
-        <DialogContent className="glass-card border-border max-w-[320px]">
+      <Dialog open={showPostCallModal} onOpenChange={(open) => { if (!open) handleStayInCall(); }}>
+        <DialogContent className="glass-card border-border max-w-[320px]" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-foreground text-lg text-center">Rate your experience</DialogTitle>
           </DialogHeader>
