@@ -529,112 +529,82 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const handleEndCall = async (skipPostCallModal = false) => {
     const callDuration = seconds;
 
-    // Disconnect from LiveKit room
-    intentionalDisconnectRef.current = true;
-    hasHandledDisconnectRef.current = true; // prevent forceEnd from also firing
-    if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
-    setDisconnectCountdown(null);
-    try { room?.disconnect(); } catch {}
-    endCall();
-
     if (isFriendCall || skipPostCallModal) {
+      // ── Friend / forced end: disconnect immediately ──
+      intentionalDisconnectRef.current = true;
+      hasHandledDisconnectRef.current = true;
+      if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
+      setDisconnectCountdown(null);
+      try { room?.disconnect(); } catch {}
+      endCall();
       if (!skipPostCallModal) navigate(-1);
+
+      // Log call history
+      if (!callLoggedRef.current) {
+        callLoggedRef.current = true;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const directCallId = (location.state as any)?.directCallId;
+          const callerId2 = (location.state as any)?.callerId;
+          const effectivePartnerId2 = partnerId || stateMatchedUserId;
+          const isLogResponsible2 = directCallId
+            ? (callerId2 === undefined || user.id === callerId2)
+            : (effectivePartnerId2 ? user.id < effectivePartnerId2 : true);
+          if (isLogResponsible2 && effectivePartnerId2) {
+            supabase.rpc("log_call_for_both" as any, {
+              p_caller_id: user.id,
+              p_receiver_id: effectivePartnerId2,
+              p_caller_name: profile?.username || "Partner",
+              p_receiver_name: partnerProfile?.username || "Partner",
+              p_duration: callDuration,
+              p_status: "completed",
+            }).then(() => {});
+            if (callDuration >= 600) {
+              supabase.rpc("reward_call_coins" as any, { p_user_id: user.id, p_duration_seconds: callDuration }).then(() => {});
+            }
+          }
+          supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+          if (directCallId) {
+            supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString(), duration_sec: callDuration }).eq("id", directCallId).then();
+          }
+          const chatPartnerId = partnerId || stateMatchedUserId;
+          if (isFriendCall && chatPartnerId && isLogResponsible2) {
+            const mins = Math.floor(callDuration / 60);
+            const secs = callDuration % 60;
+            const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
+            const callLabel = callDuration < 5 ? "📞 Missed Call" : `📞 Outgoing Call - ${durationStr}`;
+            supabase.from("chat_messages").insert({
+              sender_id: user.id,
+              receiver_id: chatPartnerId,
+              content: callLabel,
+              is_read: true,
+            }).then(() => {});
+          }
+        }
+      }
     } else {
+      // ── RANDOM CALLS: Do NOT disconnect yet ──
+      // Mute mic + silence audio so conversation stops, but LiveKit room stays alive.
+      // User B remains connected, sees User A as silent/paused.
+      pendingFeedbackRef.current = true;
+      pendingEndDurationRef.current = callDuration;
+
+      // Mute local microphone
+      try { localParticipant?.setMicrophoneEnabled(false); } catch {}
+      setIsMuted(true);
+
+      // Silence all remote audio so User A hears nothing
+      try {
+        document.querySelectorAll('audio').forEach((el) => {
+          (el as HTMLAudioElement).volume = 0;
+        });
+      } catch {}
+
+      // Show feedback modal ONLY to User A
       setPostCallRating(null);
       setSelectedReportReasons([]);
       setSelectedLikeReasons([]);
       setShowPostCallModal(true);
-    }
-
-    // Use the shared log function with dedup guard
-    if (!callLoggedRef.current) {
-      callLoggedRef.current = true;
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const directCallId = (location.state as any)?.directCallId;
-        const callerId2 = (location.state as any)?.callerId;
-        const effectivePartnerId2 = partnerId || stateMatchedUserId;
-        const isLogResponsible2 = directCallId
-          ? (callerId2 === undefined || user.id === callerId2)
-          : (effectivePartnerId2 ? user.id < effectivePartnerId2 : true);
-        if (isLogResponsible2 && effectivePartnerId2) {
-          supabase.rpc("log_call_for_both" as any, {
-            p_caller_id: user.id,
-            p_receiver_id: effectivePartnerId2,
-            p_caller_name: profile?.username || "Partner",
-            p_receiver_name: partnerProfile?.username || "Partner",
-            p_duration: callDuration,
-            p_status: "completed",
-          }).then(() => {});
-          // Award call reward coins (5 coins per 10-min call, max 20/day)
-          if (callDuration >= 600) {
-            supabase.rpc("reward_call_coins" as any, { p_user_id: user.id, p_duration_seconds: callDuration }).then(() => {});
-          }
-        }
-        supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
-        if (directCallId) {
-          supabase.from("calls").update({ status: "ended", ended_at: new Date().toISOString(), duration_sec: callDuration }).eq("id", directCallId).then();
-        }
-        const chatPartnerId = partnerId || stateMatchedUserId;
-        if (isFriendCall && chatPartnerId && isLogResponsible2) {
-          const mins = Math.floor(callDuration / 60);
-          const secs = callDuration % 60;
-          const durationStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, "0")} mins` : `${secs}s`;
-          const callLabel = callDuration < 5 ? "📞 Missed Call" : `📞 Outgoing Call - ${durationStr}`;
-          supabase.from("chat_messages").insert({
-            sender_id: user.id,
-            receiver_id: chatPartnerId,
-            content: callLabel,
-            is_read: true,
-          }).then(() => {});
-        }
-      }
-    }
-
-    // Penalty logic — skip for friend/direct calls
-    if (!isFriendCall) {
-      const currentBars = profile?.energy_bars ?? 5;
-      const currentCoins = profile?.coins ?? 0;
-      const currentEarlyEndCount = (profile as any)?.early_end_count ?? 0;
-      let batteryChange = 0;
-      let coinDeduction = 0;
-      let newEarlyEndCount = currentEarlyEndCount;
-
-      if (callDuration < 30) {
-        coinDeduction = currentCoins > 0 ? 2 : 0;
-        newEarlyEndCount += 1;
-        if (newEarlyEndCount % 2 === 0) batteryChange -= 1;
-      } else if (callDuration < 60) {
-        coinDeduction = currentCoins > 0 ? 1 : 0;
-        newEarlyEndCount += 1;
-      } else {
-        batteryChange = 1;
-        newEarlyEndCount = 0;
-      }
-
-      if (callDuration < 60 && newEarlyEndCount > 0 && newEarlyEndCount % 3 === 0) {
-        batteryChange -= 1;
-      }
-
-      if (callDuration >= 1200) batteryChange = 7 - currentBars;
-
-      const updates: any = { early_end_count: newEarlyEndCount };
-      if (batteryChange !== 0) {
-        updates.energy_bars = Math.max(0, Math.min(7, currentBars + batteryChange));
-      }
-      if (coinDeduction > 0) {
-        updates.coins = Math.max(0, currentCoins - coinDeduction);
-      }
-      const { data: { user: penaltyUser } } = await supabase.auth.getUser();
-      if (penaltyUser) {
-        const { error } = await supabase.from("profiles").update(updates).eq("id", penaltyUser.id);
-        if (error) {
-          console.error("Failed to update profile penalties:", error);
-          updateProfile(updates);
-        }
-      } else {
-        updateProfile(updates);
-      }
     }
   };
 
