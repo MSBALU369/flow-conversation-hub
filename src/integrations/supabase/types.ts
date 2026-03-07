@@ -557,6 +557,7 @@ export type Database = {
           early_end_count: number | null
           email: string | null
           energy_bars: number | null
+          fcm_token: string | null
           followers_count: number | null
           following_count: number | null
           gender: Database["public"]["Enums"]["gender_type"] | null
@@ -597,6 +598,7 @@ export type Database = {
           early_end_count?: number | null
           email?: string | null
           energy_bars?: number | null
+          fcm_token?: string | null
           followers_count?: number | null
           following_count?: number | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
@@ -637,6 +639,7 @@ export type Database = {
           early_end_count?: number | null
           email?: string | null
           energy_bars?: number | null
+          fcm_token?: string | null
           followers_count?: number | null
           following_count?: number | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
