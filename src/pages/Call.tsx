@@ -785,6 +785,13 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 
   /** Resume the call if User A clicks "Stay" while feedback is pending */
   const handleStayInCall = () => {
+    // If modal is shown after full disconnect (User B flow), there is nothing to resume.
+    if (!pendingFeedbackRef.current) {
+      setShowPostCallModal(false);
+      navigate("/");
+      return;
+    }
+
     pendingFeedbackRef.current = false;
     setShowPostCallModal(false);
     setPostCallRating(null);
