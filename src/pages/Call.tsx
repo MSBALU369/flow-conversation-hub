@@ -558,9 +558,25 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       // ── Friend / forced end: disconnect immediately ──
       intentionalDisconnectRef.current = true;
       hasHandledDisconnectRef.current = true;
+      pendingFeedbackRef.current = false;
       if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
       setDisconnectCountdown(null);
-      try { room?.disconnect(); } catch {}
+
+      setIsConnected(false);
+      setCallStatus("unavailable");
+      setIsSpeaking(false);
+      setPulseIntensity(0);
+      setRemoteIsOffline(true);
+      setShowGameModal(false);
+      setShowQuizBet(false);
+      setShowGameBet(false);
+      setQuizActive(false);
+      setActiveGame(null);
+      setGameMinimized(false);
+      try { localParticipant?.setMicrophoneEnabled(false); } catch {}
+      setIsMuted(true);
+
+      try { await room?.disconnect(); } catch {}
       endCall();
       if (!skipPostCallModal) navigate(-1);
 
