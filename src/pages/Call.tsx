@@ -49,6 +49,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useEnergySystem } from "@/hooks/useEnergySystem";
 import { useNotificationSound } from "@/hooks/useNotificationSound";
 import { cn, isInAppBrowser } from "@/lib/utils";
+import { useGameSync, type GameMessage } from "@/hooks/useGameSync";
 
 // Lazy-load heavy game components — only loaded when user opens a game
 const GameListModal = lazy(() => import("@/components/games/GameListModal").then(m => ({ default: m.GameListModal })));
