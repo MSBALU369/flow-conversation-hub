@@ -204,7 +204,36 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const [showEndCallWarning, setShowEndCallWarning] = useState(false);
   const [hasFollowedPartner, setHasFollowedPartner] = useState(false);
 
-  const callStartTime = useRef<number>(Date.now());
+  // Game sync via LiveKit Data Channels
+  const { sendMessage: gameSendMessage, onMessage: gameOnMessage } = useGameSync(room);
+
+  // Handshake: listen for incoming game invites
+  useEffect(() => {
+    const unsub1 = gameOnMessage('GAME_INVITE', (msg: any) => {
+      setIncomingInvite({ gameId: msg.gameId, category: msg.category, betAmount: msg.betAmount });
+    });
+    const unsub2 = gameOnMessage('INVITE_ACCEPTED', (_msg: any) => {
+      // Partner accepted — deduct coins (escrow) and start game
+      setShowInviteWaiting(false);
+      deductEscrow(quizBetAmount);
+      setQuizIsHost(true);
+      setQuizActive(true);
+    });
+    const unsub3 = gameOnMessage('INVITE_DECLINED', (_msg: any) => {
+      setShowInviteWaiting(false);
+      toast({ title: "😕 Opponent declined the invite", duration: 3000 });
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
+  }, [gameOnMessage, quizBetAmount]);
+
+  // Escrow: deduct coins from local user
+  const deductEscrow = async (amount: number) => {
+    if (amount <= 0 || !profile?.id) return;
+    const { data } = await supabase.from("profiles").select("coins").eq("id", profile.id).single();
+    const currentCoins = data?.coins ?? 0;
+    await supabase.from("profiles").update({ coins: Math.max(0, currentCoins - amount) }).eq("id", profile.id);
+  };
+
   // Stores the call duration at the moment User A clicks "End Call" (before feedback)
   const pendingEndDurationRef = useRef<number>(0);
   // True when User A has clicked End but hasn't submitted feedback yet (room still connected)
