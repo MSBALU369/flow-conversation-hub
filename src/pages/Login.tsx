@@ -267,7 +267,20 @@ export default function Login() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <Input type="email" placeholder="Email" value={email} onChange={(e) => { setEmail(e.target.value); setLoginError(""); }} required className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
+          <div>
+            <Input type="email" placeholder="Email" value={email} onChange={(e) => { setEmail(e.target.value); setLoginError(""); setEmailSuggestion(checkEmailTypo(e.target.value)); }} required className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
+            {emailSuggestion && (
+              <button
+                type="button"
+                onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); }}
+                className="flex items-center gap-1 text-sm mt-1 cursor-pointer hover:underline"
+                style={{ color: 'hsl(var(--accent-foreground))' }}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                Did you mean <span className="font-semibold">{emailSuggestion}</span>?
+              </button>
+            )}
+          </div>
           <Input type="password" placeholder="Password" value={password} onChange={(e) => { setPassword(e.target.value); setLoginError(""); }} required minLength={6} className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
           {isSignUp && (
             <div>
