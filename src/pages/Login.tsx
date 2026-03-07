@@ -23,6 +23,7 @@ export default function Login() {
   const [signUpBlink, setSignUpBlink] = useState(false);
   const [referenceIdValid, setReferenceIdValid] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
   const [resetStep, setResetStep] = useState<0 | 1 | 2 | 3>(0);
   const [resetEmail, setResetEmail] = useState("");
   const [resetOtp, setResetOtp] = useState("");
