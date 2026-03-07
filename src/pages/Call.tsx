@@ -176,9 +176,14 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const [quizActive, setQuizActive] = useState(false);
   const [quizCategory, setQuizCategory] = useState("general");
   const [quizBetAmount, setQuizBetAmount] = useState(0);
+  const [quizIsHost, setQuizIsHost] = useState(false);
+  const [quizSyncedQuestions, setQuizSyncedQuestions] = useState<any[] | null>(null);
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [gameBetAmount, setGameBetAmount] = useState(0);
   const [gameMinimized, setGameMinimized] = useState(false);
+  // Handshake protocol state
+  const [showInviteWaiting, setShowInviteWaiting] = useState(false);
+  const [incomingInvite, setIncomingInvite] = useState<{ gameId: string; category: string; betAmount: number } | null>(null);
   const [showPostCallModal, setShowPostCallModal] = useState(false);
 
   const [selectedReportReasons, setSelectedReportReasons] = useState<string[]>([]);
