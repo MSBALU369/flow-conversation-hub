@@ -353,6 +353,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 
     const forceEnd = async (isLocalDisconnect = false) => {
       if (hasHandledDisconnectRef.current) return;
+      // If User A is reviewing feedback (pending), ignore partner-related events
+      if (pendingFeedbackRef.current) return;
       hasHandledDisconnectRef.current = true;
       try { playCallSound("beep"); } catch {}
       const callDuration = seconds;
