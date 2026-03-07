@@ -54,6 +54,8 @@ import { cn, isInAppBrowser } from "@/lib/utils";
 const GameListModal = lazy(() => import("@/components/games/GameListModal").then(m => ({ default: m.GameListModal })));
 const QuizBetModal = lazy(() => import("@/components/games/QuizBetModal").then(m => ({ default: m.QuizBetModal })));
 const GameBetModal = lazy(() => import("@/components/games/GameBetModal").then(m => ({ default: m.GameBetModal })));
+const GameInviteDialog = lazy(() => import("@/components/games/GameInviteDialog").then(m => ({ default: m.GameInviteDialog })));
+const GameInviteWaiting = lazy(() => import("@/components/games/GameInviteDialog").then(m => ({ default: m.GameInviteWaiting })));
 const QuizGameOverlay = lazy(() => import("@/components/games/QuizGameOverlay").then(m => ({ default: m.QuizGameOverlay })));
 const WordChainGame = lazy(() => import("@/components/games/WordChainGame").then(m => ({ default: m.WordChainGame })));
 const WouldYouRatherGame = lazy(() => import("@/components/games/WouldYouRatherGame").then(m => ({ default: m.WouldYouRatherGame })));
@@ -63,7 +65,7 @@ const LudoGame = lazy(() => import("@/components/games/LudoGame").then(m => ({ d
 const SnakeLadderGame = lazy(() => import("@/components/games/SnakeLadderGame").then(m => ({ default: m.SnakeLadderGame })));
 const ArcheryGame = lazy(() => import("@/components/games/ArcheryGame").then(m => ({ default: m.ArcheryGame })));
 const SudokuGame = lazy(() => import("@/components/games/SudokuGame").then(m => ({ default: m.SudokuGame })));
-const FloatingGameBubble = lazy(() => import("@/components/games/FloatingGameBubble").then(m => ({ default: m.FloatingGameBubble })));
+const FloatingGameBubble = lazy(() => import("@/components/games/FloatingGameBubble").then(m => ({ default: m.FloatingGameBubble }})));
 
 const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL;
 
