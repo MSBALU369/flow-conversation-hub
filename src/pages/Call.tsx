@@ -608,17 +608,17 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     }
   };
 
+  /** Called when User A submits/skips feedback. NOW we actually disconnect. */
   const handleSubmitPostCall = async () => {
     const effectivePartnerId = partnerId || stateMatchedUserId;
     const { data: { user } } = await supabase.auth.getUser();
 
+    // ── Submit rating (like/dislike) ──
     if (postCallRating === "like" && effectivePartnerId) {
-      // Increment partner's XP as a trust reward (+5 XP per like)
       supabase.from("profiles")
         .update({ xp: ((partnerProfile as any)?.xp ?? 0) + 5 })
         .eq("id", effectivePartnerId)
         .then();
-      // Insert notification for the liked user
       if (user) {
         supabase.from("notifications").insert({
           user_id: effectivePartnerId,
@@ -632,7 +632,6 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       }
       toast({ title: `👍 You liked ${partnerProfile?.username || "Anonymous"}`, duration: 2000 });
     } else if (postCallRating === "dislike" && effectivePartnerId) {
-      // Insert report row
       if (user) {
         supabase.from("reports").insert({
           reporter_id: user.id,
@@ -642,8 +641,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             : "Disliked after call",
           description: null,
         }).then();
-        // Increment partner's reports_count
-        supabase.rpc("check_premium_expiration" as any, { p_user_id: effectivePartnerId }).then(); // reuse as a ping
+        supabase.rpc("check_premium_expiration" as any, { p_user_id: effectivePartnerId }).then();
         supabase.from("profiles")
           .update({ reports_count: ((partnerProfile as any)?.reports_count ?? 0) + 1 })
           .eq("id", effectivePartnerId)
@@ -651,7 +649,103 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       }
       toast({ title: selectedReportReasons.length > 0 ? "Report Submitted" : `👎 You disliked ${partnerProfile?.username || "Anonymous"}`, description: selectedReportReasons.length > 0 ? "Thank you for helping keep our community safe." : undefined, duration: 2000 });
     }
+
+    // ── NOW actually disconnect LiveKit (this triggers User B's ParticipantDisconnected) ──
+    const callDuration = pendingFeedbackRef.current ? pendingEndDurationRef.current : seconds;
+    pendingFeedbackRef.current = false;
+
+    intentionalDisconnectRef.current = true;
+    hasHandledDisconnectRef.current = true;
+    if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
+    setDisconnectCountdown(null);
+    try { room?.disconnect(); } catch {}
+    endCall();
+
+    // ── Log call history ──
+    if (!callLoggedRef.current) {
+      callLoggedRef.current = true;
+      if (user) {
+        const isLogResponsible = effectivePartnerId ? user.id < effectivePartnerId : true;
+        if (isLogResponsible && effectivePartnerId) {
+          supabase.rpc("log_call_for_both" as any, {
+            p_caller_id: user.id,
+            p_receiver_id: effectivePartnerId,
+            p_caller_name: profile?.username || "Partner",
+            p_receiver_name: partnerProfile?.username || "Partner",
+            p_duration: callDuration,
+            p_status: "completed",
+          }).then(() => {});
+          if (callDuration >= 600) {
+            supabase.rpc("reward_call_coins" as any, { p_user_id: user.id, p_duration_seconds: callDuration }).then(() => {});
+          }
+        }
+        supabase.rpc("leave_matchmaking", { p_user_id: user.id }).then();
+      }
+    }
+
+    // ── Penalty logic for random calls ──
+    const currentBars = profile?.energy_bars ?? 5;
+    const currentCoins = profile?.coins ?? 0;
+    const currentEarlyEndCount = (profile as any)?.early_end_count ?? 0;
+    let batteryChange = 0;
+    let coinDeduction = 0;
+    let newEarlyEndCount = currentEarlyEndCount;
+
+    if (callDuration < 30) {
+      coinDeduction = currentCoins > 0 ? 2 : 0;
+      newEarlyEndCount += 1;
+      if (newEarlyEndCount % 2 === 0) batteryChange -= 1;
+    } else if (callDuration < 60) {
+      coinDeduction = currentCoins > 0 ? 1 : 0;
+      newEarlyEndCount += 1;
+    } else {
+      batteryChange = 1;
+      newEarlyEndCount = 0;
+    }
+
+    if (callDuration < 60 && newEarlyEndCount > 0 && newEarlyEndCount % 3 === 0) {
+      batteryChange -= 1;
+    }
+
+    if (callDuration >= 1200) batteryChange = 7 - currentBars;
+
+    const updates: any = { early_end_count: newEarlyEndCount };
+    if (batteryChange !== 0) {
+      updates.energy_bars = Math.max(0, Math.min(7, currentBars + batteryChange));
+    }
+    if (coinDeduction > 0) {
+      updates.coins = Math.max(0, currentCoins - coinDeduction);
+    }
+    if (user) {
+      const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
+      if (error) {
+        console.error("Failed to update profile penalties:", error);
+        updateProfile(updates);
+      }
+    } else {
+      updateProfile(updates);
+    }
+
     navigate("/");
+  };
+
+  /** Resume the call if User A clicks "Stay" while feedback is pending */
+  const handleStayInCall = () => {
+    pendingFeedbackRef.current = false;
+    setShowPostCallModal(false);
+    setPostCallRating(null);
+    setSelectedReportReasons([]);
+    setSelectedLikeReasons([]);
+
+    // Re-enable mic
+    try { localParticipant?.setMicrophoneEnabled(true); } catch {}
+    setIsMuted(false);
+
+    // Restore audio volume
+    const vol = isSpeaker ? 1.0 : 0.15;
+    document.querySelectorAll('audio').forEach((el) => {
+      (el as HTMLAudioElement).volume = vol;
+    });
   };
 
   const handleReconnect = async () => {
