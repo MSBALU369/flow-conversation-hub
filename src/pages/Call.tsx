@@ -1321,8 +1321,42 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               setQuizCategory(cat);
               setQuizBetAmount(bet);
               setShowQuizBet(false);
-              setQuizActive(true);
+              // Send invite via Data Channel — don't start yet
+              gameSendMessage({ type: 'GAME_INVITE', gameId: 'quiz', category: cat, betAmount: bet });
+              setShowInviteWaiting(true);
             }}
+          />
+        )}
+
+        {showInviteWaiting && (
+          <GameInviteWaiting
+            open={showInviteWaiting}
+            onCancel={() => setShowInviteWaiting(false)}
+          />
+        )}
+
+        {incomingInvite && (
+          <GameInviteDialog
+            open={!!incomingInvite}
+            onAccept={() => {
+              // Accept: send acceptance, deduct escrow, start as non-host
+              gameSendMessage({ type: 'INVITE_ACCEPTED', gameId: incomingInvite.gameId });
+              deductEscrow(incomingInvite.betAmount);
+              setQuizCategory(incomingInvite.category);
+              setQuizBetAmount(incomingInvite.betAmount);
+              setQuizIsHost(false);
+              setQuizSyncedQuestions(null);
+              setQuizActive(true);
+              setIncomingInvite(null);
+            }}
+            onDecline={() => {
+              gameSendMessage({ type: 'INVITE_DECLINED', gameId: incomingInvite.gameId });
+              setIncomingInvite(null);
+            }}
+            gameId={incomingInvite.gameId}
+            category={incomingInvite.category}
+            betAmount={incomingInvite.betAmount}
+            partnerName={partnerProfile?.username || "Partner"}
           />
         )}
 
@@ -1345,9 +1379,13 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             category={quizCategory}
             betAmount={quizBetAmount}
             partnerName={partnerProfile?.username || "Partner"}
-            onClose={() => { setQuizActive(false); setGameMinimized(false); }}
+            onClose={() => { setQuizActive(false); setGameMinimized(false); setQuizSyncedQuestions(null); }}
             onMinimize={() => setGameMinimized(true)}
             room={room}
+            isHost={quizIsHost}
+            syncedQuestions={quizSyncedQuestions}
+          />
+        )}
           />
         )}
 
