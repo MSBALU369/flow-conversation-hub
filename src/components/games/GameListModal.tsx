@@ -81,6 +81,14 @@ const games = [
     available: true,
     premiumOnly: false,
   },
+  {
+    id: "adroulette",
+    name: "Ad Roulette",
+    icon: "🎰",
+    description: "Watch an ad, spin the wheel, win coins!",
+    available: true,
+    premiumOnly: false,
+  },
 ];
 
 export function GameListModal({ open, onOpenChange, onSelectGame }: GameListModalProps) {

@@ -66,6 +66,7 @@ const LudoGame = lazy(() => import("@/components/games/LudoGame").then(m => ({ d
 const SnakeLadderGame = lazy(() => import("@/components/games/SnakeLadderGame").then(m => ({ default: m.SnakeLadderGame })));
 const ArcheryGame = lazy(() => import("@/components/games/ArcheryGame").then(m => ({ default: m.ArcheryGame })));
 const SudokuGame = lazy(() => import("@/components/games/SudokuGame").then(m => ({ default: m.SudokuGame })));
+const AdRouletteGame = lazy(() => import("@/components/games/AdRouletteGame").then(m => ({ default: m.AdRouletteGame })));
 const FloatingGameBubble = lazy(() => import("@/components/games/FloatingGameBubble").then(m => ({ default: m.FloatingGameBubble })));
 
 const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL;
@@ -1311,6 +1312,9 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               setShowGameModal(false);
               if (game === "quiz") {
                 setShowQuizBet(true);
+              } else if (game === "adroulette") {
+                // Ad Roulette is solo — no bet needed, launch directly
+                setActiveGame("adroulette");
               } else {
                 setPendingGame(game);
                 setShowGameBet(true);
@@ -1401,6 +1405,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
         {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
         {activeGame === "archery" && !gameMinimized && <ArcheryGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
         {activeGame === "sudoku" && !gameMinimized && <SudokuGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+        {activeGame === "adroulette" && !gameMinimized && <AdRouletteGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} room={room} />}
 
         {gameMinimized && (activeGame || quizActive) && (
           <FloatingGameBubble
