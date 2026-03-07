@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Phone, Shield, Gift, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Phone, Shield, Gift, ArrowLeft, CheckCircle2, Sparkles } from "lucide-react";
+import { checkEmailTypo } from "@/lib/emailTypoCheck";
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -22,6 +23,7 @@ export default function Login() {
   const [signUpBlink, setSignUpBlink] = useState(false);
   const [referenceIdValid, setReferenceIdValid] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
   const [resetStep, setResetStep] = useState<0 | 1 | 2 | 3>(0);
   const [resetEmail, setResetEmail] = useState("");
   const [resetOtp, setResetOtp] = useState("");
@@ -265,7 +267,20 @@ export default function Login() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <Input type="email" placeholder="Email" value={email} onChange={(e) => { setEmail(e.target.value); setLoginError(""); }} required className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
+          <div>
+            <Input type="email" placeholder="Email" value={email} onChange={(e) => { setEmail(e.target.value); setLoginError(""); setEmailSuggestion(checkEmailTypo(e.target.value)); }} required className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
+            {emailSuggestion && (
+              <button
+                type="button"
+                onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); }}
+                className="flex items-center gap-1 text-sm mt-1 cursor-pointer hover:underline"
+                style={{ color: 'hsl(var(--accent-foreground))' }}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                Did you mean <span className="font-semibold">{emailSuggestion}</span>?
+              </button>
+            )}
+          </div>
           <Input type="password" placeholder="Password" value={password} onChange={(e) => { setPassword(e.target.value); setLoginError(""); }} required minLength={6} className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
           {isSignUp && (
             <div>
