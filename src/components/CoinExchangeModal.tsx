@@ -210,6 +210,8 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
     if (t.type === "ad_reward") return "Ad Reward 🎬";
     if (t.type === "daily_login") return "Daily Login Bonus";
     if (t.type === "energy_recharge") return "Energy Recharge";
+    if (t.type === "call_reward") return "Call Reward 📞";
+    if (t.type === "referral_bonus") return "Referral Bonus 🎉";
     if (t.type === "request") return isSender ? `Requested from ${t.receiver_name}` : `${t.sender_name} requested`;
     return isSender ? `Sent to ${t.receiver_name}` : `Received from ${t.sender_name}`;
   };
