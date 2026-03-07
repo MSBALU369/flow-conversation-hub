@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { sendPushNotification } from "@/lib/notifications";
 
 const POLL_INTERVAL = 2500;
 
@@ -356,6 +357,14 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         receiverAvatar,
         receiverId,
       });
+
+      // Send push notification to wake up receiver's device
+      sendPushNotification(
+        receiverId,
+        "Incoming Call 📞",
+        `${profile?.username || "Someone"} is calling you to practice English!`,
+        "call"
+      );
     } catch {
       toast({ title: "Call Error", description: "Something went wrong.", variant: "destructive" });
     }
