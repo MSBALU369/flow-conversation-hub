@@ -355,14 +355,35 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       if (hasHandledDisconnectRef.current) return;
       // If User A is reviewing feedback (pending), ignore partner-related events
       if (pendingFeedbackRef.current) return;
-      hasHandledDisconnectRef.current = true;
-      try { playCallSound("beep"); } catch {}
-      const callDuration = seconds;
-      toast({ title: "Call Ended", description: isLocalDisconnect ? "You were disconnected." : "The other user has left the call." });
-      try { room.disconnect(); } catch {}
-      endCall();
-      await logCallHistory(callDuration);
 
+      hasHandledDisconnectRef.current = true;
+      intentionalDisconnectRef.current = true;
+      if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
+      setDisconnectCountdown(null);
+
+      const callDuration = seconds;
+
+      // 1) Kill the call completely in background first
+      setIsConnected(false);
+      setCallStatus("unavailable");
+      setIsSpeaking(false);
+      setPulseIntensity(0);
+      setRemoteIsOffline(true);
+      setShowGameModal(false);
+      setShowQuizBet(false);
+      setShowGameBet(false);
+      setQuizActive(false);
+      setActiveGame(null);
+      setGameMinimized(false);
+      try { localParticipant?.setMicrophoneEnabled(false); } catch {}
+      setIsMuted(true);
+      try { await room.disconnect(); } catch {}
+      endCall();
+
+      try { playCallSound("beep"); } catch {}
+      toast({ title: "Call Ended", description: isLocalDisconnect ? "You were disconnected." : "The other user has left the call." });
+
+      // 2) Show feedback only after the call is fully terminated
       if (!isFriendCall) {
         setPostCallRating(null);
         setSelectedReportReasons([]);
@@ -371,6 +392,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       } else {
         navigate(-1);
       }
+
+      void logCallHistory(callDuration);
     };
 
     const handleParticipantDisconnected = (participant: any) => {
@@ -430,7 +453,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       room.off(RoomEvent.Reconnected, handleReconnected);
       if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
     };
-  }, [room, endCall, navigate, toast, isFriendCall, location.state, seconds, partnerId, stateMatchedUserId, profile?.username, partnerProfile?.username]);
+  }, [room, localParticipant, endCall, navigate, toast, isFriendCall, location.state, seconds, partnerId, stateMatchedUserId, profile?.username, partnerProfile?.username]);
 
   // Fetch partner profile from real data
   useEffect(() => {
@@ -535,9 +558,25 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       // ── Friend / forced end: disconnect immediately ──
       intentionalDisconnectRef.current = true;
       hasHandledDisconnectRef.current = true;
+      pendingFeedbackRef.current = false;
       if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
       setDisconnectCountdown(null);
-      try { room?.disconnect(); } catch {}
+
+      setIsConnected(false);
+      setCallStatus("unavailable");
+      setIsSpeaking(false);
+      setPulseIntensity(0);
+      setRemoteIsOffline(true);
+      setShowGameModal(false);
+      setShowQuizBet(false);
+      setShowGameBet(false);
+      setQuizActive(false);
+      setActiveGame(null);
+      setGameMinimized(false);
+      try { localParticipant?.setMicrophoneEnabled(false); } catch {}
+      setIsMuted(true);
+
+      try { await room?.disconnect(); } catch {}
       endCall();
       if (!skipPostCallModal) navigate(-1);
 
@@ -660,7 +699,20 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     hasHandledDisconnectRef.current = true;
     if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
     setDisconnectCountdown(null);
-    try { room?.disconnect(); } catch {}
+    setIsConnected(false);
+    setCallStatus("unavailable");
+    setIsSpeaking(false);
+    setPulseIntensity(0);
+    setRemoteIsOffline(true);
+    setShowGameModal(false);
+    setShowQuizBet(false);
+    setShowGameBet(false);
+    setQuizActive(false);
+    setActiveGame(null);
+    setGameMinimized(false);
+    try { localParticipant?.setMicrophoneEnabled(false); } catch {}
+    setIsMuted(true);
+    try { await room?.disconnect(); } catch {}
     endCall();
 
     // ── Log call history ──
@@ -733,6 +785,13 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
 
   /** Resume the call if User A clicks "Stay" while feedback is pending */
   const handleStayInCall = () => {
+    // If modal is shown after full disconnect (User B flow), there is nothing to resume.
+    if (!pendingFeedbackRef.current) {
+      setShowPostCallModal(false);
+      navigate("/");
+      return;
+    }
+
     pendingFeedbackRef.current = false;
     setShowPostCallModal(false);
     setPostCallRating(null);
