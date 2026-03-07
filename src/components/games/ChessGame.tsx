@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
-import type { PieceDropHandlerArgs, PieceHandlerArgs } from "react-chessboard/dist/types";
 import { Button } from "@/components/ui/button";
 import { X, Trophy, Coins, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,10 +16,10 @@ interface ChessGameProps {
   betAmount?: number;
   partnerName: string;
   room?: any;
-  isHost?: boolean; // true = White, false = Black
+  isHost?: boolean;
 }
 
-const MOVE_TIME = 60; // seconds per move
+const MOVE_TIME = 60;
 
 export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, room, isHost = true }: ChessGameProps) {
   const { profile } = useProfile();
@@ -38,7 +37,6 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
   const myColorShort = isHost ? "w" : "b";
   const isMyTurn = game.turn() === myColorShort;
 
-  // Keep ref in sync
   useEffect(() => { gameRef.current = game; }, [game]);
 
   // Listen for opponent moves
@@ -47,7 +45,7 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
       const gameCopy = new Chess(msg.fen);
       setGame(gameCopy);
       setBoardPosition(msg.fen);
-      setTimeLeft(MOVE_TIME); // reset timer for my turn
+      setTimeLeft(MOVE_TIME);
     });
   }, [onMessage]);
 
@@ -64,7 +62,6 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          // Time's up — current turn player loses
           if (timerRef.current) clearInterval(timerRef.current);
           const timedOutColor = gameRef.current.turn();
           const iLost = timedOutColor === myColorShort;
@@ -84,11 +81,10 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
     };
   }, [boardPosition, gameOver]);
 
-  // Check for game end conditions after each position change
+  // Check for game end conditions
   useEffect(() => {
     if (gameOver) return;
     if (game.isCheckmate()) {
-      // The player whose turn it is has been checkmated (they lost)
       const loserTurn = game.turn();
       const iWon = loserTurn !== myColorShort;
       handleGameEnd(
@@ -106,35 +102,34 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
     setGameOver({ result, won, draw });
     setSettled(true);
 
-    if (betAmount <= 0 || !profile?.id) return;
-    const { data } = await supabase.from("profiles").select("coins").eq("id", profile.id).single();
-    const currentCoins = data?.coins ?? 0;
+    if (betAmount > 0 && profile?.id) {
+      const { data } = await supabase.from("profiles").select("coins").eq("id", profile.id).single();
+      const currentCoins = data?.coins ?? 0;
 
-    if (won) {
-      const winnings = betAmount * 2;
-      await supabase.from("profiles").update({ coins: currentCoins + winnings }).eq("id", profile.id);
-      toast({ title: `🎉 You won ${winnings} coins!`, duration: 3000 });
-    } else if (draw) {
-      toast({ title: "🤝 Draw! No refunds.", duration: 3000 });
-    } else {
-      toast({ title: `💀 You lost ${betAmount} coins`, duration: 3000 });
+      if (won) {
+        const winnings = betAmount * 2;
+        await supabase.from("profiles").update({ coins: currentCoins + winnings }).eq("id", profile.id);
+        toast({ title: `🎉 You won ${winnings} coins!`, duration: 3000 });
+      } else if (draw) {
+        toast({ title: "🤝 Draw! No refunds.", duration: 3000 });
+      } else {
+        toast({ title: `💀 You lost ${betAmount} coins`, duration: 3000 });
+      }
     }
 
-    // Auto-close after 5 seconds
     setTimeout(() => onClose(), 5000);
   }, [gameOver, settled, betAmount, profile?.id, toast, onClose]);
 
-  function onDrop(sourceSquare: Square, targetSquare: Square): boolean {
-    if (gameOver) return false;
-    if (!isMyTurn) return false;
+  function onDrop({ sourceSquare, targetSquare }: { sourceSquare: string; targetSquare: string | null }): boolean {
+    if (gameOver || !isMyTurn || !targetSquare) return false;
 
     const gameCopy = new Chess(game.fen());
-    let move: Move | null = null;
+    let move;
     try {
       move = gameCopy.move({
         from: sourceSquare,
         to: targetSquare,
-        promotion: "q", // auto-queen
+        promotion: "q",
       });
     } catch {
       return false;
@@ -145,8 +140,12 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
     setGame(gameCopy);
     setBoardPosition(gameCopy.fen());
 
-    // Send move to opponent via LiveKit
-    sendMessage({ type: 'GAME_MOVE', game: 'chess', data: { type: 'CHESS_MOVE', fen: gameCopy.fen(), move } } as any);
+    // Send via LiveKit — wrapped as GAME_MOVE for compatibility with useGameSync listener
+    sendMessage({
+      type: 'GAME_MOVE',
+      game: 'chess',
+      data: { type: 'CHESS_MOVE', fen: gameCopy.fen(), move },
+    });
 
     return true;
   }
@@ -244,17 +243,19 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
       <div className="flex-1 flex items-center justify-center px-2">
         <div style={{ width: "min(88vw, 380px)", maxWidth: "380px" }}>
           <Chessboard
-            position={boardPosition}
-            onPieceDrop={onDrop}
-            boardOrientation={myColor}
-            arePiecesDraggable={isMyTurn && !gameOver}
-            animationDuration={200}
-            customBoardStyle={{
-              borderRadius: "8px",
-              boxShadow: "0 8px 32px hsl(var(--primary) / 0.15)",
+            options={{
+              position: boardPosition,
+              boardOrientation: myColor,
+              allowDragging: isMyTurn && !gameOver,
+              animationDurationInMs: 200,
+              onPieceDrop: ({ sourceSquare, targetSquare }) => onDrop({ sourceSquare, targetSquare }),
+              boardStyle: {
+                borderRadius: "8px",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+              },
+              darkSquareStyle: { backgroundColor: "hsl(25, 30%, 42%)" },
+              lightSquareStyle: { backgroundColor: "hsl(35, 30%, 82%)" },
             }}
-            customDarkSquareStyle={{ backgroundColor: "hsl(25, 30%, 42%)" }}
-            customLightSquareStyle={{ backgroundColor: "hsl(35, 30%, 82%)" }}
           />
         </div>
       </div>
