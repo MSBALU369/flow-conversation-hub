@@ -11,19 +11,32 @@ export type GameMessage =
 
 /**
  * Hook to sync game state between two users via LiveKit Data Channels.
- * Supports typed game messages for the handshake protocol + quiz sync.
+ * 
+ * New API: sendMessage/lastMessage/onMessage for typed protocol messages.
+ * Legacy API: sendMove/lastReceivedMove for backward compat with existing games.
  */
-export function useGameSync(room: any | null) {
+export function useGameSync<T = any>(room: any | null, gameId?: string) {
   const [lastMessage, setLastMessage] = useState<GameMessage | null>(null);
+  const [lastReceivedMove, setLastReceivedMove] = useState<T | null>(null);
   const encoderRef = useRef(new TextEncoder());
   const decoderRef = useRef(new TextDecoder());
   const listenersRef = useRef<Map<string, (msg: GameMessage) => void>>(new Map());
 
+  /** New: send a typed protocol message */
   const sendMessage = useCallback((msg: GameMessage) => {
     if (!room?.localParticipant) return;
     const payload = encoderRef.current.encode(JSON.stringify(msg));
     room.localParticipant.publishData(payload, DataPacket_Kind.RELIABLE);
   }, [room]);
+
+  /** Legacy: send a game move (wraps as GAME_MOVE) */
+  const sendMove = useCallback((data: T) => {
+    if (!room?.localParticipant) return;
+    const payload = encoderRef.current.encode(
+      JSON.stringify({ type: 'GAME_MOVE', game: gameId || '', data })
+    );
+    room.localParticipant.publishData(payload, DataPacket_Kind.RELIABLE);
+  }, [room, gameId]);
 
   /** Register a handler for a specific message type */
   const onMessage = useCallback((type: string, handler: (msg: GameMessage) => void) => {
@@ -37,11 +50,22 @@ export function useGameSync(room: any | null) {
     const handleDataReceived = (payload: Uint8Array, participant: any) => {
       if (participant?.isLocal) return;
       try {
-        const msg = JSON.parse(decoderRef.current.decode(payload)) as GameMessage;
-        setLastMessage(msg);
-        // Call registered listener
-        const handler = listenersRef.current.get(msg.type);
-        if (handler) handler(msg);
+        const raw = JSON.parse(decoderRef.current.decode(payload));
+        
+        // Handle typed messages
+        if (raw.type) {
+          setLastMessage(raw as GameMessage);
+          const handler = listenersRef.current.get(raw.type);
+          if (handler) handler(raw as GameMessage);
+        }
+        
+        // Legacy: handle GAME_MOVE or old-format { game, data } messages
+        if (raw.type === 'GAME_MOVE' && raw.game === gameId) {
+          setLastReceivedMove(raw.data);
+        } else if (!raw.type && raw.game === gameId) {
+          // Old format backward compat
+          setLastReceivedMove(raw.data);
+        }
       } catch {
         // ignore non-JSON messages
       }
@@ -51,7 +75,7 @@ export function useGameSync(room: any | null) {
     return () => {
       room.off(RoomEvent.DataReceived, handleDataReceived);
     };
-  }, [room]);
+  }, [room, gameId]);
 
-  return { sendMessage, lastMessage, onMessage };
+  return { sendMessage, lastMessage, onMessage, sendMove, lastReceivedMove };
 }
