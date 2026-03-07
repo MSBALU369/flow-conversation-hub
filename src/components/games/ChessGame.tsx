@@ -1,10 +1,14 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Chess } from "chess.js";
+import { Chessboard } from "react-chessboard";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, RotateCcw, Coins } from "lucide-react";
+import { X, Trophy, Coins, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCallBubble } from "./GameCallBubble";
-import { useGameBet } from "@/hooks/useGameBet";
 import { useGameSync } from "@/hooks/useGameSync";
+import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChessGameProps {
   onClose: () => void;
@@ -12,233 +16,259 @@ interface ChessGameProps {
   betAmount?: number;
   partnerName: string;
   room?: any;
+  isHost?: boolean;
 }
 
-type Piece = { type: string; color: "w" | "b" } | null;
+const MOVE_TIME = 60;
 
-const PIECE_ICONS: Record<string, Record<string, string>> = {
-  w: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
-  b: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
-};
+export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, room, isHost = true }: ChessGameProps) {
+  const { profile } = useProfile();
+  const { toast } = useToast();
+  const { sendMessage, onMessage } = useGameSync(room || null, "chess");
+  const [game, setGame] = useState(new Chess());
+  const [boardPosition, setBoardPosition] = useState(game.fen());
+  const [gameOver, setGameOver] = useState<{ result: string; won: boolean; draw: boolean } | null>(null);
+  const [timeLeft, setTimeLeft] = useState(MOVE_TIME);
+  const [settled, setSettled] = useState(false);
+  const gameRef = useRef(game);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-function createInitialBoard(): Piece[][] {
-  const board: Piece[][] = Array(8).fill(null).map(() => Array(8).fill(null));
-  const backRow = ["R", "N", "B", "Q", "K", "B", "N", "R"];
-  for (let c = 0; c < 8; c++) {
-    board[0][c] = { type: backRow[c], color: "b" };
-    board[1][c] = { type: "P", color: "b" };
-    board[6][c] = { type: "P", color: "w" };
-    board[7][c] = { type: backRow[c], color: "w" };
-  }
-  return board;
-}
+  const myColor: "white" | "black" = isHost ? "white" : "black";
+  const myColorShort = isHost ? "w" : "b";
+  const isMyTurn = game.turn() === myColorShort;
 
-function isValidMove(board: Piece[][], fr: number, fc: number, tr: number, tc: number, piece: Piece): boolean {
-  if (!piece) return false;
-  const target = board[tr][tc];
-  if (target && target.color === piece.color) return false;
-  const dr = tr - fr, dc = tc - fc;
-  const adr = Math.abs(dr), adc = Math.abs(dc);
+  useEffect(() => { gameRef.current = game; }, [game]);
 
-  switch (piece.type) {
-    case "P": {
-      const dir = piece.color === "w" ? -1 : 1;
-      const start = piece.color === "w" ? 6 : 1;
-      if (dc === 0 && !target) {
-        if (dr === dir) return true;
-        if (fr === start && dr === dir * 2 && !board[fr + dir][fc]) return true;
+  // Listen for opponent moves via GAME_MOVE channel
+  useEffect(() => {
+    return onMessage("GAME_MOVE", (msg: any) => {
+      if (msg.game !== "chess" || !msg.data?.fen) return;
+      const gameCopy = new Chess(msg.data.fen);
+      setGame(gameCopy);
+      setBoardPosition(msg.data.fen);
+      setTimeLeft(MOVE_TIME);
+    });
+  }, [onMessage]);
+
+  // 60s move timer
+  useEffect(() => {
+    if (gameOver) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+
+    setTimeLeft(MOVE_TIME);
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          const timedOutColor = gameRef.current.turn();
+          const iLost = timedOutColor === myColorShort;
+          handleGameEnd(
+            iLost ? "Time's up — You Lost!" : "Opponent ran out of time!",
+            !iLost,
+            false
+          );
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [boardPosition, gameOver]);
+
+  // Check for game end conditions
+  useEffect(() => {
+    if (gameOver) return;
+    if (game.isCheckmate()) {
+      const loserTurn = game.turn();
+      const iWon = loserTurn !== myColorShort;
+      handleGameEnd(
+        iWon ? "Checkmate — You Win!" : "Checkmate — You Lost!",
+        iWon,
+        false
+      );
+    } else if (game.isDraw() || game.isStalemate() || game.isThreefoldRepetition() || game.isInsufficientMaterial()) {
+      handleGameEnd("Draw!", false, true);
+    }
+  }, [boardPosition]);
+
+  const handleGameEnd = useCallback(async (result: string, won: boolean, draw: boolean) => {
+    if (gameOver || settled) return;
+    setGameOver({ result, won, draw });
+    setSettled(true);
+
+    if (betAmount > 0 && profile?.id) {
+      const { data } = await supabase.from("profiles").select("coins").eq("id", profile.id).single();
+      const currentCoins = data?.coins ?? 0;
+
+      if (won) {
+        const winnings = betAmount * 2;
+        await supabase.from("profiles").update({ coins: currentCoins + winnings }).eq("id", profile.id);
+        toast({ title: `🎉 You won ${winnings} coins!`, duration: 3000 });
+      } else if (draw) {
+        toast({ title: "🤝 Draw! No refunds.", duration: 3000 });
+      } else {
+        toast({ title: `💀 You lost ${betAmount} coins`, duration: 3000 });
       }
-      if (adc === 1 && dr === dir && target) return true;
+    }
+
+    setTimeout(() => onClose(), 5000);
+  }, [gameOver, settled, betAmount, profile?.id, toast, onClose]);
+
+  function onDrop({ sourceSquare, targetSquare }: { sourceSquare: string; targetSquare: string | null }): boolean {
+    if (gameOver || !isMyTurn || !targetSquare) return false;
+
+    const gameCopy = new Chess(game.fen());
+    let move;
+    try {
+      move = gameCopy.move({
+        from: sourceSquare,
+        to: targetSquare,
+        promotion: "q",
+      });
+    } catch {
       return false;
     }
-    case "R": return (dr === 0 || dc === 0) && isPathClear(board, fr, fc, tr, tc);
-    case "B": return adr === adc && isPathClear(board, fr, fc, tr, tc);
-    case "Q": return (dr === 0 || dc === 0 || adr === adc) && isPathClear(board, fr, fc, tr, tc);
-    case "N": return (adr === 2 && adc === 1) || (adr === 1 && adc === 2);
-    case "K": return adr <= 1 && adc <= 1;
-    default: return false;
-  }
-}
 
-function isPathClear(board: Piece[][], fr: number, fc: number, tr: number, tc: number): boolean {
-  const dr = Math.sign(tr - fr), dc = Math.sign(tc - fc);
-  let r = fr + dr, c = fc + dc;
-  while (r !== tr || c !== tc) {
-    if (board[r][c]) return false;
-    r += dr; c += dc;
-  }
-  return true;
-}
+    if (!move) return false;
 
-export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, room }: ChessGameProps) {
-  const { settleBet } = useGameBet(betAmount);
-  const { sendMove, lastReceivedMove } = useGameSync<{ fr: number; fc: number; tr: number; tc: number }>(room || null, "chess");
-  const isMultiplayer = !!room;
-  const [board, setBoard] = useState<Piece[][]>(createInitialBoard);
-  const [selected, setSelected] = useState<[number, number] | null>(null);
-  const [turn, setTurn] = useState<"w" | "b">("w");
-  const [gameOver, setGameOver] = useState<string | null>(null);
-  const [settled, setSettled] = useState(false);
-  const [captures, setCaptures] = useState<{ w: string[]; b: string[] }>({ w: [], b: [] });
+    setGame(gameCopy);
+    setBoardPosition(gameCopy.fen());
 
-  // Handle incoming moves from remote player
-  useEffect(() => {
-    if (!lastReceivedMove || !isMultiplayer) return;
-    const { fr, fc, tr, tc } = lastReceivedMove;
-    setBoard(prev => {
-      const newBoard = prev.map(r => [...r]);
-      const captured = newBoard[tr][tc];
-      if (captured?.type === "K") setGameOver("You Win!");
-      if (captured) setCaptures(p => ({ ...p, w: [...p.w, PIECE_ICONS.b[captured.type]] }));
-      newBoard[tr][tc] = newBoard[fr][fc];
-      newBoard[fr][fc] = null;
-      return newBoard;
+    // Send via LiveKit — wrapped as GAME_MOVE for compatibility with useGameSync listener
+    sendMessage({
+      type: 'GAME_MOVE',
+      game: 'chess',
+      data: { type: 'CHESS_MOVE', fen: gameCopy.fen(), move },
     });
-    setTurn("w");
-  }, [lastReceivedMove, isMultiplayer]);
 
-  const makeAIMove = useCallback((currentBoard: Piece[][]) => {
-    setTimeout(() => {
-      const moves: { fr: number; fc: number; tr: number; tc: number; capture: boolean }[] = [];
-      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-        const p = currentBoard[r][c];
-        if (!p || p.color !== "b") continue;
-        for (let tr = 0; tr < 8; tr++) for (let tc = 0; tc < 8; tc++) {
-          if (isValidMove(currentBoard, r, c, tr, tc, p)) {
-            moves.push({ fr: r, fc: c, tr, tc, capture: !!currentBoard[tr][tc] });
-          }
-        }
-      }
-      if (moves.length === 0) { setGameOver("You Win!"); return; }
-      const captureMoves = moves.filter(m => m.capture);
-      const move = captureMoves.length > 0 && Math.random() > 0.3
-        ? captureMoves[Math.floor(Math.random() * captureMoves.length)]
-        : moves[Math.floor(Math.random() * moves.length)];
+    return true;
+  }
 
-      const newBoard = currentBoard.map(r => [...r]);
-      const captured = newBoard[move.tr][move.tc];
-      if (captured?.type === "K") { setGameOver("You Lost!"); }
-      if (captured) setCaptures(prev => ({ ...prev, b: [...prev.b, PIECE_ICONS.w[captured.type]] }));
-      newBoard[move.tr][move.tc] = newBoard[move.fr][move.fc];
-      newBoard[move.fr][move.fc] = null;
-      setBoard(newBoard);
-      setTurn("w");
-    }, 500 + Math.random() * 1000);
-  }, []);
-
-  const handleCellClick = (r: number, c: number) => {
-    if (gameOver || turn !== "w") return;
-    const piece = board[r][c];
-
-    if (selected) {
-      const [sr, sc] = selected;
-      const selPiece = board[sr][sc];
-      if (r === sr && c === sc) { setSelected(null); return; }
-      if (piece && piece.color === "w") { setSelected([r, c]); return; }
-      if (selPiece && isValidMove(board, sr, sc, r, c, selPiece)) {
-        const newBoard = board.map(row => [...row]);
-        const captured = newBoard[r][c];
-        if (captured?.type === "K") { setGameOver("You Win!"); }
-        if (captured) setCaptures(prev => ({ ...prev, w: [...prev.w, PIECE_ICONS.b[captured.type]] }));
-        if (selPiece.type === "P" && r === 0) newBoard[r][c] = { type: "Q", color: "w" };
-        else newBoard[r][c] = selPiece;
-        newBoard[sr][sc] = null;
-        setBoard(newBoard);
-        setSelected(null);
-        setTurn("b");
-        // Send move to remote player or use AI
-        if (isMultiplayer) {
-          sendMove({ fr: sr, fc: sc, tr: r, tc: c });
-        } else {
-          if (!gameOver) makeAIMove(newBoard);
-        }
-      } else {
-        setSelected(null);
-      }
-    } else {
-      if (piece && piece.color === "w") setSelected([r, c]);
-    }
-  };
-
-  const resetGame = () => {
-    setBoard(createInitialBoard());
-    setSelected(null);
-    setTurn("w");
-    setGameOver(null);
-    setCaptures({ w: [], b: [] });
-  };
-
+  // Game Over screen
   if (gameOver) {
-    const won = gameOver.includes("Win");
-    if (!settled) { settleBet(won ? "win" : "lose"); setSettled(true); }
     return (
       <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4 px-6">
-        <div className={cn("w-20 h-20 rounded-full flex items-center justify-center", won ? "bg-[hsl(45,100%,50%)]/20" : "bg-destructive/20")}>
-          <Trophy className={cn("w-10 h-10", won ? "text-[hsl(45,100%,50%)]" : "text-destructive")} />
+        <div className={cn(
+          "w-20 h-20 rounded-full flex items-center justify-center",
+          gameOver.won ? "bg-[hsl(45,100%,50%)]/20" : gameOver.draw ? "bg-primary/20" : "bg-destructive/20"
+        )}>
+          <Trophy className={cn(
+            "w-10 h-10",
+            gameOver.won ? "text-[hsl(45,100%,50%)]" : gameOver.draw ? "text-primary" : "text-destructive"
+          )} />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">{gameOver} {won ? "🎉" : "😔"}</h2>
+        <h2 className="text-2xl font-bold text-foreground">
+          {gameOver.result} {gameOver.won ? "🎉" : gameOver.draw ? "🤝" : "💀"}
+        </h2>
         {betAmount > 0 && (
-          <p className="text-sm font-semibold flex items-center gap-1">
+          <div className="flex items-center gap-1.5 mt-2">
             <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
-            {won ? `+${betAmount * 2} coins` : `-${betAmount} coins`}
-          </p>
+            <span className="text-sm text-foreground font-semibold">
+              {gameOver.won ? `+${betAmount * 2} coins` : gameOver.draw ? "No refund" : `-${betAmount} coins`}
+            </span>
+          </div>
         )}
-        <div className="flex gap-3">
-          <Button onClick={resetGame} variant="outline" className="gap-1"><RotateCcw className="w-4 h-4" /> Play Again</Button>
-          <Button onClick={onClose}>Back to Call</Button>
-        </div>
+        <p className="text-xs text-muted-foreground">Closing in a few seconds...</p>
+        <Button onClick={onClose} className="mt-2">Back to Call</Button>
       </div>
     );
   }
 
+  const timerPercent = (timeLeft / MOVE_TIME) * 100;
+
   return (
     <div className="fixed inset-0 z-50 bg-background/95 flex flex-col">
       <GameCallBubble onMinimize={onMinimize} />
+
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 safe-top">
-        <span className="text-xs font-bold text-foreground">♟️ Chess</span>
-        <span className={cn("text-xs font-bold", turn === "w" ? "text-primary" : "text-muted-foreground")}>
-          {turn === "w" ? "Your turn" : `${partnerName} thinking...`}
-        </span>
-        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted"><X className="w-4 h-4 text-muted-foreground" /></button>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-foreground">♟️ Chess</span>
+          {betAmount > 0 && (
+            <div className="flex items-center gap-1">
+              <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+              <span className="text-xs font-bold text-[hsl(45,100%,50%)]">{betAmount}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Crown className={cn("w-4 h-4", isMyTurn ? "text-primary" : "text-muted-foreground")} />
+          <span className={cn("text-xs font-semibold", isMyTurn ? "text-primary" : "text-muted-foreground")}>
+            {isMyTurn ? "Your Move" : `${partnerName}'s Move`}
+          </span>
+        </div>
+        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted">
+          <X className="w-4 h-4 text-muted-foreground" />
+        </button>
       </div>
 
-      {/* Partner captures */}
-      <div className="px-4 h-6 flex items-center gap-0.5">
-        <span className="text-[10px] text-muted-foreground mr-1">{partnerName}:</span>
-        {captures.b.map((p, i) => <span key={i} className="text-sm">{p}</span>)}
+      {/* Move Timer */}
+      <div className="px-4 mb-2">
+        <div className="flex items-center justify-between mb-1">
+          <span className={cn(
+            "text-xs font-mono font-bold",
+            timeLeft <= 10 ? "text-destructive" : "text-muted-foreground"
+          )}>
+            ⏱ {timeLeft}s
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            {isMyTurn ? "Your timer" : `${partnerName}'s timer`}
+          </span>
+        </div>
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all duration-1000",
+              timeLeft <= 10 ? "bg-destructive" : timeLeft <= 30 ? "bg-[hsl(45,100%,50%)]" : "bg-primary"
+            )}
+            style={{ width: `${timerPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Opponent label */}
+      <div className="px-4 mb-1">
+        <span className="text-[10px] text-muted-foreground font-semibold">
+          {partnerName} ({myColor === "white" ? "Black" : "White"})
+        </span>
       </div>
 
       {/* Board */}
       <div className="flex-1 flex items-center justify-center px-2">
-        <div className="grid grid-cols-8 border border-border rounded-lg overflow-hidden" style={{ width: "min(90vw, 360px)", height: "min(90vw, 360px)" }}>
-          {board.map((row, r) => row.map((piece, c) => {
-            const isLight = (r + c) % 2 === 0;
-            const isSelected = selected?.[0] === r && selected?.[1] === c;
-            const canMove = selected && board[selected[0]][selected[1]] && isValidMove(board, selected[0], selected[1], r, c, board[selected[0]][selected[1]]);
-            return (
-              <button
-                key={`${r}-${c}`}
-                onClick={() => handleCellClick(r, c)}
-                className={cn(
-                  "flex items-center justify-center text-2xl transition-all aspect-square",
-                  isLight ? "bg-[hsl(35,30%,80%)]" : "bg-[hsl(25,30%,45%)]",
-                  isSelected && "ring-2 ring-primary ring-inset bg-primary/30",
-                  canMove && !piece && "bg-primary/20",
-                  canMove && piece && "ring-2 ring-destructive ring-inset",
-                )}
-                style={{ fontSize: "min(6vw, 28px)" }}
-              >
-                {piece && PIECE_ICONS[piece.color][piece.type]}
-              </button>
-            );
-          }))}
+        <div style={{ width: "min(88vw, 380px)", maxWidth: "380px" }}>
+          <Chessboard
+            options={{
+              position: boardPosition,
+              boardOrientation: myColor,
+              allowDragging: isMyTurn && !gameOver,
+              animationDurationInMs: 200,
+              onPieceDrop: ({ sourceSquare, targetSquare }) => onDrop({ sourceSquare, targetSquare }),
+              boardStyle: {
+                borderRadius: "8px",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+              },
+              darkSquareStyle: { backgroundColor: "hsl(25, 30%, 42%)" },
+              lightSquareStyle: { backgroundColor: "hsl(35, 30%, 82%)" },
+            }}
+          />
         </div>
       </div>
 
-      {/* Your captures */}
-      <div className="px-4 h-6 flex items-center gap-0.5 pb-2 safe-bottom">
-        <span className="text-[10px] text-muted-foreground mr-1">You:</span>
-        {captures.w.map((p, i) => <span key={i} className="text-sm">{p}</span>)}
+      {/* Your label */}
+      <div className="px-4 mt-1 pb-2 safe-bottom">
+        <span className="text-[10px] text-muted-foreground font-semibold">
+          You ({myColor === "white" ? "White" : "Black"})
+        </span>
+        {game.inCheck() && isMyTurn && (
+          <span className="ml-2 text-[10px] text-destructive font-bold animate-pulse">⚠️ CHECK!</span>
+        )}
       </div>
     </div>
   );
