@@ -1142,6 +1142,10 @@ export type Database = {
         Args: { p_bonus_coins?: number; p_duration: string; p_user_id: string }
         Returns: Json
       }
+      reward_call_coins: {
+        Args: { p_duration_seconds: number; p_user_id: string }
+        Returns: Json
+      }
       sync_test_role: { Args: never; Returns: Json }
       transfer_coins: {
         Args: { p_amount: number; p_receiver_id: string; p_sender_id: string }
