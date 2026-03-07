@@ -1190,21 +1190,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             </Button>
             <Button variant="destructive" onClick={() => {
               setShowEndCallWarning(false);
-              if (postCallRating === "dislike" && selectedReportReasons.length > 0) {
-                toast({ title: "Report Submitted", description: "Thank you for helping keep our community safe.", duration: 2000 });
-              } else if (postCallRating === "like") {
-                toast({ title: `👍 You liked ${partnerProfile?.username || "Anonymous"}`, duration: 2000 });
-              } else if (postCallRating === "dislike") {
-                toast({ title: `👎 You disliked ${partnerProfile?.username || "Anonymous"}`, duration: 2000 });
-              }
-              room?.disconnect();
-              endCall();
-              if (isFriendCall) {
-                navigate(-1);
-              } else {
-                navigate("/");
-              }
-              handleEndCall(true);
+              // Use the same deferred flow — handleEndCall will mute + show post-call modal for random calls
+              handleEndCall();
             }} className="flex-1">
               End Call
             </Button>
