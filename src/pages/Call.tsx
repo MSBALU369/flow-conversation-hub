@@ -1386,7 +1386,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               <Button variant="destructive" onClick={handleSubmitPostCall} className="w-full">
                 End Call
               </Button>
-              <Button onClick={() => { setShowPostCallModal(false); setPostCallRating(null); setSelectedReportReasons([]); setSelectedLikeReasons([]); }} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button onClick={handleStayInCall} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                 Stay
               </Button>
 
