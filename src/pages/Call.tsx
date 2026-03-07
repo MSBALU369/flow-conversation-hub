@@ -612,6 +612,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       setQuizActive(false);
       setActiveGame(null);
       setGameMinimized(false);
+      setShowInviteWaiting(false);
+      setIncomingInvite(null);
       try { localParticipant?.setMicrophoneEnabled(false); } catch {}
       setIsMuted(true);
 
@@ -749,6 +751,8 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     setQuizActive(false);
     setActiveGame(null);
     setGameMinimized(false);
+    setShowInviteWaiting(false);
+    setIncomingInvite(null);
     try { localParticipant?.setMicrophoneEnabled(false); } catch {}
     setIsMuted(true);
     try { await room?.disconnect(); } catch {}
