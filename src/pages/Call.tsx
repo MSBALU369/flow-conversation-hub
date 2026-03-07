@@ -1312,6 +1312,9 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               setShowGameModal(false);
               if (game === "quiz") {
                 setShowQuizBet(true);
+              } else if (game === "adroulette") {
+                // Ad Roulette is solo — no bet needed, launch directly
+                setActiveGame("adroulette");
               } else {
                 setPendingGame(game);
                 setShowGameBet(true);
