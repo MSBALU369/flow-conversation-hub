@@ -39,12 +39,13 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
 
   useEffect(() => { gameRef.current = game; }, [game]);
 
-  // Listen for opponent moves
+  // Listen for opponent moves via GAME_MOVE channel
   useEffect(() => {
-    return onMessage("CHESS_MOVE", (msg: any) => {
-      const gameCopy = new Chess(msg.fen);
+    return onMessage("GAME_MOVE", (msg: any) => {
+      if (msg.game !== "chess" || !msg.data?.fen) return;
+      const gameCopy = new Chess(msg.data.fen);
       setGame(gameCopy);
-      setBoardPosition(msg.fen);
+      setBoardPosition(msg.data.fen);
       setTimeLeft(MOVE_TIME);
     });
   }, [onMessage]);
