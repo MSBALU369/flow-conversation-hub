@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Phone, Shield, Gift, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Phone, Shield, Gift, ArrowLeft, CheckCircle2, Sparkles } from "lucide-react";
+import { checkEmailTypo } from "@/lib/emailTypoCheck";
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
