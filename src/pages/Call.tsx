@@ -453,7 +453,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       room.off(RoomEvent.Reconnected, handleReconnected);
       if (disconnectTimerRef.current) { clearInterval(disconnectTimerRef.current); disconnectTimerRef.current = null; }
     };
-  }, [room, endCall, navigate, toast, isFriendCall, location.state, seconds, partnerId, stateMatchedUserId, profile?.username, partnerProfile?.username]);
+  }, [room, localParticipant, endCall, navigate, toast, isFriendCall, location.state, seconds, partnerId, stateMatchedUserId, profile?.username, partnerProfile?.username]);
 
   // Fetch partner profile from real data
   useEffect(() => {
