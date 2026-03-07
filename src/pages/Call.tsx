@@ -197,6 +197,10 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const [hasFollowedPartner, setHasFollowedPartner] = useState(false);
 
   const callStartTime = useRef<number>(Date.now());
+  // Stores the call duration at the moment User A clicks "End Call" (before feedback)
+  const pendingEndDurationRef = useRef<number>(0);
+  // True when User A has clicked End but hasn't submitted feedback yet (room still connected)
+  const pendingFeedbackRef = useRef(false);
 
   // Ghost call prevention: disconnect LiveKit + leave matchmaking on tab close
   useEffect(() => {
