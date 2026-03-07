@@ -41,6 +41,8 @@ const typeBadges: Record<string, { label: string; icon: typeof Crown; color: str
   request: { label: "Request", icon: ArrowDownLeft, color: "bg-muted text-muted-foreground" },
   daily_login: { label: "Daily Login", icon: Gift, color: "bg-primary/20 text-primary" },
   energy_recharge: { label: "Energy Recharge", icon: Zap, color: "bg-destructive/20 text-destructive" },
+  call_reward: { label: "Call Reward", icon: Coins, color: "bg-accent/20 text-accent" },
+  referral_bonus: { label: "Referral Bonus", icon: Gift, color: "bg-primary/20 text-primary" },
 };
 
 export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps) {
@@ -152,7 +154,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
     setLoading(false);
   };
 
-  // Simulate rewarded ad — award 1 coin
+  // Simulate rewarded ad — award 10 coins
   useEffect(() => {
     if (!watchingAd) return;
     const interval = setInterval(() => {
@@ -160,23 +162,23 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
         if (prev >= 100) {
           clearInterval(interval);
           setWatchingAd(false);
-          // Award 1 coin via DB
+          // Award 10 coins via DB
           if (profile?.id) {
             (async () => {
               await supabase
                 .from("profiles")
-                .update({ coins: (profile.coins ?? 0) + 1 })
+                .update({ coins: (profile.coins ?? 0) + 10 })
                 .eq("id", profile.id);
               // Log as ad_reward
               await supabase.from("coin_transactions").insert({
                 sender_id: profile.id,
                 receiver_id: profile.id,
-                amount: 1,
+                amount: 10,
                 type: "ad_reward",
                 status: "completed",
               });
-              updateProfile({ coins: (profile.coins ?? 0) + 1 });
-              toast({ title: "+1 Coin! 🪙", description: "Rewarded for watching ad." });
+              updateProfile({ coins: (profile.coins ?? 0) + 10 });
+              toast({ title: "+10 Coins! 🪙", description: "Rewarded for watching ad." });
             })();
           }
           return 100;
@@ -259,7 +261,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
               onClick={() => { setWatchingAd(true); setAdProgress(0); }}
             >
               <Play className="w-3 h-3" />
-              Watch Ad to earn 1 Coin
+              Watch Ad to earn 10 Coins
             </Button>
           )}
         </div>
