@@ -357,6 +357,14 @@ export function CallStateProvider({ children }: { children: ReactNode }) {
         receiverAvatar,
         receiverId,
       });
+
+      // Send push notification to wake up receiver's device
+      sendPushNotification(
+        receiverId,
+        "Incoming Call 📞",
+        `${profile?.username || "Someone"} is calling you to practice English!`,
+        "call"
+      );
     } catch {
       toast({ title: "Call Error", description: "Something went wrong.", variant: "destructive" });
     }
