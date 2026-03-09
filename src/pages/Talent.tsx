@@ -554,16 +554,9 @@ export default function Talent() {
 
   const handleDelete = async (id: string, isOwn: boolean) => {
     if (isOwn) {
-      const { error } = await supabase.from("talent_uploads").delete().eq("id", id);
-      if (error) {
-        toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-        return;
-      }
-      setPosts((prev) => prev.filter((p) => p.id !== id));
-      toast({ title: "Deleted", description: "Your talent post has been deleted." });
+      await handleDeletePermanent(id);
     } else {
-      setHiddenIds((prev) => new Set(prev).add(id));
-      toast({ title: "Removed", description: "This talent has been removed from your feed." });
+      await handleHide(id);
     }
   };
 
