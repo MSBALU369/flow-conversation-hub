@@ -18,6 +18,11 @@ export function useAuth() {
         if (!isMounted) return;
         setSession(session);
         setUser(session?.user ?? null);
+
+        // Intercept PASSWORD_RECOVERY to redirect to reset page
+        if (event === "PASSWORD_RECOVERY") {
+          window.location.href = "/reset-password";
+        }
       }
     );
 
