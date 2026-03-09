@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LevelBadge } from "@/components/ui/LevelBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
