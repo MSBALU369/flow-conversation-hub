@@ -246,24 +246,31 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   // Game sync via LiveKit Data Channels
   const { sendMessage: gameSendMessage, onMessage: gameOnMessage } = useGameSync(room);
 
-  // Handshake: listen for incoming game invites
+  // Handshake: listen for incoming game invites (works for ALL games)
   useEffect(() => {
     const unsub1 = gameOnMessage('GAME_INVITE', (msg: any) => {
       setIncomingInvite({ gameId: msg.gameId, category: msg.category, betAmount: msg.betAmount });
     });
-    const unsub2 = gameOnMessage('INVITE_ACCEPTED', (_msg: any) => {
+    const unsub2 = gameOnMessage('INVITE_ACCEPTED', (msg: any) => {
       // Partner accepted — deduct coins (escrow) and start game
       setShowInviteWaiting(false);
-      deductEscrow(quizBetAmount);
-      setQuizIsHost(true);
-      setQuizActive(true);
+      const inviteGameId = msg.gameId || pendingGame || 'quiz';
+      if (inviteGameId === 'quiz') {
+        deductEscrow(quizBetAmount);
+        setQuizIsHost(true);
+        setQuizActive(true);
+      } else {
+        deductEscrow(gameBetAmount);
+        setActiveGame(inviteGameId);
+      }
     });
     const unsub3 = gameOnMessage('INVITE_DECLINED', (_msg: any) => {
       setShowInviteWaiting(false);
+      setPendingGame(null);
       toast({ title: "😕 Opponent declined the invite", duration: 3000 });
     });
     return () => { unsub1(); unsub2(); unsub3(); };
-  }, [gameOnMessage, quizBetAmount]);
+  }, [gameOnMessage, quizBetAmount, gameBetAmount, pendingGame]);
 
   // Escrow: deduct coins from local user
   const deductEscrow = async (amount: number) => {
