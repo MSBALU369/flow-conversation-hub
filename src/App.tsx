@@ -66,6 +66,16 @@ function AppRoutes() {
   }
 
   if (!user) {
+    // Allow reset-password route even when not logged in (for email link flow)
+    if (location.pathname === "/reset-password") {
+      return (
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            <Route path="/reset-password" element={<ResetPassword />} />
+          </Routes>
+        </Suspense>
+      );
+    }
     if (location.pathname !== "/login") {
       return <Navigate to="/login" replace />;
     }
