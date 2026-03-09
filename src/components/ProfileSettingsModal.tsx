@@ -241,6 +241,9 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
       {/* Payment History */}
       <PaymentHistoryModal open={showPaymentHistory} onOpenChange={setShowPaymentHistory} />
 
+      {/* Change Password */}
+      <ChangePasswordModal open={showChangePassword} onOpenChange={setShowChangePassword} />
+
       {/* Delete Account Confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent className="glass-card border-border">
