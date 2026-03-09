@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Coins, Zap, Send } from "lucide-react";
+import { Coins, Send } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
 const CATEGORIES = [
@@ -12,7 +12,7 @@ const CATEGORIES = [
   { id: "iit", label: "IIT & Tech", emoji: "💻" },
   { id: "gk", label: "GK & Current Affairs", emoji: "🌍" },
   { id: "movies", label: "Movies & Entertainment", emoji: "🎬" },
-];
+] as const;
 
 interface QuizBetModalProps {
   open: boolean;
@@ -38,7 +38,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+        <div className="space-y-4">
           {/* Category Selection */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2">Choose Category</p>
@@ -46,6 +46,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
+                  type="button"
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`p-2.5 rounded-lg text-xs text-left transition-all flex items-center gap-1.5 ${
                     selectedCategory === cat.id
@@ -102,7 +103,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
               Invite Opponent ({betAmount} coins)
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

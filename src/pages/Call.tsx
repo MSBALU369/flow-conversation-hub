@@ -51,12 +51,13 @@ import { useNotificationSound } from "@/hooks/useNotificationSound";
 import { cn, isInAppBrowser } from "@/lib/utils";
 import { useGameSync, type GameMessage } from "@/hooks/useGameSync";
 
-// Lazy-load heavy game components — only loaded when user opens a game
-const GameListModal = lazy(() => import("@/components/games/GameListModal").then(m => ({ default: m.GameListModal })));
-const QuizBetModal = lazy(() => import("@/components/games/QuizBetModal").then(m => ({ default: m.QuizBetModal })));
-const GameBetModal = lazy(() => import("@/components/games/GameBetModal").then(m => ({ default: m.GameBetModal })));
-const GameInviteDialog = lazy(() => import("@/components/games/GameInviteDialog").then(m => ({ default: m.GameInviteDialog })));
-const GameInviteWaiting = lazy(() => import("@/components/games/GameInviteDialog").then(m => ({ default: m.GameInviteWaiting })));
+// Direct imports for lightweight modals — prevents chunk-load crashes
+import { GameListModal } from "@/components/games/GameListModal";
+import { QuizBetModal } from "@/components/games/QuizBetModal";
+import { GameBetModal } from "@/components/games/GameBetModal";
+import { GameInviteDialog, GameInviteWaiting } from "@/components/games/GameInviteDialog";
+
+// Lazy-load heavy game engines only
 const QuizGameOverlay = lazy(() => import("@/components/games/QuizGameOverlay").then(m => ({ default: m.QuizGameOverlay })));
 const WordChainGame = lazy(() => import("@/components/games/WordChainGame").then(m => ({ default: m.WordChainGame })));
 const WouldYouRatherGame = lazy(() => import("@/components/games/WouldYouRatherGame").then(m => ({ default: m.WouldYouRatherGame })));
