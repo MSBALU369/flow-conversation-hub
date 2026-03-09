@@ -116,6 +116,13 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
       color: "text-primary",
     }] : []),
     {
+      icon: Key,
+      label: "Change Password",
+      description: "Update your password",
+      onClick: () => setShowChangePassword(true),
+      color: "text-primary",
+    },
+    {
       icon: ShieldOff,
       label: "Blocked List",
       description: "Manage blocked users",
