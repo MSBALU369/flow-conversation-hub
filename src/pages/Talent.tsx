@@ -85,6 +85,7 @@ export default function Talent() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState<"recent" | "popular">("recent");
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [hiddenLoaded, setHiddenLoaded] = useState(false);
   const [commentOpenId, setCommentOpenId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState<Record<string, {user: string;text: string;replies: {user: string;text: string;}[];}[]>>({});
