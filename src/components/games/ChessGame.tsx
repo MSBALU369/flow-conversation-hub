@@ -244,19 +244,20 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
       <div className="flex-1 flex items-center justify-center px-2">
         <div style={{ width: "min(88vw, 380px)", maxWidth: "380px" }}>
           <Chessboard
-            options={{
-              position: boardPosition,
-              boardOrientation: myColor,
-              allowDragging: isMyTurn && !gameOver,
-              animationDurationInMs: 200,
-              onPieceDrop: ({ sourceSquare, targetSquare }) => onDrop({ sourceSquare, targetSquare }),
-              boardStyle: {
-                borderRadius: "8px",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-              },
-              darkSquareStyle: { backgroundColor: "hsl(25, 30%, 42%)" },
-              lightSquareStyle: { backgroundColor: "hsl(35, 30%, 82%)" },
+            position={boardPosition}
+            boardOrientation={myColor}
+            arePiecesDraggable={isMyTurn && !gameOver}
+            animationDuration={200}
+            onPieceDrop={(sourceSquare, targetSquare) => {
+              const result = onDrop({ sourceSquare, targetSquare });
+              return result;
             }}
+            customBoardStyle={{
+              borderRadius: "8px",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+            }}
+            customDarkSquareStyle={{ backgroundColor: "hsl(25, 30%, 42%)" }}
+            customLightSquareStyle={{ backgroundColor: "hsl(35, 30%, 82%)" }}
           />
         </div>
       </div>
