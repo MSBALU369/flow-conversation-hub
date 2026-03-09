@@ -163,14 +163,12 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
       setLiveFollowers(followersCount ?? 0);
 
       if (myProfile?.id) {
-        const { data } = await supabase
-          .from("friendships")
-          .select("id")
-          .eq("user_id", myProfile.id)
-          .eq("friend_id", currentUser.id)
-          .eq("status", "accepted")
-          .maybeSingle();
-        setIsFollowing(!!data);
+        const [{ data: iFollowThem }, { data: theyFollowMe }] = await Promise.all([
+          supabase.from("friendships").select("id").eq("user_id", myProfile.id).eq("friend_id", currentUser.id).eq("status", "accepted").maybeSingle(),
+          supabase.from("friendships").select("id").eq("user_id", currentUser.id).eq("friend_id", myProfile.id).eq("status", "accepted").maybeSingle(),
+        ]);
+        setIsFollowing(!!iFollowThem);
+        setIsMutualFollow(!!iFollowThem && !!theyFollowMe);
 
         // Fetch all my follows for list buttons
         const { data: allFollows } = await supabase
