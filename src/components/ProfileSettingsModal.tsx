@@ -49,6 +49,7 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
   const [showBlockedList, setShowBlockedList] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [ghostMode, setGhostMode] = useState(false);
   const [appLockEnabled, setAppLockEnabled] = useState(() => localStorage.getItem("app_lock_enabled") === "true");
 
