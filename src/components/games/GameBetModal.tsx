@@ -40,7 +40,7 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
           {/* Bet Amount */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
@@ -69,22 +69,22 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
               You have <span className="font-bold text-foreground">{coins}</span> coins. Win = bet × 2!
             </p>
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            onClick={() => {
-              setIsStarting(true);
-              onStart(betAmount);
-            }}
-            disabled={isStarting}
-            className="w-full gap-2"
-          >
-            <Zap className="w-4 h-4" />
-            {isStarting ? "Starting..." : `Start Game${betAmount > 0 ? ` (Bet ${betAmount} coins)` : ""}`}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => {
+                setIsStarting(true);
+                onStart(betAmount);
+              }}
+              disabled={isStarting}
+              className="w-full gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              {isStarting ? "Starting..." : `Start Game${betAmount > 0 ? ` (Bet ${betAmount} coins)` : ""}`}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
