@@ -2170,7 +2170,7 @@ export default function Chat() {
           <div
             className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
             onClick={async () => {
-              // On close, delete the image from storage & mark deleted
+              // On close, nuke the image: update content to "Photo Viewed", clear media_url
               const msgId = viewOnceMessageId;
               const mediaUrl = viewOnceImageUrl;
               setViewOnceImageUrl(null);
@@ -2182,9 +2182,9 @@ export default function Chat() {
                   await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
                 }
               }
-              // Mark as deleted for everyone
-              await supabase.from("chat_messages").update({ deleted_for_everyone: true } as any).eq("id", msgId);
-              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deletedForEveryone: true } : m));
+              // Nuke the message: set content, clear media, unmark view_once
+              await supabase.from("chat_messages").update({ content: "Photo Viewed", media_url: null, deleted_for_everyone: true } as any).eq("id", msgId);
+              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: "Photo Viewed", mediaUrl: undefined, viewOnce: false, deletedForEveryone: true } : m));
               toast({ title: "View Once photo destroyed" });
             }}
           >
