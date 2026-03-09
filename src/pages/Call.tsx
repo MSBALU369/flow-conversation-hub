@@ -51,7 +51,6 @@ import { useNotificationSound } from "@/hooks/useNotificationSound";
 import { cn, isInAppBrowser } from "@/lib/utils";
 import { useGameSync, type GameMessage } from "@/hooks/useGameSync";
 
-// Direct imports for lightweight modals — prevents chunk-load crashes
 import { GameListModal } from "@/components/games/GameListModal";
 import { QuizBetModal } from "@/components/games/QuizBetModal";
 import { GameBetModal } from "@/components/games/GameBetModal";
