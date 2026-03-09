@@ -58,6 +58,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
   const [speakWithOpen, setSpeakWithOpen] = useState(false);
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [showSwitchAccount, setShowSwitchAccount] = useState(false);
   const { profile, updateProfile } = useProfile();
   const { user } = useAuth();
   const navigate = useNavigate();
