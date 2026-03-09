@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import React, { Component, ErrorInfo, ReactNode, useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -114,6 +114,43 @@ const talkPrompts = [
   "If your life was a movie, what genre would it be?",
   "What does happiness mean to you?",
 ];
+
+class GameErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Game Engine Crash:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 px-4 text-center">
+          <p className="text-foreground font-semibold">Game Crashed!</p>
+          {this.state.error?.message && (
+            <p className="mt-1 text-sm text-muted-foreground">{this.state.error.message}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="mt-2 rounded bg-primary px-4 py-1 text-primary-foreground"
+          >
+            Close
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 /** Inner call UI — rendered inside <LiveKitRoom> so hooks work */
 /** Extracts LiveKit state and passes it down */
@@ -1385,30 +1422,32 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           />
         )}
 
-        <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95"><Loader2 className="w-16 h-16 animate-spin text-primary" /></div>}>
-          {quizActive && !gameMinimized && (
-            <QuizGameOverlay
-              category={quizCategory}
-              betAmount={quizBetAmount}
-              partnerName={partnerProfile?.username || "Partner"}
-              onClose={() => { setQuizActive(false); setGameMinimized(false); setQuizSyncedQuestions(null); }}
-              onMinimize={() => setGameMinimized(true)}
-              room={room}
-              isHost={quizIsHost}
-              syncedQuestions={quizSyncedQuestions}
-            />
-          )}
+        <GameErrorBoundary>
+          <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95"><Loader2 className="w-16 h-16 animate-spin text-primary" /></div>}>
+            {quizActive && !gameMinimized && (
+              <QuizGameOverlay
+                category={quizCategory}
+                betAmount={quizBetAmount}
+                partnerName={partnerProfile?.username || "Partner"}
+                onClose={() => { setQuizActive(false); setGameMinimized(false); setQuizSyncedQuestions(null); }}
+                onMinimize={() => setGameMinimized(true)}
+                room={room}
+                isHost={quizIsHost}
+                syncedQuestions={quizSyncedQuestions}
+              />
+            )}
 
-          {activeGame === "wordchain" && !gameMinimized && <WordChainGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-          {activeGame === "wouldyourather" && !gameMinimized && <WouldYouRatherGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-          {activeGame === "truthordare" && !gameMinimized && <TruthOrDareGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-          {activeGame === "chess" && !gameMinimized && <ChessGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-          {activeGame === "ludo" && !gameMinimized && <LudoGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-          {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-          {activeGame === "archery" && !gameMinimized && <ArcheryGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-          {activeGame === "sudoku" && !gameMinimized && <SudokuGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-          {activeGame === "adroulette" && !gameMinimized && <AdRouletteGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-        </Suspense>
+            {activeGame === "wordchain" && !gameMinimized && <WordChainGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+            {activeGame === "wouldyourather" && !gameMinimized && <WouldYouRatherGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+            {activeGame === "truthordare" && !gameMinimized && <TruthOrDareGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+            {activeGame === "chess" && !gameMinimized && <ChessGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+            {activeGame === "ludo" && !gameMinimized && <LudoGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+            {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+            {activeGame === "archery" && !gameMinimized && <ArcheryGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+            {activeGame === "sudoku" && !gameMinimized && <SudokuGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+            {activeGame === "adroulette" && !gameMinimized && <AdRouletteGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+          </Suspense>
+        </GameErrorBoundary>
 
         {gameMinimized && (activeGame || quizActive) && (
           <FloatingGameBubble
