@@ -35,6 +35,7 @@ const GAME_NAMES: Record<string, { name: string; icon: string }> = {
 
 export function GameInviteDialog({ open, onAccept, onDecline, gameId, category, betAmount, partnerName }: GameInviteDialogProps) {
   const categoryLabel = CATEGORY_LABELS[category] || category;
+  const gameInfo = GAME_NAMES[gameId] || { name: "Game", icon: "🎮" };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onDecline(); }}>
@@ -47,8 +48,8 @@ export function GameInviteDialog({ open, onAccept, onDecline, gameId, category, 
             <span className="font-bold">{partnerName}</span> wants to play
           </p>
           <div className="bg-primary/10 rounded-xl p-3">
-            <p className="text-lg font-bold text-foreground">🧠 Quiz Battle</p>
-            <p className="text-xs text-muted-foreground mt-1">{categoryLabel}</p>
+            <p className="text-lg font-bold text-foreground">{gameInfo.icon} {gameInfo.name}</p>
+            {category && gameId === 'quiz' && <p className="text-xs text-muted-foreground mt-1">{categoryLabel}</p>}
           </div>
           <div className="flex items-center justify-center gap-1.5">
             <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
