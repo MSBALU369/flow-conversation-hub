@@ -1422,7 +1422,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           />
         )}
 
-        <GameErrorBoundary>
+        <GameErrorBoundary onClose={() => { setActiveGame(null); setQuizActive(false); setGameMinimized(false); }}>
           <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95"><Loader2 className="w-16 h-16 animate-spin text-primary" /></div>}>
             {quizActive && !gameMinimized && (
               <QuizGameOverlay
