@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Coins, Zap } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
-const BET_OPTIONS = [0, 5, 10, 20, 50];
+const BET_OPTIONS = [0, 5, 10, 20, 50] as const;
 
 const GAME_INFO: Record<string, { name: string; icon: string }> = {
   chess: { name: "Chess", icon: "♟️" },
@@ -40,7 +40,7 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+        <div className="space-y-4">
           {/* Bet Amount */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
@@ -51,6 +51,7 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
               {BET_OPTIONS.map((amount) => (
                 <button
                   key={amount}
+                  type="button"
                   onClick={() => setBetAmount(amount)}
                   disabled={amount > coins}
                   className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${
@@ -84,7 +85,7 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
               {isStarting ? "Starting..." : `Start Game${betAmount > 0 ? ` (Bet ${betAmount} coins)` : ""}`}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
