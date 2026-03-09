@@ -11,6 +11,7 @@ import {
   Ghost,
   Lock,
   CreditCard,
+  Key,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { BlockedListManager } from "./BlockedListManager";
 import { PaymentHistoryModal } from "./PaymentHistoryModal";
+import { ChangePasswordModal } from "./ChangePasswordModal";
 
 interface ProfileSettingsModalProps {
   open: boolean;
@@ -47,6 +49,7 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
   const [showBlockedList, setShowBlockedList] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [ghostMode, setGhostMode] = useState(false);
   const [appLockEnabled, setAppLockEnabled] = useState(() => localStorage.getItem("app_lock_enabled") === "true");
 
@@ -112,6 +115,13 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
       onClick: () => setShowPaymentHistory(true),
       color: "text-primary",
     }] : []),
+    {
+      icon: Key,
+      label: "Change Password",
+      description: "Update your password",
+      onClick: () => setShowChangePassword(true),
+      color: "text-primary",
+    },
     {
       icon: ShieldOff,
       label: "Blocked List",
@@ -230,6 +240,9 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
 
       {/* Payment History */}
       <PaymentHistoryModal open={showPaymentHistory} onOpenChange={setShowPaymentHistory} />
+
+      {/* Change Password */}
+      <ChangePasswordModal open={showChangePassword} onOpenChange={setShowChangePassword} />
 
       {/* Delete Account Confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

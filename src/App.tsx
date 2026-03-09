@@ -32,6 +32,7 @@ const LegalInfo = lazy(() => import("./pages/LegalInfo"));
 const ContactUs = lazy(() => import("./pages/ContactUs"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Requests = lazy(() => import("./pages/Requests"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +66,16 @@ function AppRoutes() {
   }
 
   if (!user) {
+    // Allow reset-password route even when not logged in (for email link flow)
+    if (location.pathname === "/reset-password") {
+      return (
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            <Route path="/reset-password" element={<ResetPassword />} />
+          </Routes>
+        </Suspense>
+      );
+    }
     if (location.pathname !== "/login") {
       return <Navigate to="/login" replace />;
     }
@@ -102,6 +113,7 @@ function AppRoutes() {
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/requests" element={<Requests />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

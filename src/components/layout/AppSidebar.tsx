@@ -43,7 +43,7 @@ import { EFLogo } from "@/components/ui/EFLogo";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
 import { PremiumModal } from "@/components/PremiumModal";
 import { isAdminOrRoot } from "@/pages/Admin";
-
+import { SwitchAccountModal } from "@/components/SwitchAccountModal";
 interface AppSidebarProps {
   onHistoryClick?: () => void;
 }
@@ -58,6 +58,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
   const [speakWithOpen, setSpeakWithOpen] = useState(false);
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [showSwitchAccount, setShowSwitchAccount] = useState(false);
   const { profile, updateProfile } = useProfile();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -329,7 +330,10 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
           <div className="p-4 border-t border-border">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs text-muted-foreground">Version 3.0</span>
-              <button className="text-xs text-primary flex items-center gap-1">
+              <button
+                className="text-xs text-primary flex items-center gap-1"
+                onClick={() => { setOpen(false); setShowSwitchAccount(true); }}
+              >
                 <RefreshCw className="w-3 h-3" />
                 Switch Account
               </button>
@@ -368,6 +372,11 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
       <PremiumModal
         open={premiumModalOpen}
         onOpenChange={setPremiumModalOpen}
+      />
+
+      <SwitchAccountModal
+        open={showSwitchAccount}
+        onOpenChange={setShowSwitchAccount}
       />
     </Sheet>
   );

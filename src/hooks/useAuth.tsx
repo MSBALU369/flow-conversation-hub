@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useAuth() {
@@ -17,6 +18,11 @@ export function useAuth() {
         if (!isMounted) return;
         setSession(session);
         setUser(session?.user ?? null);
+
+        // Intercept PASSWORD_RECOVERY to redirect to reset page
+        if (event === "PASSWORD_RECOVERY") {
+          window.location.href = "/reset-password";
+        }
       }
     );
 
