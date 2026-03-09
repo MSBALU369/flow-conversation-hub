@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { BlockedListManager } from "./BlockedListManager";
 import { PaymentHistoryModal } from "./PaymentHistoryModal";
+import { ChangePasswordModal } from "./ChangePasswordModal";
 
 interface ProfileSettingsModalProps {
   open: boolean;
