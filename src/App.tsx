@@ -32,6 +32,7 @@ const LegalInfo = lazy(() => import("./pages/LegalInfo"));
 const ContactUs = lazy(() => import("./pages/ContactUs"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Requests = lazy(() => import("./pages/Requests"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
