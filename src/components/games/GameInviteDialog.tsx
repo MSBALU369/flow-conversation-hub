@@ -21,6 +21,18 @@ const CATEGORY_LABELS: Record<string, string> = {
   movies: "Movies & Entertainment",
 };
 
+const GAME_NAMES: Record<string, { name: string; icon: string }> = {
+  quiz: { name: "Quiz Battle", icon: "🧠" },
+  chess: { name: "Chess", icon: "♟️" },
+  ludo: { name: "Ludo", icon: "🎲" },
+  snakeandladder: { name: "Snake & Ladder", icon: "🐍" },
+  wordchain: { name: "Word Chain", icon: "🔗" },
+  wouldyourather: { name: "Would You Rather", icon: "🤔" },
+  truthordare: { name: "Truth or Dare", icon: "🎯" },
+  archery: { name: "Archery", icon: "🏹" },
+  sudoku: { name: "Sudoku", icon: "🧩" },
+};
+
 export function GameInviteDialog({ open, onAccept, onDecline, gameId, category, betAmount, partnerName }: GameInviteDialogProps) {
   const categoryLabel = CATEGORY_LABELS[category] || category;
 
