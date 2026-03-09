@@ -253,7 +253,6 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
       setIncomingInvite({ gameId: msg.gameId, category: msg.category, betAmount: msg.betAmount });
     });
     const unsub2 = gameOnMessage('INVITE_ACCEPTED', (msg: any) => {
-      // Partner accepted — deduct coins (escrow) and start game
       setShowInviteWaiting(false);
       const inviteGameId = msg.gameId || pendingGame || 'quiz';
       if (inviteGameId === 'quiz') {
@@ -262,6 +261,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
         setQuizActive(true);
       } else {
         deductEscrow(gameBetAmount);
+        setGameIsHost(true);
         setActiveGame(inviteGameId);
       }
     });
