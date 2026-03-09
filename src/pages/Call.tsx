@@ -1406,6 +1406,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
                 setQuizActive(true);
               } else {
                 setGameBetAmount(incomingInvite.betAmount);
+                setGameIsHost(false);
                 setActiveGame(incomingInvite.gameId);
               }
               setIncomingInvite(null);
