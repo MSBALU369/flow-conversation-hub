@@ -115,8 +115,8 @@ const talkPrompts = [
   "What does happiness mean to you?",
 ];
 
-class GameErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
-  constructor(props: { children: ReactNode }) {
+class GameErrorBoundary extends Component<{ children: ReactNode; onClose: () => void }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode; onClose: () => void }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
@@ -133,16 +133,16 @@ class GameErrorBoundary extends Component<{ children: ReactNode }, { hasError: b
     if (this.state.hasError) {
       return (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 px-4 text-center">
-          <p className="text-foreground font-semibold">Game Crashed!</p>
+          <p className="text-lg font-bold text-destructive">Game Module Crashed!</p>
           {this.state.error?.message && (
             <p className="mt-1 text-sm text-muted-foreground">{this.state.error.message}</p>
           )}
           <button
             type="button"
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="mt-2 rounded bg-primary px-4 py-1 text-primary-foreground"
+            onClick={() => { this.setState({ hasError: false, error: null }); this.props.onClose(); }}
+            className="mt-3 rounded-full bg-primary px-6 py-2 font-bold text-primary-foreground shadow"
           >
-            Close
+            Close Game
           </button>
         </div>
       );
@@ -1422,7 +1422,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           />
         )}
 
-        <GameErrorBoundary>
+        <GameErrorBoundary onClose={() => { setActiveGame(null); setQuizActive(false); setGameMinimized(false); }}>
           <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95"><Loader2 className="w-16 h-16 animate-spin text-primary" /></div>}>
             {quizActive && !gameMinimized && (
               <QuizGameOverlay
