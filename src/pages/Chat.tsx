@@ -1179,19 +1179,22 @@ export default function Chat() {
   };
 
   const formatLastSeen = (isoStr: string) => {
-    const date = new Date(isoStr);
+    const date = new Date(isoStr); // Parses as UTC, displays in local TZ
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMin = Math.floor(diffMs / 60000);
     if (diffMin < 1) return "just now";
     if (diffMin < 60) return `${diffMin}m ago`;
-    const isToday = date.toDateString() === now.toDateString();
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    // Use viewer's local timezone for display
+    const timeStr = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    const todayStr = now.toLocaleDateString();
+    const dateStr = date.toLocaleDateString();
     const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = date.toDateString() === yesterday.toDateString();
-    const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-    if (isToday) return `today at ${timeStr}`;
-    if (isYesterday) return `yesterday at ${timeStr}`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ` at ${timeStr}`;
+    if (dateStr === todayStr) return `today at ${timeStr}`;
+    if (dateStr === yesterday.toLocaleDateString()) return `yesterday at ${timeStr}`;
+    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ` at ${timeStr}`;
   };
 
   // Swipe-to-reply handlers for message bubbles
