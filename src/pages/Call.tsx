@@ -222,6 +222,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const [quizSyncedQuestions, setQuizSyncedQuestions] = useState<any[] | null>(null);
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [gameBetAmount, setGameBetAmount] = useState(0);
+  const [gameIsHost, setGameIsHost] = useState(true);
   const [gameMinimized, setGameMinimized] = useState(false);
   // Handshake protocol state
   const [showInviteWaiting, setShowInviteWaiting] = useState(false);
