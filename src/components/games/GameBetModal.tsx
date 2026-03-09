@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Coins, Zap } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
-
-const BET_OPTIONS = [0, 5, 10, 20, 50] as const;
 
 const GAME_INFO: Record<string, { name: string; icon: string }> = {
   chess: { name: "Chess", icon: "♟️" },
@@ -27,9 +26,12 @@ interface GameBetModalProps {
 export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetModalProps) {
   const { profile } = useProfile();
   const coins = profile?.coins ?? 0;
-  const [betAmount, setBetAmount] = useState(0);
+  const [betAmount, setBetAmount] = useState<string>("10");
   const [isStarting, setIsStarting] = useState(false);
   const info = GAME_INFO[gameId] || { name: "Game", icon: "🎮" };
+
+  const numericBet = Math.floor(Number(betAmount) || 0);
+  const isValid = numericBet >= 1 && numericBet <= 1000 && numericBet <= coins;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -41,48 +43,49 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Bet Amount */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
               <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
-              Bet Coins
+              Bet Coins (1 – 1000)
             </p>
-            <div className="flex gap-2">
-              {BET_OPTIONS.map((amount) => (
-                <button
-                  key={amount}
-                  type="button"
-                  onClick={() => setBetAmount(amount)}
-                  disabled={amount > coins}
-                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                    betAmount === amount
-                      ? "bg-[hsl(45,100%,50%)]/20 border border-[hsl(45,100%,50%)]/50 text-[hsl(45,100%,50%)]"
-                      : amount > coins
-                        ? "bg-muted/30 text-muted-foreground/40 cursor-not-allowed"
-                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {amount === 0 ? "Free" : amount}
-                </button>
-              ))}
+            <Input
+              type="number"
+              min={1}
+              max={1000}
+              value={betAmount}
+              onChange={(e) => setBetAmount(e.target.value)}
+              placeholder="Enter bet amount"
+              className="text-center text-lg font-bold"
+            />
+            <div className="flex justify-between mt-1.5">
+              <p className="text-[10px] text-muted-foreground">
+                You have <span className="font-bold text-foreground">{coins}</span> coins
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Win = <span className="font-bold text-[hsl(45,100%,50%)]">{numericBet * 2}</span> coins
+              </p>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1.5">
-              You have <span className="font-bold text-foreground">{coins}</span> coins. Win = bet × 2!
-            </p>
+            {numericBet > coins && (
+              <p className="text-[10px] text-destructive font-semibold mt-1">Not enough coins!</p>
+            )}
+            {betAmount !== "" && numericBet < 1 && (
+              <p className="text-[10px] text-destructive font-semibold mt-1">Minimum bet is 1 coin</p>
+            )}
           </div>
 
           <DialogFooter>
             <Button
               type="button"
               onClick={() => {
+                if (!isValid) return;
                 setIsStarting(true);
-                onStart(betAmount);
+                onStart(numericBet);
               }}
-              disabled={isStarting}
+              disabled={isStarting || !isValid}
               className="w-full gap-2"
             >
               <Zap className="w-4 h-4" />
-              {isStarting ? "Starting..." : `Start Game${betAmount > 0 ? ` (Bet ${betAmount} coins)` : ""}`}
+              {isStarting ? "Sending Invite..." : `Bet ${numericBet} Coins & Invite`}
             </Button>
           </DialogFooter>
         </div>
