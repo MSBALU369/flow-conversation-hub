@@ -94,6 +94,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
 
         <DialogFooter>
           <Button
+            type="button"
             onClick={() => onStart(selectedCategory, betAmount)}
             disabled={!isValid}
             className="w-full gap-2"

@@ -73,6 +73,7 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
 
         <DialogFooter>
           <Button
+            type="button"
             onClick={() => {
               setIsStarting(true);
               onStart(betAmount);
