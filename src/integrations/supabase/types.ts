@@ -562,6 +562,7 @@ export type Database = {
           following_count: number | null
           gender: Database["public"]["Enums"]["gender_type"] | null
           gender_locked: boolean | null
+          hidden_talents: string[] | null
           id: string
           is_banned: boolean | null
           is_ghost_mode: boolean | null
@@ -574,6 +575,8 @@ export type Database = {
           last_username_change: string | null
           level: number | null
           location_city: string | null
+          password_change_count: number | null
+          password_last_changed: string | null
           premium_expires_at: string | null
           referred_by: string | null
           region: string | null
@@ -603,6 +606,7 @@ export type Database = {
           following_count?: number | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           gender_locked?: boolean | null
+          hidden_talents?: string[] | null
           id: string
           is_banned?: boolean | null
           is_ghost_mode?: boolean | null
@@ -615,6 +619,8 @@ export type Database = {
           last_username_change?: string | null
           level?: number | null
           location_city?: string | null
+          password_change_count?: number | null
+          password_last_changed?: string | null
           premium_expires_at?: string | null
           referred_by?: string | null
           region?: string | null
@@ -644,6 +650,7 @@ export type Database = {
           following_count?: number | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           gender_locked?: boolean | null
+          hidden_talents?: string[] | null
           id?: string
           is_banned?: boolean | null
           is_ghost_mode?: boolean | null
@@ -656,6 +663,8 @@ export type Database = {
           last_username_change?: string | null
           level?: number | null
           location_city?: string | null
+          password_change_count?: number | null
+          password_last_changed?: string | null
           premium_expires_at?: string | null
           referred_by?: string | null
           region?: string | null
