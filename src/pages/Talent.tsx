@@ -102,6 +102,18 @@ export default function Talent() {
   const { user } = useAuth();
   const [profilePopupUser, setProfilePopupUser] = useState<any>(null);
 
+  // Load hidden_talents from profile on mount
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadHidden = async () => {
+      const { data } = await supabase.from("profiles").select("hidden_talents").eq("id", user.id).single();
+      const arr = (data as any)?.hidden_talents || [];
+      setHiddenIds(new Set(arr));
+      setHiddenLoaded(true);
+    };
+    loadHidden();
+  }, [user?.id]);
+
   // Fetch real talent posts from Supabase
   useEffect(() => {
     const fetchTalents = async () => {
