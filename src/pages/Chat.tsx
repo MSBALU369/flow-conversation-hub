@@ -927,16 +927,21 @@ export default function Chat() {
     const { data: { publicUrl } } = supabase.storage.from("chat_media").getPublicUrl(fileName);
 
     // Insert real message with media_url
-    const { error } = await supabase.from("chat_messages").insert({
+    const { data: inserted, error } = await supabase.from("chat_messages").insert({
       sender_id: profile.id,
       receiver_id: selectedFriend.id,
       content: `🎤 Voice note (${finalDuration}s)`,
       media_url: publicUrl,
-    });
+    }).select().single();
 
     if (error) {
       toast({ title: "Failed to send voice note", variant: "destructive" });
-    } else {
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+    } else if (inserted) {
+      // Replace optimistic message with real one including mediaUrl
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: inserted.id, status: "delivered" as const, mediaUrl: publicUrl } : m));
+      // Update friend list preview
+      setChatFriends(prev => prev.map(f => f.id === selectedFriend.id ? { ...f, lastMessage: `🎤 Voice note (${finalDuration}s)`, lastMessageSenderId: profile.id, time: "now" } : f));
       toast({ title: "Voice note sent!", description: `${finalDuration} seconds recorded.` });
     }
   };

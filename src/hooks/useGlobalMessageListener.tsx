@@ -64,8 +64,8 @@ export function useGlobalMessageListener() {
           // Play notification sound
           try { playSound("ting"); } catch {}
 
-          // Show Sonner toast banner
-          toast(senderName, {
+          // Show Sonner toast banner — entire toast navigates on click
+          const toastId = toast(senderName, {
             description: preview,
             duration: 5000,
             action: {

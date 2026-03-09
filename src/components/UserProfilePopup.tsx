@@ -509,10 +509,32 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
                         <><Send className="w-3.5 h-3.5 mr-1" /> Request Follow</>
                       )}
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1 text-xs">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={!isMutualFollow}
+                      onClick={() => {
+                        if (isMutualFollow) {
+                          onOpenChange(false);
+                          navigate("/chat", {
+                            state: {
+                              openConversationWith: {
+                                id: currentUser.id,
+                                name: currentUser.name,
+                                avatar: currentUser.avatar,
+                              },
+                            },
+                          });
+                        }
+                      }}
+                    >
                       <MessageCircle className="w-3.5 h-3.5 mr-1" /> Message
                     </Button>
                   </div>
+                  {!isMutualFollow && isFollowing && (
+                    <p className="text-[10px] text-muted-foreground text-center">Mutual follow required to message</p>
+                  )}
                 </div>
               )}
 
