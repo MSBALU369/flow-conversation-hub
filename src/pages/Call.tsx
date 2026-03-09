@@ -1394,14 +1394,19 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           <GameInviteDialog
             open={!!incomingInvite}
             onAccept={() => {
-              // Accept: send acceptance, deduct escrow, start as non-host
+              // Accept: send acceptance with gameId, deduct escrow, start game
               gameSendMessage({ type: 'INVITE_ACCEPTED', gameId: incomingInvite.gameId });
               deductEscrow(incomingInvite.betAmount);
-              setQuizCategory(incomingInvite.category);
-              setQuizBetAmount(incomingInvite.betAmount);
-              setQuizIsHost(false);
-              setQuizSyncedQuestions(null);
-              setQuizActive(true);
+              if (incomingInvite.gameId === 'quiz') {
+                setQuizCategory(incomingInvite.category);
+                setQuizBetAmount(incomingInvite.betAmount);
+                setQuizIsHost(false);
+                setQuizSyncedQuestions(null);
+                setQuizActive(true);
+              } else {
+                setGameBetAmount(incomingInvite.betAmount);
+                setActiveGame(incomingInvite.gameId);
+              }
               setIncomingInvite(null);
             }}
             onDecline={() => {
