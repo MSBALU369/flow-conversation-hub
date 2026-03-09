@@ -38,7 +38,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
           {/* Category Selection */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2">Choose Category</p>
@@ -90,19 +90,19 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
               🏆 Winner takes <span className="font-bold text-[hsl(45,100%,50%)]">{betAmount * 2}</span> coins!
             </p>
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            onClick={() => onStart(selectedCategory, betAmount)}
-            disabled={!isValid}
-            className="w-full gap-2"
-          >
-            <Send className="w-4 h-4" />
-            Invite Opponent ({betAmount} coins)
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => onStart(selectedCategory, betAmount)}
+              disabled={!isValid}
+              className="w-full gap-2"
+            >
+              <Send className="w-4 h-4" />
+              Invite Opponent ({betAmount} coins)
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
