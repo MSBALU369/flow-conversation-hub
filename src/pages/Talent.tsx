@@ -462,37 +462,53 @@ export default function Talent() {
   };
   const canRecord = uploadLanguage && uploadCategory;
 
-  const handleHide = (id: string) => {
+  const handleHide = async (id: string) => {
     setHiddenIds((prev) => new Set(prev).add(id));
     toast({ title: "Hidden", description: "This talent has been hidden from your feed." });
+    // Persist to DB
+    if (user?.id) {
+      const newArr = [...hiddenIds, id];
+      await supabase.from("profiles").update({ hidden_talents: newArr } as any).eq("id", user.id);
+    }
   };
 
-  const handleUnhide = (id: string) => {
+  const handleUnhide = async (id: string) => {
     setHiddenIds((prev) => {
       const next = new Set(prev);
       next.delete(id);
       return next;
     });
     toast({ title: "Unhidden", description: "This talent is visible in your feed again." });
+    // Persist to DB
+    if (user?.id) {
+      const newArr = [...hiddenIds].filter((h) => h !== id);
+      await supabase.from("profiles").update({ hidden_talents: newArr } as any).eq("id", user.id);
+    }
+  };
+
+  const handleDeletePermanent = async (id: string) => {
+    const { error } = await supabase.from("talent_uploads").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+    setHiddenIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    toast({ title: "Deleted", description: "Talent post permanently deleted." });
   };
 
   const handleDeleteHidden = async (id: string) => {
     const post = posts.find((p) => p.id === id);
     const isOwn = post?.user_id === user?.id;
     if (isOwn) {
-      const { error } = await supabase.from("talent_uploads").delete().eq("id", id);
-      if (error) {
-        toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-        return;
-      }
+      await handleDeletePermanent(id);
+    } else {
+      await handleUnhide(id);
     }
-    setHiddenIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-    setPosts((prev) => prev.filter((p) => p.id !== id));
-    toast({ title: "Deleted", description: "Talent post deleted permanently." });
   };
 
   const hiddenPosts = posts.filter((p) => hiddenIds.has(p.id));
