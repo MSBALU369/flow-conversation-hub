@@ -115,6 +115,43 @@ const talkPrompts = [
   "What does happiness mean to you?",
 ];
 
+class GameErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Game Engine Crash:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 px-4 text-center">
+          <p className="text-foreground font-semibold">Game Crashed!</p>
+          {this.state.error?.message && (
+            <p className="mt-1 text-sm text-muted-foreground">{this.state.error.message}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="mt-2 rounded bg-primary px-4 py-1 text-primary-foreground"
+          >
+            Close
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 /** Inner call UI — rendered inside <LiveKitRoom> so hooks work */
 /** Extracts LiveKit state and passes it down */
 function LiveKitBridge({ children }: { children: (lk: { room: any; participants: any[]; localParticipant: any }) => React.ReactNode }) {
