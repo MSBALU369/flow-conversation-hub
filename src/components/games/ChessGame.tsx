@@ -30,6 +30,7 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
   const [gameOver, setGameOver] = useState<{ result: string; won: boolean; draw: boolean } | null>(null);
   const [timeLeft, setTimeLeft] = useState(MOVE_TIME);
   const [settled, setSettled] = useState(false);
+  const [checkAlert, setCheckAlert] = useState(false);
   const gameRef = useRef(game);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -39,7 +40,7 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
 
   useEffect(() => { gameRef.current = game; }, [game]);
 
-  // Listen for opponent moves via GAME_MOVE channel
+  // Listen for opponent moves
   useEffect(() => {
     return onMessage("GAME_MOVE", (msg: any) => {
       if (msg.game !== "chess" || !msg.data?.fen) return;
@@ -56,45 +57,36 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
-
     setTimeLeft(MOVE_TIME);
     if (timerRef.current) clearInterval(timerRef.current);
-
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
           const timedOutColor = gameRef.current.turn();
           const iLost = timedOutColor === myColorShort;
-          handleGameEnd(
-            iLost ? "Time's up — You Lost!" : "Opponent ran out of time!",
-            !iLost,
-            false
-          );
+          handleGameEnd(iLost ? "Time's up — You Lost!" : "Opponent ran out of time!", !iLost, false);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [boardPosition, gameOver]);
 
-  // Check for game end conditions
+  // Check for game end conditions + CHECK alert
   useEffect(() => {
     if (gameOver) return;
     if (game.isCheckmate()) {
       const loserTurn = game.turn();
       const iWon = loserTurn !== myColorShort;
-      handleGameEnd(
-        iWon ? "Checkmate — You Win!" : "Checkmate — You Lost!",
-        iWon,
-        false
-      );
+      handleGameEnd(iWon ? "Checkmate — You Win!" : "Checkmate — You Lost!", iWon, false);
     } else if (game.isDraw() || game.isStalemate() || game.isThreefoldRepetition() || game.isInsufficientMaterial()) {
       handleGameEnd("Draw!", false, true);
+    } else if (game.inCheck()) {
+      setCheckAlert(true);
+    } else {
+      setCheckAlert(false);
     }
   }, [boardPosition]);
 
@@ -102,11 +94,11 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
     if (gameOver || settled) return;
     setGameOver({ result, won, draw });
     setSettled(true);
+    setCheckAlert(false);
 
     if (betAmount > 0 && profile?.id) {
       const { data } = await supabase.from("profiles").select("coins").eq("id", profile.id).single();
       const currentCoins = data?.coins ?? 0;
-
       if (won) {
         const winnings = betAmount * 2;
         await supabase.from("profiles").update({ coins: currentCoins + winnings }).eq("id", profile.id);
@@ -117,7 +109,6 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
         toast({ title: `💀 You lost ${betAmount} coins`, duration: 3000 });
       }
     }
-
     setTimeout(() => onClose(), 5000);
   }, [gameOver, settled, betAmount, profile?.id, toast, onClose]);
 
@@ -127,46 +118,30 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
     const gameCopy = new Chess(game.fen());
     let move;
     try {
-      move = gameCopy.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: "q",
-      });
+      move = gameCopy.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
     } catch {
       return false;
     }
-
     if (!move) return false;
 
     setGame(gameCopy);
     setBoardPosition(gameCopy.fen());
 
-    // Send via LiveKit — wrapped as GAME_MOVE for compatibility with useGameSync listener
     sendMessage({
       type: 'GAME_MOVE',
       game: 'chess',
       data: { type: 'CHESS_MOVE', fen: gameCopy.fen(), move },
     });
-
     return true;
   }
 
-  // Game Over screen
   if (gameOver) {
     return (
       <div className="fixed inset-0 z-50 bg-background/95 flex flex-col items-center justify-center gap-4 px-6">
-        <div className={cn(
-          "w-20 h-20 rounded-full flex items-center justify-center",
-          gameOver.won ? "bg-[hsl(45,100%,50%)]/20" : gameOver.draw ? "bg-primary/20" : "bg-destructive/20"
-        )}>
-          <Trophy className={cn(
-            "w-10 h-10",
-            gameOver.won ? "text-[hsl(45,100%,50%)]" : gameOver.draw ? "text-primary" : "text-destructive"
-          )} />
+        <div className={cn("w-20 h-20 rounded-full flex items-center justify-center", gameOver.won ? "bg-[hsl(45,100%,50%)]/20" : gameOver.draw ? "bg-primary/20" : "bg-destructive/20")}>
+          <Trophy className={cn("w-10 h-10", gameOver.won ? "text-[hsl(45,100%,50%)]" : gameOver.draw ? "text-primary" : "text-destructive")} />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">
-          {gameOver.result} {gameOver.won ? "🎉" : gameOver.draw ? "🤝" : "💀"}
-        </h2>
+        <h2 className="text-2xl font-bold text-foreground">{gameOver.result} {gameOver.won ? "🎉" : gameOver.draw ? "🤝" : "💀"}</h2>
         {betAmount > 0 && (
           <div className="flex items-center gap-1.5 mt-2">
             <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
@@ -204,18 +179,24 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
             {isMyTurn ? "Your Move" : `${partnerName}'s Move`}
           </span>
         </div>
-        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted">
+        <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted">
           <X className="w-4 h-4 text-muted-foreground" />
         </button>
       </div>
 
+      {/* CHECK! Alert - prominent blinking */}
+      {checkAlert && (
+        <div className="mx-4 mb-2 py-2 px-4 rounded-xl bg-destructive/20 border-2 border-destructive/60 animate-pulse">
+          <p className="text-center text-lg font-black text-destructive tracking-wider animate-pulse">
+            ⚠️ CHECK! ⚠️
+          </p>
+        </div>
+      )}
+
       {/* Move Timer */}
       <div className="px-4 mb-2">
         <div className="flex items-center justify-between mb-1">
-          <span className={cn(
-            "text-xs font-mono font-bold",
-            timeLeft <= 10 ? "text-destructive" : "text-muted-foreground"
-          )}>
+          <span className={cn("text-xs font-mono font-bold", timeLeft <= 10 ? "text-destructive" : "text-muted-foreground")}>
             ⏱ {timeLeft}s
           </span>
           <span className="text-[10px] text-muted-foreground">
@@ -224,10 +205,7 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
         </div>
         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
           <div
-            className={cn(
-              "h-full rounded-full transition-all duration-1000",
-              timeLeft <= 10 ? "bg-destructive" : timeLeft <= 30 ? "bg-[hsl(45,100%,50%)]" : "bg-primary"
-            )}
+            className={cn("h-full rounded-full transition-all duration-1000", timeLeft <= 10 ? "bg-destructive" : timeLeft <= 30 ? "bg-[hsl(45,100%,50%)]" : "bg-primary")}
             style={{ width: `${timerPercent}%` }}
           />
         </div>
@@ -249,13 +227,9 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
             arePiecesDraggable={isMyTurn && !gameOver}
             animationDuration={200}
             onPieceDrop={(sourceSquare, targetSquare) => {
-              const result = onDrop({ sourceSquare, targetSquare });
-              return result;
+              return onDrop({ sourceSquare, targetSquare });
             }}
-            customBoardStyle={{
-              borderRadius: "8px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-            }}
+            customBoardStyle={{ borderRadius: "8px", boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }}
             customDarkSquareStyle={{ backgroundColor: "hsl(25, 30%, 42%)" }}
             customLightSquareStyle={{ backgroundColor: "hsl(35, 30%, 82%)" }}
           />
@@ -267,9 +241,6 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
         <span className="text-[10px] text-muted-foreground font-semibold">
           You ({myColor === "white" ? "White" : "Black"})
         </span>
-        {game.inCheck() && isMyTurn && (
-          <span className="ml-2 text-[10px] text-destructive font-bold animate-pulse">⚠️ CHECK!</span>
-        )}
       </div>
     </div>
   );

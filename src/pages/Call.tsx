@@ -222,6 +222,7 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   const [quizSyncedQuestions, setQuizSyncedQuestions] = useState<any[] | null>(null);
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [gameBetAmount, setGameBetAmount] = useState(0);
+  const [gameIsHost, setGameIsHost] = useState(true);
   const [gameMinimized, setGameMinimized] = useState(false);
   // Handshake protocol state
   const [showInviteWaiting, setShowInviteWaiting] = useState(false);
@@ -246,24 +247,31 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
   // Game sync via LiveKit Data Channels
   const { sendMessage: gameSendMessage, onMessage: gameOnMessage } = useGameSync(room);
 
-  // Handshake: listen for incoming game invites
+  // Handshake: listen for incoming game invites (works for ALL games)
   useEffect(() => {
     const unsub1 = gameOnMessage('GAME_INVITE', (msg: any) => {
       setIncomingInvite({ gameId: msg.gameId, category: msg.category, betAmount: msg.betAmount });
     });
-    const unsub2 = gameOnMessage('INVITE_ACCEPTED', (_msg: any) => {
-      // Partner accepted — deduct coins (escrow) and start game
+    const unsub2 = gameOnMessage('INVITE_ACCEPTED', (msg: any) => {
       setShowInviteWaiting(false);
-      deductEscrow(quizBetAmount);
-      setQuizIsHost(true);
-      setQuizActive(true);
+      const inviteGameId = msg.gameId || pendingGame || 'quiz';
+      if (inviteGameId === 'quiz') {
+        deductEscrow(quizBetAmount);
+        setQuizIsHost(true);
+        setQuizActive(true);
+      } else {
+        deductEscrow(gameBetAmount);
+        setGameIsHost(true);
+        setActiveGame(inviteGameId);
+      }
     });
     const unsub3 = gameOnMessage('INVITE_DECLINED', (_msg: any) => {
       setShowInviteWaiting(false);
+      setPendingGame(null);
       toast({ title: "😕 Opponent declined the invite", duration: 3000 });
     });
     return () => { unsub1(); unsub2(); unsub3(); };
-  }, [gameOnMessage, quizBetAmount]);
+  }, [gameOnMessage, quizBetAmount, gameBetAmount, pendingGame]);
 
   // Escrow: deduct coins from local user
   const deductEscrow = async (amount: number) => {
@@ -1387,14 +1395,20 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           <GameInviteDialog
             open={!!incomingInvite}
             onAccept={() => {
-              // Accept: send acceptance, deduct escrow, start as non-host
+              // Accept: send acceptance with gameId, deduct escrow, start game
               gameSendMessage({ type: 'INVITE_ACCEPTED', gameId: incomingInvite.gameId });
               deductEscrow(incomingInvite.betAmount);
-              setQuizCategory(incomingInvite.category);
-              setQuizBetAmount(incomingInvite.betAmount);
-              setQuizIsHost(false);
-              setQuizSyncedQuestions(null);
-              setQuizActive(true);
+              if (incomingInvite.gameId === 'quiz') {
+                setQuizCategory(incomingInvite.category);
+                setQuizBetAmount(incomingInvite.betAmount);
+                setQuizIsHost(false);
+                setQuizSyncedQuestions(null);
+                setQuizActive(true);
+              } else {
+                setGameBetAmount(incomingInvite.betAmount);
+                setGameIsHost(false);
+                setActiveGame(incomingInvite.gameId);
+              }
               setIncomingInvite(null);
             }}
             onDecline={() => {
@@ -1415,9 +1429,10 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             gameId={pendingGame || ""}
             onStart={(bet) => {
               setGameBetAmount(bet);
-              setActiveGame(pendingGame);
               setShowGameBet(false);
-              setPendingGame(null);
+              // Send invite via Data Channel — don't open game yet
+              gameSendMessage({ type: 'GAME_INVITE', gameId: pendingGame || '', category: '', betAmount: bet });
+              setShowInviteWaiting(true);
             }}
           />
         )}
@@ -1440,9 +1455,9 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             {activeGame === "wordchain" && !gameMinimized && <WordChainGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
             {activeGame === "wouldyourather" && !gameMinimized && <WouldYouRatherGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
             {activeGame === "truthordare" && !gameMinimized && <TruthOrDareGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-            {activeGame === "chess" && !gameMinimized && <ChessGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-            {activeGame === "ludo" && !gameMinimized && <LudoGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
-            {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
+            {activeGame === "chess" && !gameMinimized && <ChessGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} isHost={gameIsHost} />}
+            {activeGame === "ludo" && !gameMinimized && <LudoGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} isHost={gameIsHost} />}
+            {activeGame === "snakeandladder" && !gameMinimized && <SnakeLadderGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} isHost={gameIsHost} />}
             {activeGame === "archery" && !gameMinimized && <ArcheryGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
             {activeGame === "sudoku" && !gameMinimized && <SudokuGame betAmount={gameBetAmount} partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); setGameBetAmount(0); }} onMinimize={() => setGameMinimized(true)} room={room} />}
             {activeGame === "adroulette" && !gameMinimized && <AdRouletteGame partnerName={partnerProfile?.username || "Partner"} onClose={() => { setActiveGame(null); setGameMinimized(false); }} onMinimize={() => setGameMinimized(true)} room={room} />}
