@@ -2201,8 +2201,8 @@ export default function Chat() {
                     await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
                   }
                 }
-                await supabase.from("chat_messages").update({ deleted_for_everyone: true } as any).eq("id", msgId);
-                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deletedForEveryone: true } : m));
+                await supabase.from("chat_messages").update({ content: "Photo Viewed", media_url: null, deleted_for_everyone: true } as any).eq("id", msgId);
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: "Photo Viewed", mediaUrl: undefined, viewOnce: false, deletedForEveryone: true } : m));
                 toast({ title: "View Once photo destroyed" });
               }}
             >
