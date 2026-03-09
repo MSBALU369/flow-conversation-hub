@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useAuth() {
