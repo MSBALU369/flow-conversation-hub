@@ -43,7 +43,7 @@ import { EFLogo } from "@/components/ui/EFLogo";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
 import { PremiumModal } from "@/components/PremiumModal";
 import { isAdminOrRoot } from "@/pages/Admin";
-
+import { SwitchAccountModal } from "@/components/SwitchAccountModal";
 interface AppSidebarProps {
   onHistoryClick?: () => void;
 }
