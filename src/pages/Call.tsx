@@ -1422,9 +1422,10 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             gameId={pendingGame || ""}
             onStart={(bet) => {
               setGameBetAmount(bet);
-              setActiveGame(pendingGame);
               setShowGameBet(false);
-              setPendingGame(null);
+              // Send invite via Data Channel — don't open game yet
+              gameSendMessage({ type: 'GAME_INVITE', gameId: pendingGame || '', category: '', betAmount: bet });
+              setShowInviteWaiting(true);
             }}
           />
         )}
