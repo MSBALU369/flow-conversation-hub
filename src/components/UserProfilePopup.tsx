@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LevelBadge } from "@/components/ui/LevelBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -113,10 +114,12 @@ function CompareGraphInline({
 export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName = "You", myWeeklyData }: UserProfilePopupProps) {
   const { profile: myProfile } = useProfile();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
   const [hasMutualTalk, setHasMutualTalk] = useState(false);
   const [followRequestSent, setFollowRequestSent] = useState(false);
+  const [isMutualFollow, setIsMutualFollow] = useState(false);
 
   // Stack for infinite drill-down
   const [userStack, setUserStack] = useState<UserProfilePopupProps["user"][]>([]);
@@ -160,14 +163,12 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
       setLiveFollowers(followersCount ?? 0);
 
       if (myProfile?.id) {
-        const { data } = await supabase
-          .from("friendships")
-          .select("id")
-          .eq("user_id", myProfile.id)
-          .eq("friend_id", currentUser.id)
-          .eq("status", "accepted")
-          .maybeSingle();
-        setIsFollowing(!!data);
+        const [{ data: iFollowThem }, { data: theyFollowMe }] = await Promise.all([
+          supabase.from("friendships").select("id").eq("user_id", myProfile.id).eq("friend_id", currentUser.id).eq("status", "accepted").maybeSingle(),
+          supabase.from("friendships").select("id").eq("user_id", currentUser.id).eq("friend_id", myProfile.id).eq("status", "accepted").maybeSingle(),
+        ]);
+        setIsFollowing(!!iFollowThem);
+        setIsMutualFollow(!!iFollowThem && !!theyFollowMe);
 
         // Fetch all my follows for list buttons
         const { data: allFollows } = await supabase
@@ -509,10 +510,32 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
                         <><Send className="w-3.5 h-3.5 mr-1" /> Request Follow</>
                       )}
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1 text-xs">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={!isMutualFollow}
+                      onClick={() => {
+                        if (isMutualFollow) {
+                          onOpenChange(false);
+                          navigate("/chat", {
+                            state: {
+                              openConversationWith: {
+                                id: currentUser.id,
+                                name: currentUser.name,
+                                avatar: currentUser.avatar,
+                              },
+                            },
+                          });
+                        }
+                      }}
+                    >
                       <MessageCircle className="w-3.5 h-3.5 mr-1" /> Message
                     </Button>
                   </div>
+                  {!isMutualFollow && isFollowing && (
+                    <p className="text-[10px] text-muted-foreground text-center">Mutual follow required to message</p>
+                  )}
                 </div>
               )}
 

@@ -927,16 +927,21 @@ export default function Chat() {
     const { data: { publicUrl } } = supabase.storage.from("chat_media").getPublicUrl(fileName);
 
     // Insert real message with media_url
-    const { error } = await supabase.from("chat_messages").insert({
+    const { data: inserted, error } = await supabase.from("chat_messages").insert({
       sender_id: profile.id,
       receiver_id: selectedFriend.id,
       content: `🎤 Voice note (${finalDuration}s)`,
       media_url: publicUrl,
-    });
+    }).select().single();
 
     if (error) {
       toast({ title: "Failed to send voice note", variant: "destructive" });
-    } else {
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+    } else if (inserted) {
+      // Replace optimistic message with real one including mediaUrl
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: inserted.id, status: "delivered" as const, mediaUrl: publicUrl } : m));
+      // Update friend list preview
+      setChatFriends(prev => prev.map(f => f.id === selectedFriend.id ? { ...f, lastMessage: `🎤 Voice note (${finalDuration}s)`, lastMessageSenderId: profile.id, time: "now" } : f));
       toast({ title: "Voice note sent!", description: `${finalDuration} seconds recorded.` });
     }
   };
@@ -1179,19 +1184,22 @@ export default function Chat() {
   };
 
   const formatLastSeen = (isoStr: string) => {
-    const date = new Date(isoStr);
+    const date = new Date(isoStr); // Parses as UTC, displays in local TZ
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMin = Math.floor(diffMs / 60000);
     if (diffMin < 1) return "just now";
     if (diffMin < 60) return `${diffMin}m ago`;
-    const isToday = date.toDateString() === now.toDateString();
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    // Use viewer's local timezone for display
+    const timeStr = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    const todayStr = now.toLocaleDateString();
+    const dateStr = date.toLocaleDateString();
     const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = date.toDateString() === yesterday.toDateString();
-    const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-    if (isToday) return `today at ${timeStr}`;
-    if (isYesterday) return `yesterday at ${timeStr}`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ` at ${timeStr}`;
+    if (dateStr === todayStr) return `today at ${timeStr}`;
+    if (dateStr === yesterday.toLocaleDateString()) return `yesterday at ${timeStr}`;
+    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ` at ${timeStr}`;
   };
 
   // Swipe-to-reply handlers for message bubbles
@@ -2167,7 +2175,7 @@ export default function Chat() {
           <div
             className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
             onClick={async () => {
-              // On close, delete the image from storage & mark deleted
+              // On close, nuke the image: update content to "Photo Viewed", clear media_url
               const msgId = viewOnceMessageId;
               const mediaUrl = viewOnceImageUrl;
               setViewOnceImageUrl(null);
@@ -2179,9 +2187,9 @@ export default function Chat() {
                   await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
                 }
               }
-              // Mark as deleted for everyone
-              await supabase.from("chat_messages").update({ deleted_for_everyone: true } as any).eq("id", msgId);
-              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deletedForEveryone: true } : m));
+              // Nuke the message: set content, clear media, unmark view_once
+              await supabase.from("chat_messages").update({ content: "Photo Viewed", media_url: null, deleted_for_everyone: true } as any).eq("id", msgId);
+              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: "Photo Viewed", mediaUrl: undefined, viewOnce: false, deletedForEveryone: true } : m));
               toast({ title: "View Once photo destroyed" });
             }}
           >
@@ -2198,8 +2206,8 @@ export default function Chat() {
                     await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
                   }
                 }
-                await supabase.from("chat_messages").update({ deleted_for_everyone: true } as any).eq("id", msgId);
-                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deletedForEveryone: true } : m));
+                await supabase.from("chat_messages").update({ content: "Photo Viewed", media_url: null, deleted_for_everyone: true } as any).eq("id", msgId);
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: "Photo Viewed", mediaUrl: undefined, viewOnce: false, deletedForEveryone: true } : m));
                 toast({ title: "View Once photo destroyed" });
               }}
             >
