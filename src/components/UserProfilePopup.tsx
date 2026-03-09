@@ -114,10 +114,12 @@ function CompareGraphInline({
 export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName = "You", myWeeklyData }: UserProfilePopupProps) {
   const { profile: myProfile } = useProfile();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
   const [hasMutualTalk, setHasMutualTalk] = useState(false);
   const [followRequestSent, setFollowRequestSent] = useState(false);
+  const [isMutualFollow, setIsMutualFollow] = useState(false);
 
   // Stack for infinite drill-down
   const [userStack, setUserStack] = useState<UserProfilePopupProps["user"][]>([]);
