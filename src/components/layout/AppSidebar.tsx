@@ -373,6 +373,11 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
         open={premiumModalOpen}
         onOpenChange={setPremiumModalOpen}
       />
+
+      <SwitchAccountModal
+        open={showSwitchAccount}
+        onOpenChange={setShowSwitchAccount}
+      />
     </Sheet>
   );
 }
