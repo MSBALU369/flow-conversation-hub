@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { Play, ExternalLink, TrendingUp } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { VideoPlayerModal } from "./VideoPlayerModal";
 
 interface Course {
   id: string;
@@ -19,24 +17,9 @@ interface Props {
   courses: Course[];
 }
 
-function extractYouTubeId(url: string): string | null {
-  const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?&]+)/);
-  return match ? match[1] : null;
-}
-
 export function CourseRow({ title, courses }: Props) {
-  const [videoModal, setVideoModal] = useState<{ embedUrl: string; title: string } | null>(null);
-
   const handleClick = async (course: Course) => {
     await supabase.rpc("increment_affiliate_click" as any, { p_product_id: course.id });
-
-    if (course.is_free) {
-      const videoId = extractYouTubeId(course.affiliate_link);
-      if (videoId) {
-        setVideoModal({ embedUrl: `https://www.youtube.com/embed/${videoId}`, title: course.title });
-        return;
-      }
-    }
     window.open(course.affiliate_link, "_blank", "noopener,noreferrer");
   };
 
@@ -91,14 +74,6 @@ export function CourseRow({ title, courses }: Props) {
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
-      {videoModal && (
-        <VideoPlayerModal
-          open={!!videoModal}
-          onOpenChange={(open) => !open && setVideoModal(null)}
-          embedUrl={videoModal.embedUrl}
-          title={videoModal.title}
-        />
-      )}
     </div>
   );
 }
