@@ -642,6 +642,17 @@ export default function Admin() {
                             <Button
                               variant="outline"
                               size="sm"
+                              className="text-[9px] h-6 px-2 gap-1"
+                              onClick={() => {
+                                setReplyingTicket(replyingTicket === ticket.id ? null : ticket.id);
+                                setReplyText("");
+                              }}
+                            >
+                              <Reply className="w-3 h-3" /> Reply
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="text-[9px] h-6 px-2"
                               onClick={async () => {
                                 await supabase.from("support_tickets" as any).update({
@@ -656,6 +667,43 @@ export default function Admin() {
                             </Button>
                           </div>
                         )}
+                      </div>
+                      {/* Reply box */}
+                      {replyingTicket === ticket.id && (
+                        <div className="mt-2 flex gap-2">
+                          <Input
+                            placeholder="Type admin reply..."
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            className="h-7 text-[10px]"
+                          />
+                          <Button
+                            size="sm"
+                            className="text-[9px] h-7 px-3 shrink-0"
+                            disabled={!replyText.trim()}
+                            onClick={async () => {
+                              await supabase.from("support_tickets" as any).update({
+                                status: "resolved",
+                                admin_note: replyText.trim(),
+                                resolved_by: user.id,
+                              } as any).eq("id", ticket.id);
+                              // Also create a notification for the user
+                              await supabase.from("notifications").insert({
+                                user_id: ticket.user_id,
+                                type: "support",
+                                title: "Support Reply",
+                                message: `Re: ${ticket.subject} — ${replyText.trim()}`,
+                                from_user_id: user.id,
+                              });
+                              setReplyingTicket(null);
+                              setReplyText("");
+                              fetchAll();
+                            }}
+                          >
+                            <Send className="w-3 h-3 mr-1" /> Send
+                          </Button>
+                        </div>
+                      )}
                       </div>
                     </div>
                   );
