@@ -238,7 +238,7 @@ export default function Admin() {
 
       <div className="px-4 mt-4">
         <Tabs defaultValue="health" className="w-full">
-          <TabsList className="w-full grid grid-cols-6 h-10 bg-muted/50">
+          <TabsList className="w-full grid grid-cols-7 h-10 bg-muted/50">
             <TabsTrigger value="health" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
               <Activity className="w-3.5 h-3.5 mr-0.5" /> Health
             </TabsTrigger>
@@ -248,8 +248,11 @@ export default function Admin() {
             <TabsTrigger value="deletions" className="text-[10px] data-[state=active]:bg-destructive/15 data-[state=active]:text-destructive relative">
               <UserMinus className="w-3.5 h-3.5 mr-0.5" /> Del
             </TabsTrigger>
+            <TabsTrigger value="test" className="text-[10px] data-[state=active]:bg-destructive/15 data-[state=active]:text-destructive">
+              <Bomb className="w-3.5 h-3.5 mr-0.5" /> Test
+            </TabsTrigger>
             <TabsTrigger value="tickets" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary relative">
-              <Ticket className="w-3.5 h-3.5 mr-0.5" /> Tickets
+              <Ticket className="w-3.5 h-3.5 mr-0.5" /> Tix
               {tickets.filter((t: any) => t.status === "open").length > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[8px] rounded-full flex items-center justify-center">
                   {tickets.filter((t: any) => t.status === "open").length}
