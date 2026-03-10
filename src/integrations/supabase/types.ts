@@ -23,7 +23,9 @@ export type Database = {
           created_at: string
           id: string
           is_free: boolean
+          language: string
           subcategory: string
+          target_country: string
           title: string
         }
         Insert: {
@@ -34,7 +36,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_free?: boolean
+          language?: string
           subcategory?: string
+          target_country?: string
           title: string
         }
         Update: {
@@ -45,7 +49,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_free?: boolean
+          language?: string
           subcategory?: string
+          target_country?: string
           title?: string
         }
         Relationships: []
