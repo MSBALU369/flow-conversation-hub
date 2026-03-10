@@ -1,0 +1,1 @@
+DELETE FROM affiliate_products WHERE id = '288fe702-6414-459a-8f6b-546036b95e77';
