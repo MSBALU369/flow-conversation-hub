@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_products: {
+        Row: {
+          affiliate_link: string
+          category: string
+          clicks_count: number
+          cover_url: string
+          created_at: string
+          id: string
+          is_free: boolean
+          subcategory: string
+          title: string
+        }
+        Insert: {
+          affiliate_link?: string
+          category?: string
+          clicks_count?: number
+          cover_url?: string
+          created_at?: string
+          id?: string
+          is_free?: boolean
+          subcategory?: string
+          title: string
+        }
+        Update: {
+          affiliate_link?: string
+          category?: string
+          clicks_count?: number
+          cover_url?: string
+          created_at?: string
+          id?: string
+          is_free?: boolean
+          subcategory?: string
+          title?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: string
@@ -1122,6 +1158,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_affiliate_click: {
+        Args: { p_product_id: string }
+        Returns: undefined
       }
       is_room_member: {
         Args: { p_room_id: string; p_user_id: string }

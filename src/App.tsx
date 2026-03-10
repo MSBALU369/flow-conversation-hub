@@ -30,6 +30,7 @@ const FAQ = lazy(() => import("./pages/FAQ"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const LegalInfo = lazy(() => import("./pages/LegalInfo"));
 const ContactUs = lazy(() => import("./pages/ContactUs"));
+const Recommendations = lazy(() => import("./pages/Recommendations"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Requests = lazy(() => import("./pages/Requests"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -111,6 +112,7 @@ function AppRoutes() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/legal" element={<LegalInfo />} />
         <Route path="/contact" element={<ContactUs />} />
+        <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/requests" element={<Requests />} />
         <Route path="/reset-password" element={<ResetPassword />} />

@@ -1,0 +1,21 @@
+
+INSERT INTO public.affiliate_products (title, category, subcategory, cover_url, affiliate_link, is_free) VALUES
+('Word Power Made Easy', 'book', 'English', 'https://m.media-amazon.com/images/I/71mAXaHb7VL._SY466_.jpg', 'https://www.amazon.in/dp/110187385X', false),
+('English Grammar in Use', 'book', 'English', 'https://m.media-amazon.com/images/I/81bVtxMgjkL._SY466_.jpg', 'https://www.amazon.in/dp/1108457657', false),
+('High School English Grammar', 'book', 'English', 'https://m.media-amazon.com/images/I/81Pm2JBOOCL._SY466_.jpg', 'https://www.amazon.in/dp/8121900093', false),
+('Spoken English', 'book', 'English', 'https://m.media-amazon.com/images/I/71BhHaNPe9L._SY466_.jpg', 'https://www.amazon.in/dp/8194790824', false),
+('Atomic Habits', 'book', 'Mental Health', 'https://m.media-amazon.com/images/I/81ANaVZk5LL._SY466_.jpg', 'https://www.amazon.in/dp/0735211299', false),
+('The Psychology of Money', 'book', 'Mental Health', 'https://m.media-amazon.com/images/I/81Dky+tD+pL._SY466_.jpg', 'https://www.amazon.in/dp/9390166268', false),
+('Think and Grow Rich', 'book', 'Mental Health', 'https://m.media-amazon.com/images/I/71UypkUjStL._SY466_.jpg', 'https://www.amazon.in/dp/0449214923', false),
+('Clean Code', 'book', 'IT', 'https://m.media-amazon.com/images/I/51E2055ZGUL._SY466_.jpg', 'https://www.amazon.in/dp/0132350882', false),
+('System Design Interview', 'book', 'IT', 'https://m.media-amazon.com/images/I/71UB2u1fxuL._SY466_.jpg', 'https://www.amazon.in/dp/B08CMF2CQF', false),
+('English Speaking Full Course', 'course', 'English', 'https://i.ytimg.com/vi/OYP8bSQx7O4/hqdefault.jpg', 'https://www.youtube.com/watch?v=OYP8bSQx7O4', true),
+('IELTS Full Course - Free', 'course', 'English', 'https://i.ytimg.com/vi/JMm36rc-MDs/hqdefault.jpg', 'https://www.youtube.com/watch?v=JMm36rc-MDs', true),
+('Spoken English for Beginners', 'course', 'English', 'https://i.ytimg.com/vi/X0AUiS4BzMU/hqdefault.jpg', 'https://www.youtube.com/watch?v=X0AUiS4BzMU', true),
+('Complete English Masterclass', 'course', 'English', 'https://img-c.udemycdn.com/course/480x270/2175774_46a1.jpg', 'https://www.udemy.com/course/the-complete-english-language-course/', false),
+('Learn English Specialization', 'course', 'English', 'https://d3njjcbhbojbot.cloudfront.net/api/utilities/v1/imageproxy/https://coursera-course-photos.s3.amazonaws.com/08/c11250d14b11e8b650c157d1f1b148/Learn-English-Specialization.png', 'https://www.coursera.org/specializations/learn-english', false),
+('Python Full Course - Free', 'course', 'IT', 'https://i.ytimg.com/vi/XKHEtdqhLK8/hqdefault.jpg', 'https://www.youtube.com/watch?v=XKHEtdqhLK8', true),
+('Web Dev Bootcamp Free', 'course', 'IT', 'https://i.ytimg.com/vi/zJSY8tbf_ys/hqdefault.jpg', 'https://www.youtube.com/watch?v=zJSY8tbf_ys', true),
+('The Web Developer Bootcamp', 'course', 'IT', 'https://img-c.udemycdn.com/course/480x270/625204_436a_3.jpg', 'https://www.udemy.com/course/the-web-developer-bootcamp/', false),
+('AWS Cloud Practitioner - Free', 'course', 'Cloud', 'https://i.ytimg.com/vi/SOTamWNgDKc/hqdefault.jpg', 'https://www.youtube.com/watch?v=SOTamWNgDKc', true),
+('AWS Solutions Architect', 'course', 'Cloud', 'https://img-c.udemycdn.com/course/480x270/362328_91f3_10.jpg', 'https://www.udemy.com/course/aws-certified-solutions-architect-associate/', false);

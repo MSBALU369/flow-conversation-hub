@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Users, DollarSign, Database, Phone, Mail, Crown,
   AlertTriangle, Zap, Activity, Shield, Rocket, CreditCard, Globe,
-  Search, Trash2, Ban, Ticket, CheckCircle2, Gift, UserMinus,
+  Search, Trash2, Ban, Ticket, CheckCircle2, Gift, UserMinus, Bomb, Reply, Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ToolMetricsModal } from "@/components/admin/ToolMetricsModal";
@@ -75,6 +75,9 @@ export default function Admin() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [grantingPremium, setGrantingPremium] = useState<string | null>(null);
   const [showDeletedAccounts, setShowDeletedAccounts] = useState(false);
+  const [nukingTests, setNukingTests] = useState(false);
+  const [replyingTicket, setReplyingTicket] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   // Guard
   useEffect(() => {
@@ -235,7 +238,7 @@ export default function Admin() {
 
       <div className="px-4 mt-4">
         <Tabs defaultValue="health" className="w-full">
-          <TabsList className="w-full grid grid-cols-6 h-10 bg-muted/50">
+          <TabsList className="w-full grid grid-cols-7 h-10 bg-muted/50">
             <TabsTrigger value="health" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
               <Activity className="w-3.5 h-3.5 mr-0.5" /> Health
             </TabsTrigger>
@@ -245,8 +248,11 @@ export default function Admin() {
             <TabsTrigger value="deletions" className="text-[10px] data-[state=active]:bg-destructive/15 data-[state=active]:text-destructive relative">
               <UserMinus className="w-3.5 h-3.5 mr-0.5" /> Del
             </TabsTrigger>
+            <TabsTrigger value="test" className="text-[10px] data-[state=active]:bg-destructive/15 data-[state=active]:text-destructive">
+              <Bomb className="w-3.5 h-3.5 mr-0.5" /> Test
+            </TabsTrigger>
             <TabsTrigger value="tickets" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary relative">
-              <Ticket className="w-3.5 h-3.5 mr-0.5" /> Tickets
+              <Ticket className="w-3.5 h-3.5 mr-0.5" /> Tix
               {tickets.filter((t: any) => t.status === "open").length > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[8px] rounded-full flex items-center justify-center">
                   {tickets.filter((t: any) => t.status === "open").length}
@@ -482,10 +488,82 @@ export default function Admin() {
             <PendingDeletionsTab />
           </TabsContent>
 
+          {/* TAB: TEST ACCOUNTS MANAGER */}
+          <TabsContent value="test" className="space-y-4 mt-4">
+            {(() => {
+              const testUsers = users.filter(u =>
+                (u.email && (u.email.includes("+test") || u.email.toLowerCase().includes("test"))) ||
+                (u.username && u.username.toLowerCase().includes("test"))
+              );
+              return (
+                <>
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                    <Bomb className="w-4 h-4 text-destructive" /> Test Accounts Manager
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Found <strong className="text-destructive">{testUsers.length}</strong> test accounts (emails/usernames containing "test")
+                  </p>
+                  {testUsers.length > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full gap-2"
+                      disabled={nukingTests}
+                      onClick={async () => {
+                        if (!confirm(`⚠️ NUKE ALL ${testUsers.length} test accounts? This permanently deletes them from auth.users and all tables. This cannot be undone.`)) return;
+                        setNukingTests(true);
+                        for (const tu of testUsers) {
+                          await supabase.rpc("delete_user_account", { p_user_id: tu.id });
+                        }
+                        setNukingTests(false);
+                        fetchAll();
+                      }}
+                    >
+                      {nukingTests ? (
+                        <div className="w-4 h-4 border-2 border-destructive-foreground border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Bomb className="w-4 h-4" />
+                      )}
+                      {nukingTests ? "Nuking..." : `🔥 Nuke All ${testUsers.length} Test Users`}
+                    </Button>
+                  )}
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                    {testUsers.map(tu => (
+                      <div key={tu.id} className="flex items-center justify-between p-3 rounded-xl border border-destructive/20 bg-destructive/5">
+                        <div>
+                          <p className="text-xs font-medium text-foreground">{tu.username || "—"}</p>
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">{tu.email || "—"}</p>
+                          <p className="text-[9px] text-muted-foreground">Joined: {new Date(tu.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="text-[9px] h-7 px-3"
+                          onClick={async () => {
+                            if (!confirm(`Delete ${tu.username || tu.email}? This is permanent.`)) return;
+                            await supabase.rpc("delete_user_account", { p_user_id: tu.id });
+                            fetchAll();
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" /> Delete
+                        </Button>
+                      </div>
+                    ))}
+                    {testUsers.length === 0 && (
+                      <div className="text-center py-8">
+                        <CheckCircle2 className="w-8 h-8 text-primary/40 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No test accounts found</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </TabsContent>
           {/* TAB: SUPPORT TICKETS */}
           <TabsContent value="tickets" className="space-y-4 mt-4">
             <h3 className="text-sm font-semibold flex items-center gap-1.5">
-              <Ticket className="w-4 h-4 text-primary" /> Payment Support Tickets ({tickets.length})
+              <Ticket className="w-4 h-4 text-primary" /> Support Tickets ({tickets.length})
             </h3>
             {tickets.length === 0 ? (
               <div className="text-center py-8">
@@ -564,6 +642,17 @@ export default function Admin() {
                             <Button
                               variant="outline"
                               size="sm"
+                              className="text-[9px] h-6 px-2 gap-1"
+                              onClick={() => {
+                                setReplyingTicket(replyingTicket === ticket.id ? null : ticket.id);
+                                setReplyText("");
+                              }}
+                            >
+                              <Reply className="w-3 h-3" /> Reply
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="text-[9px] h-6 px-2"
                               onClick={async () => {
                                 await supabase.from("support_tickets" as any).update({
@@ -579,6 +668,42 @@ export default function Admin() {
                           </div>
                         )}
                       </div>
+                      {/* Reply box */}
+                      {replyingTicket === ticket.id && (
+                        <div className="mt-2 flex gap-2">
+                          <Input
+                            placeholder="Type admin reply..."
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            className="h-7 text-[10px]"
+                          />
+                          <Button
+                            size="sm"
+                            className="text-[9px] h-7 px-3 shrink-0"
+                            disabled={!replyText.trim()}
+                            onClick={async () => {
+                              await supabase.from("support_tickets" as any).update({
+                                status: "resolved",
+                                admin_note: replyText.trim(),
+                                resolved_by: user.id,
+                              } as any).eq("id", ticket.id);
+                              // Also create a notification for the user
+                              await supabase.from("notifications").insert({
+                                user_id: ticket.user_id,
+                                type: "support",
+                                title: "Support Reply",
+                                message: `Re: ${ticket.subject} — ${replyText.trim()}`,
+                                from_user_id: user.id,
+                              });
+                              setReplyingTicket(null);
+                              setReplyText("");
+                              fetchAll();
+                            }}
+                          >
+                            <Send className="w-3 h-3 mr-1" /> Send
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
