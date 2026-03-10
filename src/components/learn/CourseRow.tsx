@@ -42,7 +42,7 @@ export function CourseRow({ title, courses }: Props) {
                   alt={course.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }}
+                  onError={(e) => { const img = e.target as HTMLImageElement; img.src = '/assets/ef-logo.png'; img.className += ' object-contain bg-muted p-4'; }}
                 />
                 <div className="absolute top-1.5 left-1.5">
                   {course.is_free ? (
