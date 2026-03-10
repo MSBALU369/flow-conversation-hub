@@ -329,50 +329,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Ad Area for non-premium */}
-          {!isPremium && (
-            <div className="mt-4 glass-card p-4">
-              <div className="text-center">
-                {!adPlaying && !adFinished && (
-                  <div className="border border-dashed border-border rounded-xl py-8 flex flex-col items-center justify-center gap-3">
-                    <button
-                      onClick={() => { setAdPlaying(true); setAdProgress(0); setAdFinished(false); }}
-                      className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center hover:bg-primary/30 transition-colors glow-teal"
-                    >
-                      <Play className="w-8 h-8 text-primary fill-primary" />
-                    </button>
-                    <p className="text-xs text-muted-foreground">Tap to watch ad</p>
-                  </div>
-                )}
-                {adPlaying && (
-                  <div className="rounded-xl bg-muted/50 py-6 flex flex-col items-center gap-3">
-                    <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
-                      <Volume2 className="w-8 h-8 text-primary" />
-                    </div>
-                    <p className="text-sm font-medium text-foreground">Playing Ad...</p>
-                    <div className="w-3/4 h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary rounded-full transition-all duration-300"
-                        style={{ width: `${adProgress}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">{Math.round(adProgress)}%</p>
-                  </div>
-                )}
-                {adFinished && (
-                  <div className="rounded-xl bg-muted/50 py-6 flex flex-col items-center gap-3">
-                    <p className="text-sm text-foreground font-medium">✅ Ad complete! Thank you.</p>
-                    <button
-                      onClick={() => { setAdFinished(false); setAdProgress(0); }}
-                      className="text-xs text-primary font-medium hover:underline"
-                    >
-                      Watch another
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Ad Banner for non-premium */}
           {!isPremium && (
