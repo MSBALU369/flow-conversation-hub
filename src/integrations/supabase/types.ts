@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_products: {
+        Row: {
+          affiliate_link: string
+          category: string
+          clicks_count: number
+          cover_url: string
+          created_at: string
+          id: string
+          is_free: boolean
+          subcategory: string
+          title: string
+        }
+        Insert: {
+          affiliate_link?: string
+          category?: string
+          clicks_count?: number
+          cover_url?: string
+          created_at?: string
+          id?: string
+          is_free?: boolean
+          subcategory?: string
+          title: string
+        }
+        Update: {
+          affiliate_link?: string
+          category?: string
+          clicks_count?: number
+          cover_url?: string
+          created_at?: string
+          id?: string
+          is_free?: boolean
+          subcategory?: string
+          title?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: string
