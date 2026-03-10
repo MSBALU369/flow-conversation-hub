@@ -22,7 +22,7 @@ import {
   Phone,
   ShieldCheck,
   Inbox,
-  Sparkles,
+  
 } from "lucide-react";
 import {
   Sheet,
@@ -144,7 +144,6 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
     // Non-premium: Show "Speak With" under Rooms, then Learn
     { icon: Phone, label: "Speak With", action: handleSpeakWithClick },
     { icon: BookOpen, label: "Learn", path: "/learn" },
-    { icon: Sparkles, label: "Store", path: "/recommendations" },
     { icon: Trophy, label: "Levels", action: handleLevelsClick, badge: `Lv.${profile?.level ?? 1}` },
     { icon: Clock, label: "History", action: handleHistoryClick },
     { icon: Shield, label: "Trust Score", action: handleTrustScoreClick },

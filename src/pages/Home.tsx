@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, BookOpen, ExternalLink, Volume2, Pause, Info, GraduationCap, Users, BadgeCheck, Coins, Crown, ShieldAlert, Target } from "lucide-react";
+import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, Volume2, Info, Users, BadgeCheck, Coins, Crown, ShieldAlert, Target } from "lucide-react";
+import { TopPicksCarousel } from "@/components/home/TopPicksCarousel";
 import { AdBanner } from "@/components/AdBanner";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
 import { LevelsModal } from "@/components/LevelsModal";
@@ -17,14 +18,6 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
 type GenderFilter = "random" | "female" | "male";
-interface PremiumContentItem {
-  id: string;
-  title: string;
-  author: string;
-  category: string;
-  url: string;
-  type: string;
-}
 
 export default function Home() {
   const {
@@ -71,28 +64,10 @@ export default function Home() {
   const [adProgress, setAdProgress] = useState(0);
   const [adFinished, setAdFinished] = useState(false);
   const [showLevelsModal, setShowLevelsModal] = useState(false);
-  const [showBooksModal, setShowBooksModal] = useState(false);
-  const [booksTab, setBooksTab] = useState<"books" | "courses">("books");
   const isPremium = profile?.is_premium ?? false;
   const [showSpeakWith, setShowSpeakWith] = useState(false);
-  const [premiumContent, setPremiumContent] = useState<PremiumContentItem[]>([]);
-  const [contentLoading, setContentLoading] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
-  // Fetch premium content from Supabase
-  useEffect(() => {
-    if (!showBooksModal) return;
-    const fetchContent = async () => {
-      setContentLoading(true);
-      const { data } = await supabase
-        .from("premium_content")
-        .select("*")
-        .order("created_at", { ascending: true });
-      setPremiumContent((data as PremiumContentItem[]) || []);
-      setContentLoading(false);
-    };
-    fetchContent();
-  }, [showBooksModal]);
 
   // Simulate ad playback — award coins via DB after completion
   useEffect(() => {
@@ -337,32 +312,22 @@ export default function Home() {
           </div>
 
 
-          {/* Recommended Books & Courses Button - Available to ALL users */}
-          <div className="mt-4 space-y-3">
-            <div className="flex justify-center">
+          {/* Top Picks Carousel */}
+          <TopPicksCarousel />
+
+          {/* Speak With - Premium only on Home */}
+          {isPremium && (
+            <div className="mt-3 flex justify-center">
               <Button
+                onClick={() => setShowSpeakWith(true)}
+                className="gap-2 text-sm px-5 py-2.5 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
                 variant="outline"
-                onClick={() => setShowBooksModal(true)}
-                className="gap-2 text-sm px-5 py-2.5 h-auto border-primary/30 text-primary hover:bg-primary/10"
               >
-                <BookOpen className="w-4 h-4" />
-                Recommended Books & Courses
+                <Users className="w-4 h-4" />
+                Speak With (Filter by Level)
               </Button>
             </div>
-            {/* Speak With - Premium only on Home */}
-            {isPremium && (
-              <div className="flex justify-center">
-                <Button
-                  onClick={() => setShowSpeakWith(true)}
-                  className="gap-2 text-sm px-5 py-2.5 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
-                  variant="outline"
-                >
-                  <Users className="w-4 h-4" />
-                  Speak With (Filter by Level)
-                </Button>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Ad Area for non-premium */}
           {!isPremium && (
@@ -469,80 +434,5 @@ export default function Home() {
         currentXp={profile?.xp ?? 0}
       />}
 
-      {/* Books & Courses Modal */}
-      <Dialog open={showBooksModal} onOpenChange={setShowBooksModal}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground">Recommended Books & Courses</DialogTitle>
-          </DialogHeader>
-          
-          {/* Category Tabs */}
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={() => setBooksTab("books")}
-              className={cn(
-                "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all",
-                booksTab === "books"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              <BookOpen className="w-3.5 h-3.5 inline mr-1.5" />
-              Books
-            </button>
-            <button
-              onClick={() => setBooksTab("courses")}
-              className={cn(
-                "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all",
-                booksTab === "courses"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              <GraduationCap className="w-3.5 h-3.5 inline mr-1.5" />
-              Courses
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-            {contentLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <p className="text-sm text-muted-foreground">Loading...</p>
-              </div>
-            ) : (() => {
-              const filtered = premiumContent.filter(c => booksTab === "books" ? c.type === "book" : c.type === "course");
-              if (filtered.length === 0) return (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <BookOpen className="w-10 h-10 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">No {booksTab} available yet</p>
-                </div>
-              );
-              return filtered.map((item, i) => (
-              <a
-                key={i}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  {booksTab === "books" ? (
-                    <BookOpen className="w-5 h-5 text-primary" />
-                  ) : (
-                    <GraduationCap className="w-5 h-5 text-primary" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
-                  <p className="text-xs text-muted-foreground">{item.author} · {item.category}</p>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
-              </a>
-            ));
-            })()}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>;
 }

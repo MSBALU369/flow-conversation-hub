@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Home, MessageCircle, Crown, Mic, BookOpen, ShieldCheck, Sparkles } from "lucide-react";
+import { Home, MessageCircle, Crown, Mic, BookOpen, ShieldCheck } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +21,6 @@ export const BottomNav = memo(function BottomNav() {
       : [{ icon: Crown, label: "Premium", path: "/premium" }]),
     { icon: Mic, label: "Talent", path: "/talent" },
     { icon: BookOpen, label: "Learn", path: "/learn" },
-    { icon: Sparkles, label: "Store", path: "/recommendations" },
   ];
 
   const fetchUnread = useCallback(async () => {
