@@ -30,7 +30,7 @@ const FAQ = lazy(() => import("./pages/FAQ"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const LegalInfo = lazy(() => import("./pages/LegalInfo"));
 const ContactUs = lazy(() => import("./pages/ContactUs"));
-const Recommendations = lazy(() => import("./pages/Recommendations"));
+
 const Admin = lazy(() => import("./pages/Admin"));
 const Requests = lazy(() => import("./pages/Requests"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
