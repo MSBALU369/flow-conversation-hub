@@ -315,27 +315,6 @@ export default function Home() {
           {/* Top Picks Carousel */}
           <TopPicksCarousel />
 
-          {/* Speak With Button */}
-          <button
-            onClick={() => {
-              if (!isPremium) {
-                setShowPremiumModal(true);
-              } else {
-                setShowSpeakWith(true);
-              }
-            }}
-            className="mt-2 w-full rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-md transition-all text-left"
-          >
-            <div className="flex items-center justify-between px-3 py-2">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10">
-                  <Users className="w-3.5 h-3.5 text-primary" />
-                </div>
-                <p className="text-sm font-bold text-foreground">Speak With (Filter by Level)</p>
-              </div>
-              {!isPremium && <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
-            </div>
-          </button>
 
 
           {/* Ad Banner for non-premium */}
