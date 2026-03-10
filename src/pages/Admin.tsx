@@ -695,6 +695,25 @@ export default function Admin() {
                                 message: `Re: ${ticket.subject} — ${replyText.trim()}`,
                                 from_user_id: user.id,
                               });
+                              // Send real email via Brevo
+                              try {
+                                const { data: profile } = await supabase
+                                  .from("profiles")
+                                  .select("email")
+                                  .eq("id", ticket.user_id)
+                                  .single();
+                                if (profile?.email) {
+                                  await supabase.functions.invoke("send-support-reply", {
+                                    body: {
+                                      email: profile.email,
+                                      subject: ticket.subject,
+                                      replyMessage: replyText.trim(),
+                                    },
+                                  });
+                                }
+                              } catch (emailErr) {
+                                console.error("Email send failed:", emailErr);
+                              }
                               setReplyingTicket(null);
                               setReplyText("");
                               fetchAll();
