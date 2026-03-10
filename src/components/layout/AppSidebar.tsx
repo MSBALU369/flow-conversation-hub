@@ -22,7 +22,7 @@ import {
   Phone,
   ShieldCheck,
   Inbox,
-  Sparkles,
+  
 } from "lucide-react";
 import {
   Sheet,

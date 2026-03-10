@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Home, MessageCircle, Crown, Mic, BookOpen, ShieldCheck, Sparkles } from "lucide-react";
+import { Home, MessageCircle, Crown, Mic, BookOpen, ShieldCheck } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
