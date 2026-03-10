@@ -71,9 +71,11 @@ export default function Learn() {
   }, [filtered]);
 
   const categoryFiltered = useMemo(() => {
-    if (selectedCategory === "All") return filtered;
-    return filtered.filter(c => c.subcategory === selectedCategory);
-  }, [filtered, selectedCategory]);
+    let result = filtered;
+    if (selectedCategory !== "All") result = result.filter(c => c.subcategory === selectedCategory);
+    if (typeFilter !== "all") result = result.filter(c => c.category === typeFilter);
+    return result;
+  }, [filtered, selectedCategory, typeFilter]);
 
   // Top picks = trending items (highest clicks) for user's country
   const topPicks = useMemo(() =>
@@ -81,11 +83,11 @@ export default function Learn() {
   [categoryFiltered]);
 
   const books = useMemo(() =>
-    categoryFiltered.filter(c => c.category === "book").slice(0, 10),
+    categoryFiltered.filter(c => c.category === "book"),
   [categoryFiltered]);
 
   const trendingCourses = useMemo(() =>
-    categoryFiltered.filter(c => c.category === "course").slice(0, 10),
+    categoryFiltered.filter(c => c.category === "course"),
   [categoryFiltered]);
 
   // Reset category chip when language changes and chip no longer exists
