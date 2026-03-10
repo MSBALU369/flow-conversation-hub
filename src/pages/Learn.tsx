@@ -49,7 +49,7 @@ export default function Learn() {
   useEffect(() => {
     (async () => {
       const { data } = await supabase
-        .from("affiliate_products" as any)
+        .from("affiliate_products")
         .select("*")
         .order("clicks_count", { ascending: false });
       setCourses((data as any as Course[]) || []);
@@ -73,6 +73,11 @@ export default function Learn() {
     if (selectedCategory === "All") return filtered;
     return filtered.filter(c => c.subcategory === selectedCategory);
   }, [filtered, selectedCategory]);
+
+  // Top picks = trending items (highest clicks) for user's country
+  const topPicks = useMemo(() =>
+    categoryFiltered.slice(0, 10),
+  [categoryFiltered]);
 
   const books = useMemo(() =>
     categoryFiltered.filter(c => c.category === "book").slice(0, 10),
@@ -159,14 +164,15 @@ export default function Learn() {
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : books.length === 0 && trendingCourses.length === 0 ? (
+        ) : topPicks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4">
-            <p className="text-muted-foreground text-sm text-center">No content available for {language} yet.</p>
+            <p className="text-muted-foreground text-sm text-center">Coming soon in {language}.</p>
           </div>
         ) : (
           <>
-            <CourseRow title="📚 Recommended Books" courses={books} />
-            <CourseRow title="🎓 Trending Courses" courses={trendingCourses} />
+            <CourseRow title="🔥 Top Picks for You" courses={topPicks} />
+            <CourseRow title="📚 Best-Selling Books" courses={books} />
+            <CourseRow title="🎓 Recommended Courses" courses={trendingCourses} />
           </>
         )}
       </main>
