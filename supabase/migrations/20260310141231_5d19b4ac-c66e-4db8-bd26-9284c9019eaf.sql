@@ -1,0 +1,1 @@
+UPDATE affiliate_products SET subcategory = 'IT(Software) & AI' WHERE subcategory IN ('Data Science', 'Tech & AI', 'Web Development');
