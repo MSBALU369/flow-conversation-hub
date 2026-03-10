@@ -43,6 +43,7 @@ export default function Learn() {
   const [language, setLanguage] = useState("English");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [roadmapOpen, setRoadmapOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "book" | "course">("all");
 
   const userCountry = profile?.country ?? "GLOBAL";
 
