@@ -338,32 +338,22 @@ export default function Home() {
           </div>
 
 
-          {/* Recommended Books & Courses Button - Available to ALL users */}
-          <div className="mt-4 space-y-3">
-            <div className="flex justify-center">
+          {/* Top Picks Carousel */}
+          <TopPicksCarousel />
+
+          {/* Speak With - Premium only on Home */}
+          {isPremium && (
+            <div className="mt-3 flex justify-center">
               <Button
+                onClick={() => setShowSpeakWith(true)}
+                className="gap-2 text-sm px-5 py-2.5 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
                 variant="outline"
-                onClick={() => setShowBooksModal(true)}
-                className="gap-2 text-sm px-5 py-2.5 h-auto border-primary/30 text-primary hover:bg-primary/10"
               >
-                <BookOpen className="w-4 h-4" />
-                Recommended Books & Courses
+                <Users className="w-4 h-4" />
+                Speak With (Filter by Level)
               </Button>
             </div>
-            {/* Speak With - Premium only on Home */}
-            {isPremium && (
-              <div className="flex justify-center">
-                <Button
-                  onClick={() => setShowSpeakWith(true)}
-                  className="gap-2 text-sm px-5 py-2.5 h-auto bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
-                  variant="outline"
-                >
-                  <Users className="w-4 h-4" />
-                  Speak With (Filter by Level)
-                </Button>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Ad Area for non-premium */}
           {!isPremium && (
