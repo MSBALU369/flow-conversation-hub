@@ -331,7 +331,7 @@ export default function Home() {
                 <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10">
                   <Users className="w-3.5 h-3.5 text-primary" />
                 </div>
-                <p className="text-sm font-bold text-foreground">Speak With Someone</p>
+                <p className="text-sm font-bold text-foreground">Speak With (Filter by Level)</p>
               </div>
               {!isPremium && <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
             </div>
