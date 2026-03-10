@@ -601,8 +601,16 @@ export default function UserProfilePage() {
             className="flex-1"
             disabled={!isFollowing}
             onClick={() => {
-              if (isFollowing) {
-                navigate("/chat");
+              if (isFollowing && user) {
+                navigate("/chat", {
+                  state: {
+                    openConversationWith: {
+                      id: user.id,
+                      username: user.name,
+                      avatar_url: user.avatar,
+                    },
+                  },
+                });
               } else {
                 toast({ title: "Follow first", description: "You need to follow this user before sending messages." });
               }
