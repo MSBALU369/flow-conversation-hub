@@ -1,0 +1,1 @@
+UPDATE affiliate_products SET cover_url = '/images/english-grammar-in-use.png' WHERE id = '7f8cd104-c400-42e4-9b53-45e6edcef919';
