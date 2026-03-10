@@ -43,6 +43,7 @@ export default function Learn() {
   const [language, setLanguage] = useState("English");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [roadmapOpen, setRoadmapOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "book" | "course">("all");
 
   const userCountry = profile?.country ?? "GLOBAL";
 
@@ -70,9 +71,11 @@ export default function Learn() {
   }, [filtered]);
 
   const categoryFiltered = useMemo(() => {
-    if (selectedCategory === "All") return filtered;
-    return filtered.filter(c => c.subcategory === selectedCategory);
-  }, [filtered, selectedCategory]);
+    let result = filtered;
+    if (selectedCategory !== "All") result = result.filter(c => c.subcategory === selectedCategory);
+    if (typeFilter !== "all") result = result.filter(c => c.category === typeFilter);
+    return result;
+  }, [filtered, selectedCategory, typeFilter]);
 
   // Top picks = trending items (highest clicks) for user's country
   const topPicks = useMemo(() =>
@@ -80,11 +83,11 @@ export default function Learn() {
   [categoryFiltered]);
 
   const books = useMemo(() =>
-    categoryFiltered.filter(c => c.category === "book").slice(0, 10),
+    categoryFiltered.filter(c => c.category === "book"),
   [categoryFiltered]);
 
   const trendingCourses = useMemo(() =>
-    categoryFiltered.filter(c => c.category === "course").slice(0, 10),
+    categoryFiltered.filter(c => c.category === "course"),
   [categoryFiltered]);
 
   // Reset category chip when language changes and chip no longer exists
@@ -123,10 +126,10 @@ export default function Learn() {
           </Button>
         </div>
 
-        {/* Language Filter */}
-        <div className="px-4 mb-4">
+        {/* Language + Type Filter */}
+        <div className="px-4 mb-4 flex items-center gap-2 flex-wrap">
           <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger className="w-[160px] h-9 text-sm rounded-xl border-border">
+            <SelectTrigger className="w-[140px] h-9 text-sm rounded-xl border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -135,6 +138,26 @@ export default function Learn() {
               ))}
             </SelectContent>
           </Select>
+          <button
+            onClick={() => setTypeFilter(typeFilter === "book" ? "all" : "book")}
+            className={`h-9 px-3.5 rounded-xl text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
+              typeFilter === "book"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted text-muted-foreground border-border hover:border-primary/40"
+            }`}
+          >
+            📚 Books
+          </button>
+          <button
+            onClick={() => setTypeFilter(typeFilter === "course" ? "all" : "course")}
+            className={`h-9 px-3.5 rounded-xl text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
+              typeFilter === "course"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted text-muted-foreground border-border hover:border-primary/40"
+            }`}
+          >
+            🎓 Courses
+          </button>
         </div>
 
         {/* Category Chips */}
