@@ -21,7 +21,6 @@ export const BottomNav = memo(function BottomNav() {
       : [{ icon: Crown, label: "Premium", path: "/premium" }]),
     { icon: Mic, label: "Talent", path: "/talent" },
     { icon: BookOpen, label: "Learn", path: "/learn" },
-    { icon: Sparkles, label: "Store", path: "/recommendations" },
   ];
 
   const fetchUnread = useCallback(async () => {
