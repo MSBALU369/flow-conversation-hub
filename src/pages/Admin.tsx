@@ -560,9 +560,10 @@ export default function Admin() {
               );
             })()}
           </TabsContent>
+          {/* TAB: SUPPORT TICKETS */}
           <TabsContent value="tickets" className="space-y-4 mt-4">
             <h3 className="text-sm font-semibold flex items-center gap-1.5">
-              <Ticket className="w-4 h-4 text-primary" /> Payment Support Tickets ({tickets.length})
+              <Ticket className="w-4 h-4 text-primary" /> Support Tickets ({tickets.length})
             </h3>
             {tickets.length === 0 ? (
               <div className="text-center py-8">
