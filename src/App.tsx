@@ -112,6 +112,7 @@ function AppRoutes() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/legal" element={<LegalInfo />} />
         <Route path="/contact" element={<ContactUs />} />
+        <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/requests" element={<Requests />} />
         <Route path="/reset-password" element={<ResetPassword />} />
