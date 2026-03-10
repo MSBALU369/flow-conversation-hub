@@ -91,6 +91,14 @@ export function CourseRow({ title, courses }: Props) {
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
+      {videoModal && (
+        <VideoPlayerModal
+          open={!!videoModal}
+          onOpenChange={(open) => !open && setVideoModal(null)}
+          embedUrl={videoModal.embedUrl}
+          title={videoModal.title}
+        />
+      )}
     </div>
   );
 }
