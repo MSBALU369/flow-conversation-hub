@@ -601,13 +601,13 @@ export default function UserProfilePage() {
             className="flex-1"
             disabled={!isFollowing}
             onClick={() => {
-              if (isFollowing && profileData) {
+              if (isFollowing && user) {
                 navigate("/chat", {
                   state: {
                     openConversationWith: {
-                      id: profileData.id,
-                      username: profileData.username,
-                      avatar_url: profileData.avatar_url,
+                      id: user.id,
+                      username: user.name,
+                      avatar_url: user.avatar,
                     },
                   },
                 });
