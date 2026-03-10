@@ -72,12 +72,8 @@ export default function Home() {
   const [adProgress, setAdProgress] = useState(0);
   const [adFinished, setAdFinished] = useState(false);
   const [showLevelsModal, setShowLevelsModal] = useState(false);
-  const [showBooksModal, setShowBooksModal] = useState(false);
-  const [booksTab, setBooksTab] = useState<"books" | "courses">("books");
   const isPremium = profile?.is_premium ?? false;
   const [showSpeakWith, setShowSpeakWith] = useState(false);
-  const [premiumContent, setPremiumContent] = useState<PremiumContentItem[]>([]);
-  const [contentLoading, setContentLoading] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
   // Fetch premium content from Supabase
