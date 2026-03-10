@@ -208,10 +208,10 @@ export default function Home() {
 
           {/* Non-Premium Encouragement Banner */}
           {!isPremium && (
-            <div className="mt-1 mb-3 glass-card-glow p-2.5 border border-primary/20 rounded-2xl">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center flex-shrink-0">
-                  <Crown className="w-5 h-5 text-primary" />
+            <div className="mt-1 mb-3 glass-card-glow px-2.5 py-1.5 border border-primary/20 rounded-xl">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center flex-shrink-0">
+                  <Crown className="w-3.5 h-3.5 text-primary" />
                 </div>
                 <div className="flex-1 flex items-center justify-between">
                    <p className="text-[10px] font-bold text-foreground">You can't be perfect in English until you start speaking.</p>
