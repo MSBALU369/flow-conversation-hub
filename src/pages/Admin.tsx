@@ -488,7 +488,78 @@ export default function Admin() {
             <PendingDeletionsTab />
           </TabsContent>
 
-          {/* TAB: SUPPORT TICKETS */}
+          {/* TAB: TEST ACCOUNTS MANAGER */}
+          <TabsContent value="test" className="space-y-4 mt-4">
+            {(() => {
+              const testUsers = users.filter(u =>
+                (u.email && (u.email.includes("+test") || u.email.toLowerCase().includes("test"))) ||
+                (u.username && u.username.toLowerCase().includes("test"))
+              );
+              return (
+                <>
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                    <Bomb className="w-4 h-4 text-destructive" /> Test Accounts Manager
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Found <strong className="text-destructive">{testUsers.length}</strong> test accounts (emails/usernames containing "test")
+                  </p>
+                  {testUsers.length > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full gap-2"
+                      disabled={nukingTests}
+                      onClick={async () => {
+                        if (!confirm(`⚠️ NUKE ALL ${testUsers.length} test accounts? This permanently deletes them from auth.users and all tables. This cannot be undone.`)) return;
+                        setNukingTests(true);
+                        for (const tu of testUsers) {
+                          await supabase.rpc("delete_user_account", { p_user_id: tu.id });
+                        }
+                        setNukingTests(false);
+                        fetchAll();
+                      }}
+                    >
+                      {nukingTests ? (
+                        <div className="w-4 h-4 border-2 border-destructive-foreground border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Bomb className="w-4 h-4" />
+                      )}
+                      {nukingTests ? "Nuking..." : `🔥 Nuke All ${testUsers.length} Test Users`}
+                    </Button>
+                  )}
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                    {testUsers.map(tu => (
+                      <div key={tu.id} className="flex items-center justify-between p-3 rounded-xl border border-destructive/20 bg-destructive/5">
+                        <div>
+                          <p className="text-xs font-medium text-foreground">{tu.username || "—"}</p>
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">{tu.email || "—"}</p>
+                          <p className="text-[9px] text-muted-foreground">Joined: {new Date(tu.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="text-[9px] h-7 px-3"
+                          onClick={async () => {
+                            if (!confirm(`Delete ${tu.username || tu.email}? This is permanent.`)) return;
+                            await supabase.rpc("delete_user_account", { p_user_id: tu.id });
+                            fetchAll();
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" /> Delete
+                        </Button>
+                      </div>
+                    ))}
+                    {testUsers.length === 0 && (
+                      <div className="text-center py-8">
+                        <CheckCircle2 className="w-8 h-8 text-primary/40 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No test accounts found</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </TabsContent>
           <TabsContent value="tickets" className="space-y-4 mt-4">
             <h3 className="text-sm font-semibold flex items-center gap-1.5">
               <Ticket className="w-4 h-4 text-primary" /> Payment Support Tickets ({tickets.length})
