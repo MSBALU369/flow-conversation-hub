@@ -35,6 +35,15 @@ const LANGUAGES = [
   "French", "German", "Portuguese", "Mandarin", "Russian", "Japanese",
 ];
 
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 export default function Learn() {
   const navigate = useNavigate();
   const { profile } = useProfile();
@@ -53,7 +62,7 @@ export default function Learn() {
         .from("affiliate_products")
         .select("*")
         .order("clicks_count", { ascending: false });
-      setCourses((data as any as Course[]) || []);
+      setCourses(shuffleArray((data as any as Course[]) || []));
       setLoading(false);
     })();
   }, []);
