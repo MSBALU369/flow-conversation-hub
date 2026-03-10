@@ -75,6 +75,9 @@ export default function Admin() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [grantingPremium, setGrantingPremium] = useState<string | null>(null);
   const [showDeletedAccounts, setShowDeletedAccounts] = useState(false);
+  const [nukingTests, setNukingTests] = useState(false);
+  const [replyingTicket, setReplyingTicket] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   // Guard
   useEffect(() => {
