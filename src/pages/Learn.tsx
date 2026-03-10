@@ -123,10 +123,10 @@ export default function Learn() {
           </Button>
         </div>
 
-        {/* Language Filter */}
-        <div className="px-4 mb-4">
+        {/* Language + Type Filter */}
+        <div className="px-4 mb-4 flex items-center gap-2 flex-wrap">
           <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger className="w-[160px] h-9 text-sm rounded-xl border-border">
+            <SelectTrigger className="w-[140px] h-9 text-sm rounded-xl border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -135,6 +135,26 @@ export default function Learn() {
               ))}
             </SelectContent>
           </Select>
+          <button
+            onClick={() => setTypeFilter(typeFilter === "book" ? "all" : "book")}
+            className={`h-9 px-3.5 rounded-xl text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
+              typeFilter === "book"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted text-muted-foreground border-border hover:border-primary/40"
+            }`}
+          >
+            📚 Books
+          </button>
+          <button
+            onClick={() => setTypeFilter(typeFilter === "course" ? "all" : "course")}
+            className={`h-9 px-3.5 rounded-xl text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
+              typeFilter === "course"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted text-muted-foreground border-border hover:border-primary/40"
+            }`}
+          >
+            🎓 Courses
+          </button>
         </div>
 
         {/* Category Chips */}
