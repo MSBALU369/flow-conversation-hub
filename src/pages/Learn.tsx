@@ -76,7 +76,16 @@ export default function Learn() {
 
   const categoryChips = useMemo(() => {
     const subs = new Set(filtered.map(c => c.subcategory).filter(Boolean));
-    return ["All", ...Array.from(subs).sort()];
+    const priorityOrder = ["IT(Software) & AI", "Govt Exams", "English", "Communication"];
+    const sorted = Array.from(subs).sort((a, b) => {
+      const ai = priorityOrder.indexOf(a);
+      const bi = priorityOrder.indexOf(b);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return a.localeCompare(b);
+    });
+    return ["All", ...sorted];
   }, [filtered]);
 
   const categoryFiltered = useMemo(() => {
