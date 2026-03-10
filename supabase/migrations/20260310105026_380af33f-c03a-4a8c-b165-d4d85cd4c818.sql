@@ -1,0 +1,1 @@
+UPDATE affiliate_products SET cover_url = '/images/word-power-made-easy.png' WHERE title LIKE 'Word Power Made Easy%';
