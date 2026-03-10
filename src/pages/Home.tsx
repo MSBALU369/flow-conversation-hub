@@ -76,20 +76,6 @@ export default function Home() {
   const [showSpeakWith, setShowSpeakWith] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
-  // Fetch premium content from Supabase
-  useEffect(() => {
-    if (!showBooksModal) return;
-    const fetchContent = async () => {
-      setContentLoading(true);
-      const { data } = await supabase
-        .from("premium_content")
-        .select("*")
-        .order("created_at", { ascending: true });
-      setPremiumContent((data as PremiumContentItem[]) || []);
-      setContentLoading(false);
-    };
-    fetchContent();
-  }, [showBooksModal]);
 
   // Simulate ad playback — award coins via DB after completion
   useEffect(() => {
