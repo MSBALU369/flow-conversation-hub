@@ -1159,6 +1159,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_affiliate_click: {
+        Args: { p_product_id: string }
+        Returns: undefined
+      }
       is_room_member: {
         Args: { p_room_id: string; p_user_id: string }
         Returns: boolean
