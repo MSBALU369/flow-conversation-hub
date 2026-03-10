@@ -17,12 +17,12 @@ export function AdBanner({ variant = "standard", className = "" }: AdBannerProps
   return (
     <>
       <div className={`relative border border-dashed border-border rounded-xl bg-muted/30 ${className}`}>
-        <button
-          onClick={() => setDismissed(true)}
-          className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-muted flex items-center justify-center z-10">
-          
-          <X className="w-3 h-3 text-muted-foreground" />
-        </button>
+        
+
+
+
+
+        
         
 
 
