@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Sparkles, Coins } from "lucide-react";
+import { X, Trophy, Sparkles, Diamond } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameBet } from "@/hooks/useGameBet";
