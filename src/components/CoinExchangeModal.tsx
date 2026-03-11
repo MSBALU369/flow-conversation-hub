@@ -263,7 +263,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
               onClick={() => { setWatchingAd(true); setAdProgress(0); }}
             >
               <Play className="w-3 h-3" />
-              Watch Ad to earn 10 Coins
+              Watch Ad to earn 10 Flow Points
             </Button>
           )}
         </div>
