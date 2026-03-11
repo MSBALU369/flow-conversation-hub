@@ -321,7 +321,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Amount</p>
-                <Input type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter coins" className="h-8 text-sm" />
+                <Input type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter Flow Points" className="h-8 text-sm" />
               </div>
               <Button className="w-full" disabled={!selectedFriend || !amount || loading} onClick={handleSend}>
                 <Send className="w-4 h-4 mr-1" />
