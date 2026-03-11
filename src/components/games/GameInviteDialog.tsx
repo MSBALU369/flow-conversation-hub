@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Coins, Check, X, Loader2 } from "lucide-react";
+import { Diamond, Check, X, Loader2 } from "lucide-react";
 
 interface GameInviteDialogProps {
   open: boolean;

@@ -123,8 +123,8 @@ export function TruthOrDareGame({ onClose, onMinimize, betAmount = 0, partnerNam
         </div>
         {betAmount > 0 && (
           <p className="text-sm font-semibold flex items-center gap-1">
-            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
-            {won ? `+${betAmount * 2} coins` : tied ? "Bet refunded" : `-${betAmount} coins`}
+            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            {won ? `+${betAmount * 2} FP` : tied ? "Bet refunded" : `-${betAmount} FP`}
           </p>
         )}
         <Button onClick={onClose} className="mt-4 w-full max-w-[200px]">Back to Call</Button>

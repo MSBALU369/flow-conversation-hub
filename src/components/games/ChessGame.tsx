@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Coins, Crown } from "lucide-react";
+import { X, Trophy, Diamond, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCallBubble } from "./GameCallBubble";
 import { useGameSync } from "@/hooks/useGameSync";

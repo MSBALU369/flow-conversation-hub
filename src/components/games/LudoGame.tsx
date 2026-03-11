@@ -460,7 +460,7 @@ export function LudoGame({ onClose, onMinimize, betAmount = 0, partnerName, room
           <span className="text-sm font-bold text-foreground">🎲 Ludo</span>
           {betAmount > 0 && (
             <div className="flex items-center gap-1">
-              <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+              <Diamond className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
               <span className="text-xs font-bold text-[hsl(45,100%,50%)]">{betAmount}</span>
             </div>
           )}

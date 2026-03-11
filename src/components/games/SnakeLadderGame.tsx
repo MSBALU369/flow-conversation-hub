@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Coins } from "lucide-react";
+import { X, Trophy, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Diamond } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameSync } from "@/hooks/useGameSync";

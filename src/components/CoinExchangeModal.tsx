@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, ArrowDownLeft, X, Clock, CheckCircle2, XCircle, Crown, Play, Coins, AlertTriangle, Gift, Zap } from "lucide-react";
+import { Send, ArrowDownLeft, X, Clock, CheckCircle2, XCircle, Crown, Play, Diamond, AlertTriangle, Gift, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";

@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Gamepad2, Coins, Lock, Crown } from "lucide-react";
+import { Gamepad2, Diamond, Lock, Crown } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
 interface GameListModalProps {

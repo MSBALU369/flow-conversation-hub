@@ -217,12 +217,12 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
     if (won) {
       const winnings = betAmount * 2;
       await supabase.from("profiles").update({ coins: currentCoins + winnings }).eq("id", profile.id);
-      toast({ title: `🎉 You won ${winnings} coins!`, duration: 3000 });
+      toast({ title: `🎉 You won ${winnings} Flow Points!`, duration: 3000 });
     } else if (tied) {
       // No refunds — tie = both lose
       toast({ title: `🤝 It's a tie! No refunds.`, duration: 3000 });
     } else {
-      toast({ title: `😔 You lost ${betAmount} coins`, duration: 3000 });
+      toast({ title: `😔 You lost ${betAmount} Flow Points`, duration: 3000 });
     }
   };
 

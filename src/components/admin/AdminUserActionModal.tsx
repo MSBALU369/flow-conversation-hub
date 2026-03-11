@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Ban, Coins, Trash2, LogOut, Zap, Clock } from "lucide-react";
+import { Ban, Diamond, Trash2, LogOut, Zap, Clock } from "lucide-react";
 
 interface UserRow {
   id: string;
