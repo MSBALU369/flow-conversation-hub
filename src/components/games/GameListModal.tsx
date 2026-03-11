@@ -13,7 +13,7 @@ const games = [
     id: "quiz",
     name: "AI Quiz Battle",
     icon: "🧠",
-    description: "Answer AI-generated questions. Bet coins!",
+    description: "Answer AI-generated questions. Bet FP!",
     available: true,
     premiumOnly: false,
   },
