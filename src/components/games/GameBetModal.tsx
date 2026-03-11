@@ -69,7 +69,7 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
               <p className="text-[10px] text-destructive font-semibold mt-1">Not enough Flow Points!</p>
             )}
             {betAmount !== "" && numericBet < 1 && (
-              <p className="text-[10px] text-destructive font-semibold mt-1">Minimum bet is 1 coin</p>
+              <p className="text-[10px] text-destructive font-semibold mt-1">Minimum bet is 1 FP</p>
             )}
           </div>
 
