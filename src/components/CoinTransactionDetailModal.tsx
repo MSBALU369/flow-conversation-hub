@@ -115,7 +115,7 @@ export function CoinTransactionDetailModal({ open, onOpenChange, userId }: CoinT
       <DialogContent className="max-w-sm p-0 max-h-[85vh] overflow-hidden [&>button]:hidden">
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div>
-            <DialogTitle className="text-sm font-bold text-foreground">Coin Transactions</DialogTitle>
+            <DialogTitle className="text-sm font-bold text-foreground">Flow Point Transactions</DialogTitle>
             <p className="text-[10px] text-muted-foreground">{transactions.length} total transactions</p>
           </div>
           <button onClick={() => onOpenChange(false)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
