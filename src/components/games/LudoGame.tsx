@@ -371,9 +371,9 @@ export function LudoGame({ onClose, onMinimize, betAmount = 0, partnerName, room
         <h2 className="text-2xl font-bold text-foreground">{gameOver.result} {gameOver.won ? "🎉" : "💀"}</h2>
         {betAmount > 0 && (
           <div className="flex items-center gap-1.5">
-            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
             <span className="text-sm font-semibold text-foreground">
-              {gameOver.won ? `+${betAmount * 2} coins` : `-${betAmount} coins`}
+              {gameOver.won ? `+${betAmount * 2} FP` : `-${betAmount} FP`}
             </span>
           </div>
         )}
