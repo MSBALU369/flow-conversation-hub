@@ -52,8 +52,8 @@ export function GameInviteDialog({ open, onAccept, onDecline, gameId, category, 
             {category && gameId === 'quiz' && <p className="text-xs text-muted-foreground mt-1">{categoryLabel}</p>}
           </div>
           <div className="flex items-center justify-center gap-1.5">
-            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
-            <span className="text-sm font-bold text-[hsl(45,100%,50%)]">{betAmount} coins</span>
+            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            <span className="text-sm font-bold text-[hsl(45,100%,50%)]">{betAmount} FP</span>
             <span className="text-xs text-muted-foreground">each (Winner gets {betAmount * 2})</span>
           </div>
         </div>

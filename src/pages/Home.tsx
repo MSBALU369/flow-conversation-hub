@@ -190,7 +190,7 @@ export default function Home() {
                       </span>
                     )}
                     <span className="inline-flex items-center gap-0.5 bg-accent/10 px-1.5 py-0.5 rounded-full">
-                      <Coins className="w-2.5 h-2.5 text-accent" />
+                      <Diamond className="w-2.5 h-2.5 text-accent" />
                       <span className="text-[9px] font-semibold text-accent">{profile?.coins ?? 0}</span>
                     </span>
                   </div>

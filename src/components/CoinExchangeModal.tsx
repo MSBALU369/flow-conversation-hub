@@ -41,7 +41,7 @@ const typeBadges: Record<string, { label: string; icon: typeof Crown; color: str
   request: { label: "Request", icon: ArrowDownLeft, color: "bg-muted text-muted-foreground" },
   daily_login: { label: "Daily Login", icon: Gift, color: "bg-primary/20 text-primary" },
   energy_recharge: { label: "Energy Recharge", icon: Zap, color: "bg-destructive/20 text-destructive" },
-  call_reward: { label: "Call Reward", icon: Coins, color: "bg-accent/20 text-accent" },
+  call_reward: { label: "Call Reward", icon: Diamond, color: "bg-accent/20 text-accent" },
   referral_bonus: { label: "Referral Bonus", icon: Gift, color: "bg-primary/20 text-primary" },
 };
 

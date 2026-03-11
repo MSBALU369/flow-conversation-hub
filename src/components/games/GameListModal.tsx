@@ -143,9 +143,9 @@ export function GameListModal({ open, onOpenChange, onSelectGame }: GameListModa
         </div>
 
         <div className="flex items-center gap-1.5 pt-2 border-t border-border">
-          <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+          <Diamond className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
           <span className="text-[10px] text-muted-foreground">
-            Your coins: <span className="font-bold text-foreground">{profile?.coins ?? 0}</span>
+            Your FP: <span className="font-bold text-foreground">{profile?.coins ?? 0}</span>
           </span>
         </div>
       </DialogContent>

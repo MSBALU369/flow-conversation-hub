@@ -162,7 +162,7 @@ export function AdminUserActionModal({ open, onOpenChange, user, onRefresh }: Ad
           {/* Economy Actions */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-              <Coins className="w-3.5 h-3.5" /> Economy Actions
+              <Diamond className="w-3.5 h-3.5" /> Economy Actions
             </h4>
             <div className="flex gap-2">
               <Input
