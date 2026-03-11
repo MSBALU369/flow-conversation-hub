@@ -267,9 +267,9 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
         </div>
         {betAmount > 0 && (
           <div className="flex items-center gap-1.5 mt-2">
-            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
             <span className="text-sm text-foreground font-semibold">
-              {won ? `+${betAmount * 2} coins` : tied ? "No refund" : `-${betAmount} coins`}
+              {won ? `+${betAmount * 2} FP` : tied ? "No refund" : `-${betAmount} FP`}
             </span>
           </div>
         )}

@@ -1507,10 +1507,10 @@ export default function Profile() {
               <div className="bg-gradient-to-r from-[hsl(45,100%,50%)]/10 to-[hsl(30,100%,50%)]/10 rounded-lg p-3 border border-[hsl(45,100%,50%)]/20">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Gift className="w-5 h-5 text-[hsl(45,100%,50%)]" />
-                  <h3 className="text-sm font-bold text-foreground">Refer & Earn Coins!</h3>
+                  <h3 className="text-sm font-bold text-foreground">Refer & Earn Flow Points!</h3>
                 </div>
                 <p className="text-[10px] text-muted-foreground mb-2">
-                  Share your ID with friends. When they join, you earn <span className="font-bold text-[hsl(45,100%,50%)]">50 Coins!</span> 🚀
+                  Share your ID with friends. When they join, you earn <span className="font-bold text-[hsl(45,100%,50%)]">50 FP!</span> 🚀
                 </p>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 bg-muted rounded-lg px-2.5 py-1.5 text-xs font-mono text-foreground truncate">

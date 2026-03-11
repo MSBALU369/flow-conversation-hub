@@ -832,7 +832,7 @@ export default function Talent() {
                   }}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[hsl(45,100%,50%)] transition-colors">
 
-                      <Coins className="w-3.5 h-3.5" />
+                      <Diamond className="w-3.5 h-3.5" />
                       <span>Tip</span>
                     </button>
 
