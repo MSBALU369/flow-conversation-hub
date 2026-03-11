@@ -81,7 +81,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
                 Balance: <span className="font-bold text-foreground">{coins}</span> FP
               </p>
               {betAmount > coins && (
-                <p className="text-[10px] text-destructive font-semibold">Not enough coins!</p>
+                <p className="text-[10px] text-destructive font-semibold">Not enough Flow Points!</p>
               )}
               {betAmount > 1000 && (
                 <p className="text-[10px] text-destructive font-semibold">Max 1000</p>
