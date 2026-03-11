@@ -1619,7 +1619,7 @@ export default function Profile() {
                 onClick={async () => {
                   if (!profile) return;
                   if ((profile.coins ?? 0) < 2000) {
-                    toast({ title: "Not enough coins!", description: "You need 2,000 coins to unlock the Silver Vault.", variant: "destructive" });
+                    toast({ title: "Not enough FP!", description: "You need 2,000 Flow Points to unlock the Silver Vault.", variant: "destructive" });
                     return;
                   }
                   const newCoins = (profile.coins ?? 0) - 2000;
