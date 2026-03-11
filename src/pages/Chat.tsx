@@ -1853,7 +1853,7 @@ export default function Chat() {
                   title={`${gift.name} (${gift.cost} coins)`}
                 >
                   <span className="text-lg">{gift.emoji}</span>
-                  <span className="text-[8px] text-muted-foreground">{gift.cost}🪙</span>
+                  <span className="text-[8px] text-muted-foreground">{gift.cost}💎</span>
                 </button>
               ))}
               <button onClick={() => setShowGiftPicker(false)} className="ml-auto p-1">
