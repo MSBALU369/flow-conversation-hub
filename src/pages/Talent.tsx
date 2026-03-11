@@ -805,7 +805,7 @@ export default function Talent() {
                   onClick={async () => {
                     if (!profile?.id) return;
                     if ((profile.coins ?? 0) < 5) {
-                      toast({ title: "Not enough coins", description: "You need at least 5 coins to tip.", variant: "destructive" });
+                      toast({ title: "Not enough Flow Points", description: "You need at least 5 FP to tip.", variant: "destructive" });
                       return;
                     }
                     // Find talent creator's user_id
