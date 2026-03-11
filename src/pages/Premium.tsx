@@ -37,7 +37,7 @@ const premiumFeatures = [
 "Choose speaker level (1-15)"];
 
 
-// Bonus coins per plan duration
+// Bonus Flow Points per plan duration
 const bonusCoinsMap: Record<string, number> = {
   "1_day": 10,
   "1_week": 25,
