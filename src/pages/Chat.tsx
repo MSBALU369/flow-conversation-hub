@@ -1065,7 +1065,7 @@ export default function Chat() {
       content: `🎁 ${gift.emoji} ${gift.name} gift!`,
     });
     setShowGiftPicker(false);
-    toast({ title: `${gift.emoji} Sent!`, description: `-${gift.cost} coins` });
+    toast({ title: `${gift.emoji} Sent!`, description: `-${gift.cost} FP` });
     if (navigator.vibrate) navigator.vibrate(20);
   };
 
