@@ -1667,7 +1667,7 @@ export default function Profile() {
                     <span className="text-base">{(profile?.coins ?? 0) >= 5000 ? "🔓" : "💎"}</span>
                     <div>
                       <p className="text-xs font-bold text-foreground">
-                        <span className="text-[hsl(45,100%,50%)]">Super Gold Vault</span> — 5,000 Coins
+                        <span className="text-[hsl(45,100%,50%)]">Super Gold Vault</span> — 5,000 FP 💎
                       </p>
                       <p className="text-[9px] text-muted-foreground">Unlock for +2000 XP ultimate reward! 🏆</p>
                     </div>

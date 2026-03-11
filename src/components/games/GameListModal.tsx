@@ -85,7 +85,7 @@ const games = [
     id: "adroulette",
     name: "Ad Roulette",
     icon: "🎰",
-    description: "Watch an ad, spin the wheel, win coins!",
+    description: "Watch an ad, spin the wheel, win FP!",
     available: true,
     premiumOnly: false,
   },
