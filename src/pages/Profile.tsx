@@ -1440,7 +1440,7 @@ export default function Profile() {
                   const lastLogin = localStorage.getItem(`daily_login_${profile.id}`);
                   const today = new Date().toDateString();
                   if (lastLogin === today) {
-                    toast({ title: "Already claimed!", description: "Come back tomorrow for more coins." });
+                    toast({ title: "Already claimed!", description: "Come back tomorrow for more Flow Points." });
                     return;
                   }
                   const bonus = Math.random() > 0.5 ? 2 : 1;
