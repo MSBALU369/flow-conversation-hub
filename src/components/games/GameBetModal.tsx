@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Coins, Zap } from "lucide-react";
+import { Diamond, Zap } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
 const GAME_INFO: Record<string, { name: string; icon: string }> = {
