@@ -281,7 +281,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
             >
               {t === "send" && <Send className="w-3 h-3 inline mr-1" />}
               {t === "history" && <Clock className="w-3 h-3 inline mr-1" />}
-              {t === "history" ? "Transaction Log" : "Send Coins"}
+              {t === "history" ? "Transaction Log" : "Send FP"}
             </button>
           ))}
         </div>
