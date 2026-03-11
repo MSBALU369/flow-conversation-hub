@@ -71,7 +71,7 @@ export function useGameBet(betAmount: number) {
     if (result === "win") {
       const winnings = betAmount * 2;
       await supabase.from("profiles").update({ coins: currentCoins + winnings }).eq("id", profile.id);
-      toast({ title: `🎉 You won ${winnings} coins!`, duration: 3000 });
+      toast({ title: `🎉 You won ${winnings} Flow Points!`, duration: 3000 });
     } else if (result === "tie") {
       // NO REFUNDS per Founder's rule — tie = both lose their bet
       toast({ title: `🤝 It's a tie! No refunds.`, duration: 3000 });
