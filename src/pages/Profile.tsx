@@ -1638,7 +1638,7 @@ export default function Profile() {
                     <span className="text-base">{(profile?.coins ?? 0) >= 2000 ? "🔓" : "🔒"}</span>
                     <div>
                       <p className="text-xs font-bold text-foreground">
-                        <span className="text-muted-foreground">Silver Vault</span> — 2,000 Coins
+                        <span className="text-muted-foreground">Silver Vault</span> — 2,000 FP 💎
                       </p>
                       <p className="text-[9px] text-muted-foreground">Unlock for +500 XP reward! 🎁</p>
                     </div>
