@@ -45,8 +45,8 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
         <div className="space-y-4">
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
-              <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
-              Bet Coins (1 – 1000)
+              <Diamond className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+              Bet FP (1 – 1000)
             </p>
             <Input
               type="number"
