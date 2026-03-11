@@ -88,7 +88,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
               )}
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              🏆 Winner takes <span className="font-bold text-[hsl(45,100%,50%)]">{betAmount * 2}</span> coins!
+              🏆 Winner takes <span className="font-bold text-[hsl(45,100%,50%)]">{betAmount * 2}</span> FP!
             </p>
           </div>
 
