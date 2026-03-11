@@ -129,7 +129,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
       return;
     }
     if (coins > (profile.coins ?? 0)) {
-      toast({ title: "Not enough coins", variant: "destructive" });
+      toast({ title: "Not enough Flow Points", variant: "destructive" });
       return;
     }
     setLoading(true);
