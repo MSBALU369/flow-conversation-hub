@@ -1246,7 +1246,7 @@ export default function Profile() {
             </DialogHeader>
             <div className="space-y-3 py-2">
               <p className="text-xs text-muted-foreground">
-                This will <strong>permanently delete</strong> your account and ALL data including messages, call history, coins, and friends. This cannot be undone.
+                This will <strong>permanently delete</strong> your account and ALL data including messages, call history, Flow Points, and friends. This cannot be undone.
               </p>
               <p className="text-xs text-muted-foreground">Type <strong>DELETE</strong> to confirm:</p>
               <Input
