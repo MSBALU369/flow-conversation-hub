@@ -1431,7 +1431,7 @@ export default function Profile() {
               {/* Coins count */}
               <div className="text-center py-2">
                 <p className="text-3xl font-bold text-[hsl(45,100%,50%)]">{profile?.coins ?? 0}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Total Coins</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Total Flow Points</p>
 
                 {/* Daily Login Bonus */}
                 <button
