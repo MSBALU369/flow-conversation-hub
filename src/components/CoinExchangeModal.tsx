@@ -178,7 +178,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
                 status: "completed",
               });
               updateProfile({ coins: (profile.coins ?? 0) + 10 });
-              toast({ title: "+10 Coins! 🪙", description: "Rewarded for watching ad." });
+              toast({ title: "+10 Flow Points! 💎", description: "Rewarded for watching ad." });
             })();
           }
           return 100;
