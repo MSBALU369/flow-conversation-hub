@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, Volume2, Info, Users, BadgeCheck, Coins, Crown, ShieldAlert, Target } from "lucide-react";
+import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, Volume2, Info, Users, BadgeCheck, Diamond, Crown, ShieldAlert, Target } from "lucide-react";
 import { TopPicksCarousel } from "@/components/home/TopPicksCarousel";
 import { AdBanner } from "@/components/AdBanner";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
