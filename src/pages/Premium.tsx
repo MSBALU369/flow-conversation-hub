@@ -279,10 +279,10 @@ export default function Premium() {
           </div>
         </div>
 
-        {/* Gift Coins Notice */}
+        {/* Gift Flow Points Notice */}
         <div className="glass-card p-2 px-3 mt-2 border-accent/30">
           <p className="text-[10px] text-accent font-medium text-center">
-            🎁 Every Premium purchase includes FREE Gift Coins! Coins cannot be purchased separately.
+            🎁 Every Premium purchase includes FREE Gift Flow Points! Flow Points cannot be purchased separately.
           </p>
         </div>
 
