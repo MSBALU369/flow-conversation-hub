@@ -101,9 +101,9 @@ export default function Profile() {
               single();
               if (!error && data) {
                 updateProfile({ coins: data.coins });
-                toast({ title: "+5 Coins!", description: "Coins added for watching the ad." });
+                toast({ title: "+5 Flow Points!", description: "Flow Points added for watching the ad." });
               } else {
-                toast({ title: "Failed to add coins", variant: "destructive" });
+                toast({ title: "Failed to add Flow Points", variant: "destructive" });
               }
             })();
           }
