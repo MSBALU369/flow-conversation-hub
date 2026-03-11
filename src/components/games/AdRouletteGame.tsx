@@ -189,7 +189,7 @@ export function AdRouletteGame({ onClose, onMinimize, partnerName, room }: AdRou
               <>
                 <div className="flex items-center justify-center gap-2">
                   <Sparkles className="w-6 h-6 text-[hsl(45,100%,50%)]" />
-                  <span className="text-2xl font-bold text-foreground">+{prize.value} Coins!</span>
+                  <span className="text-2xl font-bold text-foreground">+{prize.value} Flow Points!</span>
                   <Sparkles className="w-6 h-6 text-[hsl(45,100%,50%)]" />
                 </div>
                 <p className="text-xs text-muted-foreground">Added to your balance</p>
