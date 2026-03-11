@@ -289,7 +289,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
         <div className="overflow-y-auto px-4 pb-4 max-h-[calc(85vh-220px)]">
           {tab === "send" && (
             <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">Send coins to a friend</p>
+              <p className="text-xs text-muted-foreground">Send Flow Points to a friend</p>
               <div className="space-y-1">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Select Friend</p>
                 <ScrollArea className="max-h-32">
