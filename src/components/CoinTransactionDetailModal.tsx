@@ -90,7 +90,7 @@ export function CoinTransactionDetailModal({ open, onOpenChange, userId }: CoinT
   const getLabel = (t: Transaction) => {
     const isSender = t.sender_id === userId;
     const isSelf = t.sender_id === t.receiver_id;
-    if (t.type === "premium_bonus") return "Premium Gift Coins 🎁";
+    if (t.type === "premium_bonus") return "Premium Gift FP 🎁";
     if (t.type === "ad_reward") return "Ad Reward 🎬";
     if (t.type === "daily_login") return "Daily Login Bonus";
     if (t.type === "energy_recharge") return "Energy Recharge ⚡";
