@@ -95,7 +95,7 @@ export function useEnergySystem({ isDraining = false }: { isDraining?: boolean }
       return false;
     }
 
-    toast({ title: "⚡ Fully Recharged!", description: `${COIN_RECHARGE_COST} coins used.` });
+    toast({ title: "⚡ Fully Recharged!", description: `${COIN_RECHARGE_COST} FP used.` });
     return true;
   }, [profile?.id, profile?.coins, toast]);
 

@@ -144,7 +144,7 @@ export function CoinTransactionDetailModal({ open, onOpenChange, userId }: CoinT
             <div className="text-center py-10">
               <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-xs text-muted-foreground">No transactions yet</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Coin activity will appear here</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Flow Point activity will appear here</p>
             </div>
           ) : (
             <div className="space-y-1.5">

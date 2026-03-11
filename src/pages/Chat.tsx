@@ -1850,7 +1850,7 @@ export default function Chat() {
                   key={gift.emoji}
                   onClick={() => handleSendGift(gift)}
                   className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
-                  title={`${gift.name} (${gift.cost} coins)`}
+                  title={`${gift.name} (${gift.cost} FP)`}
                 >
                   <span className="text-lg">{gift.emoji}</span>
                   <span className="text-[8px] text-muted-foreground">{gift.cost}💎</span>

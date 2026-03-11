@@ -311,7 +311,7 @@ export default function Premium() {
           const bonus = plan ? bonusCoinsMap[plan.duration] || 50 : 50;
           toast({
             title: "Welcome to Premium! 👑",
-            description: `Enjoy all premium features + ${bonus} bonus coins! 🪙`
+            description: `Enjoy all premium features + ${bonus} bonus Flow Points! 💎`
           });
           navigate("/");
         }} />

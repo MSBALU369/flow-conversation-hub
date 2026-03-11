@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Coins, Tv, Sparkles } from "lucide-react";
+import { X, Diamond, Tv, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCallBubble } from "./GameCallBubble";
 import { supabase } from "@/integrations/supabase/client";

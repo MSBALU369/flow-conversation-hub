@@ -85,7 +85,7 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
               className="w-full gap-2"
             >
               <Zap className="w-4 h-4" />
-              {isStarting ? "Sending Invite..." : `Bet ${numericBet} Coins & Invite`}
+              {isStarting ? "Sending Invite..." : `Bet ${numericBet} FP & Invite`}
             </Button>
           </DialogFooter>
         </div>

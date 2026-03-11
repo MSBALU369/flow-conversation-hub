@@ -213,7 +213,7 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
                 className="w-full flex items-center justify-between px-2 py-1 rounded-lg border border-[hsl(45,100%,50%)]/20 transition-colors"
               >
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-semibold text-foreground">🪙 My Coins</span>
+                  <span className="text-[10px] font-semibold text-foreground">💎 My Flow Points</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-[11px] font-extrabold text-[hsl(43,80%,40%)]">{profile?.coins ?? 0}</span>

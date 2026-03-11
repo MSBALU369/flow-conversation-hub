@@ -144,7 +144,7 @@ export function PaymentHistoryModal({ open, onOpenChange }: PaymentHistoryModalP
                     </div>
                   </div>
                   <span className="text-sm font-bold text-primary shrink-0">
-                    +{p.bonus_coins} 🪙
+                    +{p.bonus_coins} 💎
                   </span>
                 </div>
               ))}

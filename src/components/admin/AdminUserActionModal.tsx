@@ -122,8 +122,8 @@ export function AdminUserActionModal({ open, onOpenChange, user, onRefresh }: Ad
           {/* User Stats */}
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-muted/50 rounded-lg p-2 text-center">
-              <p className="text-lg font-bold text-foreground">🪙 {user.coins ?? 0}</p>
-              <p className="text-[10px] text-muted-foreground">Coins</p>
+              <p className="text-lg font-bold text-foreground">💎 {user.coins ?? 0}</p>
+              <p className="text-[10px] text-muted-foreground">Flow Points</p>
             </div>
             <div className="bg-muted/50 rounded-lg p-2 text-center">
               <p className="text-lg font-bold text-foreground">⚡ {user.energy_bars ?? 0}/7</p>

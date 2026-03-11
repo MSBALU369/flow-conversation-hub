@@ -298,7 +298,7 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
         </div>
 
         <div className="flex items-center gap-1">
-          <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+          <Diamond className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
           <span className="text-xs font-bold text-[hsl(45,100%,50%)]">{betAmount}</span>
         </div>
 

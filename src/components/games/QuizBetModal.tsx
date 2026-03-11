@@ -100,7 +100,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
               className="w-full gap-2"
             >
               <Send className="w-4 h-4" />
-              Invite Opponent ({betAmount} coins)
+              Invite Opponent ({betAmount} FP)
             </Button>
           </DialogFooter>
         </div>

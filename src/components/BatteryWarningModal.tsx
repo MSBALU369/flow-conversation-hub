@@ -104,8 +104,8 @@ export function BatteryWarningModal() {
                 className="w-full gap-2"
                 disabled={(profile.coins ?? 0) < coinRechargeCoast}
               >
-                <Coins className="w-4 h-4" />
-                Full Recharge ({coinRechargeCoast} Coins)
+                <Diamond className="w-4 h-4" />
+                Full Recharge ({coinRechargeCoast} FP)
               </Button>
             </div>
           )}

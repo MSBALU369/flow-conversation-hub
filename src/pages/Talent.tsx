@@ -824,7 +824,7 @@ export default function Talent() {
                       p_amount: 5
                     });
                     if (!error) {
-                      toast({ title: `💰 Tipped ${post.username}!`, description: "-5 coins" });
+                      toast({ title: `💰 Tipped ${post.username}!`, description: "-5 FP" });
                       if (navigator.vibrate) navigator.vibrate(15);
                     } else {
                       toast({ title: "Tip failed", variant: "destructive" });
