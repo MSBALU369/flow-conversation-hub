@@ -142,7 +142,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
       if (error) throw error;
       const result = data as any;
       if (result?.success) {
-        toast({ title: `Sent ${coins} coins to ${selectedFriend.username}!` });
+        toast({ title: `Sent ${coins} FP to ${selectedFriend.username}!` });
       } else {
         toast({ title: result?.error || "Transfer failed", variant: "destructive" });
       }
