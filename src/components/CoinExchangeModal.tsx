@@ -325,7 +325,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
               </div>
               <Button className="w-full" disabled={!selectedFriend || !amount || loading} onClick={handleSend}>
                 <Send className="w-4 h-4 mr-1" />
-                {loading ? "Processing..." : "Send Coins"}
+                {loading ? "Processing..." : "Send Flow Points"}
               </Button>
             </div>
           )}
