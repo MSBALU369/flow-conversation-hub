@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Coins, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2, BadgeCheck, Trash2, AlertTriangle, Trophy, Eye, Lock } from "lucide-react";
+import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Diamond, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2, BadgeCheck, Trash2, AlertTriangle, Trophy, Eye, Lock } from "lucide-react";
 import { format, startOfWeek, endOfWeek, getDay } from "date-fns";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
