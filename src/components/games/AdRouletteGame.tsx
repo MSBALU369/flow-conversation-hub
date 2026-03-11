@@ -168,7 +168,7 @@ export function AdRouletteGame({ onClose, onMinimize, partnerName, room }: AdRou
                       fontWeight="bold"
                       transform={`rotate(${textRotation}, ${labelX}, ${labelY})`}
                     >
-                      {p.value > 0 ? `${p.value}🪙` : "🔄"}
+                      {p.value > 0 ? `${p.value}💎` : "🔄"}
                     </text>
                   </g>
                 );
