@@ -78,7 +78,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
             />
             <div className="flex justify-between mt-1.5">
               <p className="text-[10px] text-muted-foreground">
-                Balance: <span className="font-bold text-foreground">{coins}</span> coins
+                Balance: <span className="font-bold text-foreground">{coins}</span> FP
               </p>
               {betAmount > coins && (
                 <p className="text-[10px] text-destructive font-semibold">Not enough coins!</p>
