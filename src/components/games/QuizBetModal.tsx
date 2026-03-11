@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Coins, Send } from "lucide-react";
+import { Diamond, Send } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
 const CATEGORIES = [
