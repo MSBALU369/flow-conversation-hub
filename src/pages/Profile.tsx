@@ -1419,8 +1419,8 @@ export default function Profile() {
             {/* Custom Header with close */}
             <div className="flex items-center justify-between px-4 pt-4 pb-2">
               <div className="flex items-center gap-2">
-                <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
-                <h3 className="text-sm font-bold text-foreground">My Coins</h3>
+                <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+                <h3 className="text-sm font-bold text-foreground">My Flow Points</h3>
               </div>
               <button onClick={() => setShowCoinsModal(false)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors">
                 <X className="w-4 h-4 text-muted-foreground" />
