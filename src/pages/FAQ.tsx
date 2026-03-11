@@ -57,8 +57,8 @@ const faqs = [
     a: "You must be at least 13 years old to use English Flow. Users under 18 should have parental consent. We reserve the right to terminate accounts of users who misrepresent their age.",
   },
   {
-    q: "How do coins work?",
-    a: "Coins are our in-app currency. You earn them through calls (5 coins per 10+ minute call, max 20/day), referrals (50 coins per referral), and Premium bonuses. You can send coins to friends as gifts.",
+    q: "How do Flow Points work?",
+    a: "Flow Points (FP) are our in-app currency. You earn them through calls (5 FP per 10+ minute call, max 20/day), referrals (50 FP per referral), and Premium bonuses. You can send Flow Points to friends as gifts.",
   },
   {
     q: "Is English Flow available in my country?",

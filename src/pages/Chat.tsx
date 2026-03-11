@@ -1045,7 +1045,7 @@ export default function Chat() {
   const handleSendGift = async (gift: typeof GIFT_EMOJIS[0]) => {
     if (!profile?.id || !selectedFriend) return;
     if ((profile.coins ?? 0) < gift.cost) {
-      toast({ title: "Not enough coins!", description: `You need ${gift.cost} coins.`, variant: "destructive" });
+      toast({ title: "Not enough Flow Points!", description: `You need ${gift.cost} FP.`, variant: "destructive" });
       return;
     }
     // Deduct coins via RPC
@@ -1065,7 +1065,7 @@ export default function Chat() {
       content: `🎁 ${gift.emoji} ${gift.name} gift!`,
     });
     setShowGiftPicker(false);
-    toast({ title: `${gift.emoji} Sent!`, description: `-${gift.cost} coins` });
+    toast({ title: `${gift.emoji} Sent!`, description: `-${gift.cost} FP` });
     if (navigator.vibrate) navigator.vibrate(20);
   };
 
