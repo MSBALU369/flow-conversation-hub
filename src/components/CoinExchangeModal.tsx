@@ -206,7 +206,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
 
   const getTransactionLabel = (t: Transaction) => {
     const isSender = t.sender_id === profile?.id;
-    if (t.type === "premium_bonus") return "Premium Gift Coins 🎁";
+    if (t.type === "premium_bonus") return "Premium Gift FP 🎁";
     if (t.type === "ad_reward") return "Ad Reward 🎬";
     if (t.type === "daily_login") return "Daily Login Bonus";
     if (t.type === "energy_recharge") return "Energy Recharge";
