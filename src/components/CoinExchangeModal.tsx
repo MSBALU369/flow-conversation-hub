@@ -221,8 +221,8 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
       <DialogContent className="max-w-xs p-0 max-h-[85vh] overflow-hidden [&>button]:hidden">
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div>
-            <DialogTitle className="text-sm font-bold text-foreground">My Coins</DialogTitle>
-            <p className="text-lg font-bold text-primary">{profile?.coins ?? 0} 🪙</p>
+            <DialogTitle className="text-sm font-bold text-foreground">My Flow Points</DialogTitle>
+            <p className="text-lg font-bold text-primary">{profile?.coins ?? 0} 💎</p>
           </div>
           <button onClick={() => onOpenChange(false)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
             <X className="w-4 h-4 text-muted-foreground" />
