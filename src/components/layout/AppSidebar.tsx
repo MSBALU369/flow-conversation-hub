@@ -18,7 +18,7 @@ import {
   RefreshCw,
   Zap,
   Crown,
-  Coins,
+  Diamond,
   Phone,
   ShieldCheck,
   Inbox,
