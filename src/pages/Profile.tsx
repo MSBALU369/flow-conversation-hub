@@ -765,8 +765,8 @@ export default function Profile() {
                     <span className="text-xs font-semibold text-primary capitalize">Role: {role}</span>
                   </div>
                   <div className="flex items-center gap-1.5 bg-accent/10 px-3 py-1 rounded-full">
-                    <Coins className="w-3.5 h-3.5 text-accent" />
-                    <span className="text-xs font-semibold text-accent">{profile?.coins ?? 0} Coins</span>
+                    <Diamond className="w-3.5 h-3.5 text-accent" />
+                    <span className="text-xs font-semibold text-accent">{profile?.coins ?? 0} FP</span>
                   </div>
                 </div>
                 {profile?.is_premium ?
