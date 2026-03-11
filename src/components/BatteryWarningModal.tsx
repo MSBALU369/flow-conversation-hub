@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Battery, Play, Volume2, Coins } from "lucide-react";
+import { Battery, Play, Volume2, Diamond } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useEnergySystem } from "@/hooks/useEnergySystem";
 
