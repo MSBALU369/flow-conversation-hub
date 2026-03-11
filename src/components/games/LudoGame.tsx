@@ -249,11 +249,11 @@ export function LudoGame({ onClose, onMinimize, betAmount = 0, partnerName, room
       const currentCoins = data?.coins ?? 0;
       if (won) {
         await supabase.from("profiles").update({ coins: currentCoins + betAmount * 2 }).eq("id", profile.id);
-        toast({ title: `🎉 You won ${betAmount * 2} coins!`, duration: 3000 });
+        toast({ title: `🎉 You won ${betAmount * 2} FP!`, duration: 3000 });
       } else if (draw) {
         toast({ title: "🤝 Draw! No refunds.", duration: 3000 });
       } else {
-        toast({ title: `💀 You lost ${betAmount} coins`, duration: 3000 });
+        toast({ title: `💀 You lost ${betAmount} FP`, duration: 3000 });
       }
     }
 
