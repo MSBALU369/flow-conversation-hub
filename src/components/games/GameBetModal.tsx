@@ -62,7 +62,7 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
                 You have <span className="font-bold text-foreground">{coins}</span> FP
               </p>
               <p className="text-[10px] text-muted-foreground">
-                Win = <span className="font-bold text-[hsl(45,100%,50%)]">{numericBet * 2}</span> coins
+                Win = <span className="font-bold text-[hsl(45,100%,50%)]">{numericBet * 2}</span> FP
               </p>
             </div>
             {numericBet > coins && (
