@@ -223,7 +223,7 @@ export function AdRouletteGame({ onClose, onMinimize, partnerName, room }: AdRou
       {/* Footer info */}
       <div className="px-4 pb-3 safe-bottom text-center">
         <p className="text-[10px] text-muted-foreground">
-          Watch a short ad to spin the wheel and win coins! Max {MAX_SPINS} spins per day.
+          Watch a short ad to spin the wheel and win Flow Points! Max {MAX_SPINS} spins per day.
         </p>
       </div>
 
