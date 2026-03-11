@@ -1648,7 +1648,7 @@ export default function Profile() {
                 onClick={async () => {
                   if (!profile) return;
                   if ((profile.coins ?? 0) < 5000) {
-                    toast({ title: "Not enough coins!", description: "You need 5,000 coins to unlock the Gold Vault.", variant: "destructive" });
+                    toast({ title: "Not enough FP!", description: "You need 5,000 Flow Points to unlock the Gold Vault.", variant: "destructive" });
                     return;
                   }
                   const newCoins = (profile.coins ?? 0) - 5000;
