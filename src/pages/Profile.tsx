@@ -1051,11 +1051,11 @@ export default function Profile() {
 
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-[hsl(45,100%,50%)]/20 flex items-center justify-center">
-                <Coins className="w-5 h-5 text-[hsl(45,100%,50%)]" />
+                <Diamond className="w-5 h-5 text-[hsl(45,100%,50%)]" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold text-foreground">My Coins</p>
-                <p className="text-xs text-muted-foreground">Earn coins to unlock a Mega Mystery Reward! 🎁</p>
+                <p className="text-sm font-bold text-foreground">My Flow Points</p>
+                <p className="text-xs text-muted-foreground">Earn Flow Points to unlock a Mega Mystery Reward! 🎁</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
