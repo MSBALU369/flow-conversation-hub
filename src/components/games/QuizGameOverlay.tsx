@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Coins, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { X, Trophy, Diamond, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
@@ -217,12 +217,12 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
     if (won) {
       const winnings = betAmount * 2;
       await supabase.from("profiles").update({ coins: currentCoins + winnings }).eq("id", profile.id);
-      toast({ title: `🎉 You won ${winnings} coins!`, duration: 3000 });
+      toast({ title: `🎉 You won ${winnings} Flow Points!`, duration: 3000 });
     } else if (tied) {
       // No refunds — tie = both lose
       toast({ title: `🤝 It's a tie! No refunds.`, duration: 3000 });
     } else {
-      toast({ title: `😔 You lost ${betAmount} coins`, duration: 3000 });
+      toast({ title: `😔 You lost ${betAmount} Flow Points`, duration: 3000 });
     }
   };
 
@@ -267,9 +267,9 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
         </div>
         {betAmount > 0 && (
           <div className="flex items-center gap-1.5 mt-2">
-            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
             <span className="text-sm text-foreground font-semibold">
-              {won ? `+${betAmount * 2} coins` : tied ? "No refund" : `-${betAmount} coins`}
+              {won ? `+${betAmount * 2} FP` : tied ? "No refund" : `-${betAmount} FP`}
             </span>
           </div>
         )}
@@ -298,7 +298,7 @@ export function QuizGameOverlay({ category, betAmount, onClose, onMinimize, part
         </div>
 
         <div className="flex items-center gap-1">
-          <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+          <Diamond className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
           <span className="text-xs font-bold text-[hsl(45,100%,50%)]">{betAmount}</span>
         </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Coins } from "lucide-react";
+import { X, Trophy, Diamond } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameBet } from "@/hooks/useGameBet";
@@ -81,8 +81,8 @@ export function WouldYouRatherGame({ onClose, onMinimize, betAmount = 0, partner
         </p>
         {betAmount > 0 && (
           <p className="text-sm font-semibold flex items-center gap-1">
-            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
-            {won ? `+${betAmount * 2} coins (≥50% match)` : `-${betAmount} coins (<50% match)`}
+            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            {won ? `+${betAmount * 2} FP (≥50% match)` : `-${betAmount} FP (<50% match)`}
           </p>
         )}
         <Button onClick={onClose} className="mt-4 w-full max-w-[200px]">Back to Call</Button>

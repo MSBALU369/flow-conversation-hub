@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, ArrowDownLeft, X, Clock, CheckCircle2, XCircle, Crown, Play, Coins, AlertTriangle, Gift, Zap } from "lucide-react";
+import { Send, ArrowDownLeft, X, Clock, CheckCircle2, XCircle, Crown, Play, Diamond, AlertTriangle, Gift, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
@@ -41,7 +41,7 @@ const typeBadges: Record<string, { label: string; icon: typeof Crown; color: str
   request: { label: "Request", icon: ArrowDownLeft, color: "bg-muted text-muted-foreground" },
   daily_login: { label: "Daily Login", icon: Gift, color: "bg-primary/20 text-primary" },
   energy_recharge: { label: "Energy Recharge", icon: Zap, color: "bg-destructive/20 text-destructive" },
-  call_reward: { label: "Call Reward", icon: Coins, color: "bg-accent/20 text-accent" },
+  call_reward: { label: "Call Reward", icon: Diamond, color: "bg-accent/20 text-accent" },
   referral_bonus: { label: "Referral Bonus", icon: Gift, color: "bg-primary/20 text-primary" },
 };
 
@@ -129,7 +129,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
       return;
     }
     if (coins > (profile.coins ?? 0)) {
-      toast({ title: "Not enough coins", variant: "destructive" });
+      toast({ title: "Not enough Flow Points", variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -142,7 +142,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
       if (error) throw error;
       const result = data as any;
       if (result?.success) {
-        toast({ title: `Sent ${coins} coins to ${selectedFriend.username}!` });
+        toast({ title: `Sent ${coins} FP to ${selectedFriend.username}!` });
       } else {
         toast({ title: result?.error || "Transfer failed", variant: "destructive" });
       }
@@ -178,7 +178,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
                 status: "completed",
               });
               updateProfile({ coins: (profile.coins ?? 0) + 10 });
-              toast({ title: "+10 Coins! 🪙", description: "Rewarded for watching ad." });
+              toast({ title: "+10 Flow Points! 💎", description: "Rewarded for watching ad." });
             })();
           }
           return 100;
@@ -206,7 +206,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
 
   const getTransactionLabel = (t: Transaction) => {
     const isSender = t.sender_id === profile?.id;
-    if (t.type === "premium_bonus") return "Premium Gift Coins 🎁";
+    if (t.type === "premium_bonus") return "Premium Gift FP 🎁";
     if (t.type === "ad_reward") return "Ad Reward 🎬";
     if (t.type === "daily_login") return "Daily Login Bonus";
     if (t.type === "energy_recharge") return "Energy Recharge";
@@ -221,8 +221,8 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
       <DialogContent className="max-w-xs p-0 max-h-[85vh] overflow-hidden [&>button]:hidden">
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div>
-            <DialogTitle className="text-sm font-bold text-foreground">My Coins</DialogTitle>
-            <p className="text-lg font-bold text-primary">{profile?.coins ?? 0} 🪙</p>
+            <DialogTitle className="text-sm font-bold text-foreground">My Flow Points</DialogTitle>
+            <p className="text-lg font-bold text-primary">{profile?.coins ?? 0} 💎</p>
           </div>
           <button onClick={() => onOpenChange(false)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
             <X className="w-4 h-4 text-muted-foreground" />
@@ -263,7 +263,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
               onClick={() => { setWatchingAd(true); setAdProgress(0); }}
             >
               <Play className="w-3 h-3" />
-              Watch Ad to earn 10 Coins
+              Watch Ad to earn 10 Flow Points
             </Button>
           )}
         </div>
@@ -281,7 +281,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
             >
               {t === "send" && <Send className="w-3 h-3 inline mr-1" />}
               {t === "history" && <Clock className="w-3 h-3 inline mr-1" />}
-              {t === "history" ? "Transaction Log" : "Send Coins"}
+              {t === "history" ? "Transaction Log" : "Send FP"}
             </button>
           ))}
         </div>
@@ -289,7 +289,7 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
         <div className="overflow-y-auto px-4 pb-4 max-h-[calc(85vh-220px)]">
           {tab === "send" && (
             <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">Send coins to a friend</p>
+              <p className="text-xs text-muted-foreground">Send Flow Points to a friend</p>
               <div className="space-y-1">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Select Friend</p>
                 <ScrollArea className="max-h-32">
@@ -321,11 +321,11 @@ export function CoinExchangeModal({ open, onOpenChange }: CoinExchangeModalProps
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Amount</p>
-                <Input type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter coins" className="h-8 text-sm" />
+                <Input type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter Flow Points" className="h-8 text-sm" />
               </div>
               <Button className="w-full" disabled={!selectedFriend || !amount || loading} onClick={handleSend}>
                 <Send className="w-4 h-4 mr-1" />
-                {loading ? "Processing..." : "Send Coins"}
+                {loading ? "Processing..." : "Send Flow Points"}
               </Button>
             </div>
           )}

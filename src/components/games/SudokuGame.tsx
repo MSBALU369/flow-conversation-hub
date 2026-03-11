@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Eraser, Lightbulb, RotateCcw, Coins } from "lucide-react";
+import { X, Trophy, Eraser, Lightbulb, RotateCcw, Diamond } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameBet } from "@/hooks/useGameBet";
@@ -248,8 +248,8 @@ export function SudokuGame({ onClose, onMinimize, betAmount = 0, partnerName }: 
         <p className="text-sm text-muted-foreground">Time: {formatTime(seconds)} • {difficulty?.toUpperCase()}</p>
         {betAmount > 0 && (
           <p className="text-sm font-semibold flex items-center gap-1">
-            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
-            +{betAmount * 2} coins
+            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            +{betAmount * 2} FP
           </p>
         )}
         <div className="flex gap-3 mt-2">

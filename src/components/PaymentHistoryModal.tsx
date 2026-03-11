@@ -99,8 +99,8 @@ export function PaymentHistoryModal({ open, onOpenChange }: PaymentHistoryModalP
             <p className="text-lg font-bold text-primary">{payments.length}</p>
           </div>
           <div className="flex-1 bg-primary/10 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] text-muted-foreground">Bonus Coins</p>
-            <p className="text-lg font-bold text-primary">+{totalCoinsAwarded} 🪙</p>
+            <p className="text-[10px] text-muted-foreground">Bonus FP</p>
+            <p className="text-lg font-bold text-primary">+{totalCoinsAwarded} 💎</p>
           </div>
         </div>
 
@@ -144,7 +144,7 @@ export function PaymentHistoryModal({ open, onOpenChange }: PaymentHistoryModalP
                     </div>
                   </div>
                   <span className="text-sm font-bold text-primary shrink-0">
-                    +{p.bonus_coins} 🪙
+                    +{p.bonus_coins} 💎
                   </span>
                 </div>
               ))}

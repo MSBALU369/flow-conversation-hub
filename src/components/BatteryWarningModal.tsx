@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Battery, Play, Volume2, Coins } from "lucide-react";
+import { Battery, Play, Volume2, Diamond } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useEnergySystem } from "@/hooks/useEnergySystem";
 
@@ -72,8 +72,8 @@ export function BatteryWarningModal() {
               : `Battery low — ${energyBars} bar${energyBars !== 1 ? "s" : ""} remaining`}
           </p>
           <p className="text-xs text-muted-foreground mb-4">
-            Watch a 30s ad for +1 bar, or use {coinRechargeCoast} coins for a full recharge.
-            You can also earn coins by watching ads!
+            Watch a 30s ad for +1 bar, or use {coinRechargeCoast} Flow Points for a full recharge.
+            You can also earn Flow Points by watching ads!
           </p>
 
           {adPlaying ? (
@@ -104,8 +104,8 @@ export function BatteryWarningModal() {
                 className="w-full gap-2"
                 disabled={(profile.coins ?? 0) < coinRechargeCoast}
               >
-                <Coins className="w-4 h-4" />
-                Full Recharge ({coinRechargeCoast} Coins)
+                <Diamond className="w-4 h-4" />
+                Full Recharge ({coinRechargeCoast} FP)
               </Button>
             </div>
           )}

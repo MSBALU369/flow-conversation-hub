@@ -444,7 +444,7 @@ export default function Admin() {
                         <TableHead className="text-[10px]">Name</TableHead>
                         <TableHead className="text-[10px]">Email</TableHead>
                         <TableHead className="text-[10px]">⚡</TableHead>
-                        <TableHead className="text-[10px]">🪙</TableHead>
+                        <TableHead className="text-[10px]">💎</TableHead>
                         <TableHead className="text-[10px]">Status</TableHead>
                         <TableHead className="text-[10px]">Joined</TableHead>
                       </TableRow>

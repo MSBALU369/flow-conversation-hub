@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Coins, Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from "lucide-react";
+import { X, Trophy, Diamond, Crown, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCallBubble } from "./GameCallBubble";
 import { useGameSync } from "@/hooks/useGameSync";
@@ -249,11 +249,11 @@ export function LudoGame({ onClose, onMinimize, betAmount = 0, partnerName, room
       const currentCoins = data?.coins ?? 0;
       if (won) {
         await supabase.from("profiles").update({ coins: currentCoins + betAmount * 2 }).eq("id", profile.id);
-        toast({ title: `🎉 You won ${betAmount * 2} coins!`, duration: 3000 });
+        toast({ title: `🎉 You won ${betAmount * 2} FP!`, duration: 3000 });
       } else if (draw) {
         toast({ title: "🤝 Draw! No refunds.", duration: 3000 });
       } else {
-        toast({ title: `💀 You lost ${betAmount} coins`, duration: 3000 });
+        toast({ title: `💀 You lost ${betAmount} FP`, duration: 3000 });
       }
     }
 
@@ -371,9 +371,9 @@ export function LudoGame({ onClose, onMinimize, betAmount = 0, partnerName, room
         <h2 className="text-2xl font-bold text-foreground">{gameOver.result} {gameOver.won ? "🎉" : "💀"}</h2>
         {betAmount > 0 && (
           <div className="flex items-center gap-1.5">
-            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
             <span className="text-sm font-semibold text-foreground">
-              {gameOver.won ? `+${betAmount * 2} coins` : `-${betAmount} coins`}
+              {gameOver.won ? `+${betAmount * 2} FP` : `-${betAmount} FP`}
             </span>
           </div>
         )}
@@ -460,7 +460,7 @@ export function LudoGame({ onClose, onMinimize, betAmount = 0, partnerName, room
           <span className="text-sm font-bold text-foreground">🎲 Ludo</span>
           {betAmount > 0 && (
             <div className="flex items-center gap-1">
-              <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+              <Diamond className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
               <span className="text-xs font-bold text-[hsl(45,100%,50%)]">{betAmount}</span>
             </div>
           )}

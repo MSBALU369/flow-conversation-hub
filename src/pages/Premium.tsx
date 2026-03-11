@@ -37,7 +37,7 @@ const premiumFeatures = [
 "Choose speaker level (1-15)"];
 
 
-// Bonus coins per plan duration
+// Bonus Flow Points per plan duration
 const bonusCoinsMap: Record<string, number> = {
   "1_day": 10,
   "1_week": 25,
@@ -279,10 +279,10 @@ export default function Premium() {
           </div>
         </div>
 
-        {/* Gift Coins Notice */}
+        {/* Gift Flow Points Notice */}
         <div className="glass-card p-2 px-3 mt-2 border-accent/30">
           <p className="text-[10px] text-accent font-medium text-center">
-            🎁 Every Premium purchase includes FREE Gift Coins! Coins cannot be purchased separately.
+            🎁 Every Premium purchase includes FREE Gift Flow Points! Flow Points cannot be purchased separately.
           </p>
         </div>
 
@@ -311,7 +311,7 @@ export default function Premium() {
           const bonus = plan ? bonusCoinsMap[plan.duration] || 50 : 50;
           toast({
             title: "Welcome to Premium! 👑",
-            description: `Enjoy all premium features + ${bonus} bonus coins! 🪙`
+            description: `Enjoy all premium features + ${bonus} bonus Flow Points! 💎`
           });
           navigate("/");
         }} />

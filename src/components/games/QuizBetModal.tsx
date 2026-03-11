@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Coins, Send } from "lucide-react";
+import { Diamond, Send } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
 const CATEGORIES = [
@@ -64,8 +64,8 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
           {/* Custom Bet Input */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
-              <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
-              Bet Amount (1 – 1000)
+              <Diamond className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+              Bet FP (1 – 1000)
             </p>
             <Input
               type="number"
@@ -73,22 +73,22 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
               max={1000}
               value={betInput}
               onChange={(e) => setBetInput(e.target.value)}
-              placeholder="Enter coins to bet"
+              placeholder="Enter FP to bet"
               className="text-center text-lg font-bold"
             />
             <div className="flex justify-between mt-1.5">
               <p className="text-[10px] text-muted-foreground">
-                Balance: <span className="font-bold text-foreground">{coins}</span> coins
+                Balance: <span className="font-bold text-foreground">{coins}</span> FP
               </p>
               {betAmount > coins && (
-                <p className="text-[10px] text-destructive font-semibold">Not enough coins!</p>
+                <p className="text-[10px] text-destructive font-semibold">Not enough Flow Points!</p>
               )}
               {betAmount > 1000 && (
                 <p className="text-[10px] text-destructive font-semibold">Max 1000</p>
               )}
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              🏆 Winner takes <span className="font-bold text-[hsl(45,100%,50%)]">{betAmount * 2}</span> coins!
+              🏆 Winner takes <span className="font-bold text-[hsl(45,100%,50%)]">{betAmount * 2}</span> FP!
             </p>
           </div>
 
@@ -100,7 +100,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
               className="w-full gap-2"
             >
               <Send className="w-4 h-4" />
-              Invite Opponent ({betAmount} coins)
+              Invite Opponent ({betAmount} FP)
             </Button>
           </DialogFooter>
         </div>

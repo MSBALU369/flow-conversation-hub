@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Coins } from "lucide-react";
+import { X, Trophy, Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Diamond } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameSync } from "@/hooks/useGameSync";
@@ -197,8 +197,8 @@ export function SnakeLadderGame({ onClose, onMinimize, betAmount = 0, partnerNam
         <h2 className="text-2xl font-bold text-foreground">{gameOver.result}</h2>
         {betAmount > 0 && (
           <p className="text-sm font-semibold flex items-center gap-1">
-            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
-            {gameOver.won ? `+${betAmount * 2} coins` : `-${betAmount} coins`}
+            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            {gameOver.won ? `+${betAmount * 2} FP` : `-${betAmount} FP`}
           </p>
         )}
         <p className="text-xs text-muted-foreground">Closing in a few seconds...</p>

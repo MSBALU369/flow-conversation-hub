@@ -90,7 +90,7 @@ export function CoinTransactionDetailModal({ open, onOpenChange, userId }: CoinT
   const getLabel = (t: Transaction) => {
     const isSender = t.sender_id === userId;
     const isSelf = t.sender_id === t.receiver_id;
-    if (t.type === "premium_bonus") return "Premium Gift Coins 🎁";
+    if (t.type === "premium_bonus") return "Premium Gift FP 🎁";
     if (t.type === "ad_reward") return "Ad Reward 🎬";
     if (t.type === "daily_login") return "Daily Login Bonus";
     if (t.type === "energy_recharge") return "Energy Recharge ⚡";
@@ -115,7 +115,7 @@ export function CoinTransactionDetailModal({ open, onOpenChange, userId }: CoinT
       <DialogContent className="max-w-sm p-0 max-h-[85vh] overflow-hidden [&>button]:hidden">
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div>
-            <DialogTitle className="text-sm font-bold text-foreground">Coin Transactions</DialogTitle>
+            <DialogTitle className="text-sm font-bold text-foreground">Flow Point Transactions</DialogTitle>
             <p className="text-[10px] text-muted-foreground">{transactions.length} total transactions</p>
           </div>
           <button onClick={() => onOpenChange(false)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
@@ -144,7 +144,7 @@ export function CoinTransactionDetailModal({ open, onOpenChange, userId }: CoinT
             <div className="text-center py-10">
               <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-xs text-muted-foreground">No transactions yet</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Coin activity will appear here</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Flow Point activity will appear here</p>
             </div>
           ) : (
             <div className="space-y-1.5">

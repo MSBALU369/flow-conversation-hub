@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Coins, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2, BadgeCheck, Trash2, AlertTriangle, Trophy, Eye, Lock } from "lucide-react";
+import { Copy, Camera, MapPin, Calendar, Mail, Settings, Edit2, BarChart3, Users, Heart, Clock, Globe, GitCompareArrows, Crown, Diamond, Gift, UserPlus, CheckCircle2, X, Shield, Send, ArrowDownLeft, GitBranch, Play, Volume2, BadgeCheck, Trash2, AlertTriangle, Trophy, Eye, Lock } from "lucide-react";
 import { format, startOfWeek, endOfWeek, getDay } from "date-fns";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -101,9 +101,9 @@ export default function Profile() {
               single();
               if (!error && data) {
                 updateProfile({ coins: data.coins });
-                toast({ title: "+5 Coins!", description: "Coins added for watching the ad." });
+                toast({ title: "+5 Flow Points!", description: "Flow Points added for watching the ad." });
               } else {
-                toast({ title: "Failed to add coins", variant: "destructive" });
+                toast({ title: "Failed to add Flow Points", variant: "destructive" });
               }
             })();
           }
@@ -765,8 +765,8 @@ export default function Profile() {
                     <span className="text-xs font-semibold text-primary capitalize">Role: {role}</span>
                   </div>
                   <div className="flex items-center gap-1.5 bg-accent/10 px-3 py-1 rounded-full">
-                    <Coins className="w-3.5 h-3.5 text-accent" />
-                    <span className="text-xs font-semibold text-accent">{profile?.coins ?? 0} Coins</span>
+                    <Diamond className="w-3.5 h-3.5 text-accent" />
+                    <span className="text-xs font-semibold text-accent">{profile?.coins ?? 0} FP</span>
                   </div>
                 </div>
                 {profile?.is_premium ?
@@ -1051,16 +1051,16 @@ export default function Profile() {
 
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-[hsl(45,100%,50%)]/20 flex items-center justify-center">
-                <Coins className="w-5 h-5 text-[hsl(45,100%,50%)]" />
+                <Diamond className="w-5 h-5 text-[hsl(45,100%,50%)]" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold text-foreground">My Coins</p>
-                <p className="text-xs text-muted-foreground">Earn coins to unlock a Mega Mystery Reward! 🎁</p>
+                <p className="text-sm font-bold text-foreground">My Flow Points</p>
+                <p className="text-xs text-muted-foreground">Earn Flow Points to unlock a Mega Mystery Reward! 🎁</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
               <span className="text-xl font-extrabold" style={{ color: 'hsl(43,80%,40%)', WebkitTextStroke: '0.5px hsl(0,0%,10%)', textShadow: '0 1px 2px rgba(0,0,0,0.5), 0 0 8px hsla(45,100%,50%,0.3), inset 0 1px 0 hsla(45,100%,80%,0.4)' }}>{profile?.coins ?? 0}</span>
-              <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+              <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
             </div>
           </button>
 
@@ -1246,7 +1246,7 @@ export default function Profile() {
             </DialogHeader>
             <div className="space-y-3 py-2">
               <p className="text-xs text-muted-foreground">
-                This will <strong>permanently delete</strong> your account and ALL data including messages, call history, coins, and friends. This cannot be undone.
+                This will <strong>permanently delete</strong> your account and ALL data including messages, call history, Flow Points, and friends. This cannot be undone.
               </p>
               <p className="text-xs text-muted-foreground">Type <strong>DELETE</strong> to confirm:</p>
               <Input
@@ -1419,8 +1419,8 @@ export default function Profile() {
             {/* Custom Header with close */}
             <div className="flex items-center justify-between px-4 pt-4 pb-2">
               <div className="flex items-center gap-2">
-                <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
-                <h3 className="text-sm font-bold text-foreground">My Coins</h3>
+                <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+                <h3 className="text-sm font-bold text-foreground">My Flow Points</h3>
               </div>
               <button onClick={() => setShowCoinsModal(false)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors">
                 <X className="w-4 h-4 text-muted-foreground" />
@@ -1431,7 +1431,7 @@ export default function Profile() {
               {/* Coins count */}
               <div className="text-center py-2">
                 <p className="text-3xl font-bold text-[hsl(45,100%,50%)]">{profile?.coins ?? 0}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Total Coins</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Total Flow Points</p>
 
                 {/* Daily Login Bonus */}
                 <button
@@ -1440,7 +1440,7 @@ export default function Profile() {
                   const lastLogin = localStorage.getItem(`daily_login_${profile.id}`);
                   const today = new Date().toDateString();
                   if (lastLogin === today) {
-                    toast({ title: "Already claimed!", description: "Come back tomorrow for more coins." });
+                    toast({ title: "Already claimed!", description: "Come back tomorrow for more Flow Points." });
                     return;
                   }
                   const bonus = Math.random() > 0.5 ? 2 : 1;
@@ -1507,10 +1507,10 @@ export default function Profile() {
               <div className="bg-gradient-to-r from-[hsl(45,100%,50%)]/10 to-[hsl(30,100%,50%)]/10 rounded-lg p-3 border border-[hsl(45,100%,50%)]/20">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Gift className="w-5 h-5 text-[hsl(45,100%,50%)]" />
-                  <h3 className="text-sm font-bold text-foreground">Refer & Earn Coins!</h3>
+                  <h3 className="text-sm font-bold text-foreground">Refer & Earn Flow Points!</h3>
                 </div>
                 <p className="text-[10px] text-muted-foreground mb-2">
-                  Share your ID with friends. When they join, you earn <span className="font-bold text-[hsl(45,100%,50%)]">50 Coins!</span> 🚀
+                  Share your ID with friends. When they join, you earn <span className="font-bold text-[hsl(45,100%,50%)]">50 FP!</span> 🚀
                 </p>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 bg-muted rounded-lg px-2.5 py-1.5 text-xs font-mono text-foreground truncate">

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Coins, Tv, Sparkles } from "lucide-react";
+import { X, Diamond, Tv, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCallBubble } from "./GameCallBubble";
 import { supabase } from "@/integrations/supabase/client";
@@ -168,7 +168,7 @@ export function AdRouletteGame({ onClose, onMinimize, partnerName, room }: AdRou
                       fontWeight="bold"
                       transform={`rotate(${textRotation}, ${labelX}, ${labelY})`}
                     >
-                      {p.value > 0 ? `${p.value}🪙` : "🔄"}
+                      {p.value > 0 ? `${p.value}💎` : "🔄"}
                     </text>
                   </g>
                 );
@@ -189,7 +189,7 @@ export function AdRouletteGame({ onClose, onMinimize, partnerName, room }: AdRou
               <>
                 <div className="flex items-center justify-center gap-2">
                   <Sparkles className="w-6 h-6 text-[hsl(45,100%,50%)]" />
-                  <span className="text-2xl font-bold text-foreground">+{prize.value} Coins!</span>
+                  <span className="text-2xl font-bold text-foreground">+{prize.value} Flow Points!</span>
                   <Sparkles className="w-6 h-6 text-[hsl(45,100%,50%)]" />
                 </div>
                 <p className="text-xs text-muted-foreground">Added to your balance</p>
@@ -223,7 +223,7 @@ export function AdRouletteGame({ onClose, onMinimize, partnerName, room }: AdRou
       {/* Footer info */}
       <div className="px-4 pb-3 safe-bottom text-center">
         <p className="text-[10px] text-muted-foreground">
-          Watch a short ad to spin the wheel and win coins! Max {MAX_SPINS} spins per day.
+          Watch a short ad to spin the wheel and win Flow Points! Max {MAX_SPINS} spins per day.
         </p>
       </div>
 

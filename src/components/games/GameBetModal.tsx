@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Coins, Zap } from "lucide-react";
+import { Diamond, Zap } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
 const GAME_INFO: Record<string, { name: string; icon: string }> = {
@@ -45,8 +45,8 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
         <div className="space-y-4">
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
-              <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
-              Bet Coins (1 – 1000)
+              <Diamond className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+              Bet FP (1 – 1000)
             </p>
             <Input
               type="number"
@@ -59,17 +59,17 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
             />
             <div className="flex justify-between mt-1.5">
               <p className="text-[10px] text-muted-foreground">
-                You have <span className="font-bold text-foreground">{coins}</span> coins
+                You have <span className="font-bold text-foreground">{coins}</span> FP
               </p>
               <p className="text-[10px] text-muted-foreground">
-                Win = <span className="font-bold text-[hsl(45,100%,50%)]">{numericBet * 2}</span> coins
+                Win = <span className="font-bold text-[hsl(45,100%,50%)]">{numericBet * 2}</span> FP
               </p>
             </div>
             {numericBet > coins && (
-              <p className="text-[10px] text-destructive font-semibold mt-1">Not enough coins!</p>
+              <p className="text-[10px] text-destructive font-semibold mt-1">Not enough Flow Points!</p>
             )}
             {betAmount !== "" && numericBet < 1 && (
-              <p className="text-[10px] text-destructive font-semibold mt-1">Minimum bet is 1 coin</p>
+              <p className="text-[10px] text-destructive font-semibold mt-1">Minimum bet is 1 FP</p>
             )}
           </div>
 
@@ -85,7 +85,7 @@ export function GameBetModal({ open, onOpenChange, gameId, onStart }: GameBetMod
               className="w-full gap-2"
             >
               <Zap className="w-4 h-4" />
-              {isStarting ? "Sending Invite..." : `Bet ${numericBet} Coins & Invite`}
+              {isStarting ? "Sending Invite..." : `Bet ${numericBet} FP & Invite`}
             </Button>
           </DialogFooter>
         </div>

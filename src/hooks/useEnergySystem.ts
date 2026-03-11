@@ -78,7 +78,7 @@ export function useEnergySystem({ isDraining = false }: { isDraining?: boolean }
     if (!profile?.id) return false;
     const currentCoins = profile.coins ?? 0;
     if (currentCoins < COIN_RECHARGE_COST) {
-      toast({ title: "Not enough coins", description: `You need ${COIN_RECHARGE_COST} coins to recharge.`, variant: "destructive" });
+      toast({ title: "Not enough Flow Points", description: `You need ${COIN_RECHARGE_COST} FP to recharge.`, variant: "destructive" });
       return false;
     }
 
@@ -95,7 +95,7 @@ export function useEnergySystem({ isDraining = false }: { isDraining?: boolean }
       return false;
     }
 
-    toast({ title: "⚡ Fully Recharged!", description: `${COIN_RECHARGE_COST} coins used.` });
+    toast({ title: "⚡ Fully Recharged!", description: `${COIN_RECHARGE_COST} FP used.` });
     return true;
   }, [profile?.id, profile?.coins, toast]);
 
