@@ -73,7 +73,7 @@ export function QuizBetModal({ open, onOpenChange, onStart }: QuizBetModalProps)
               max={1000}
               value={betInput}
               onChange={(e) => setBetInput(e.target.value)}
-              placeholder="Enter coins to bet"
+              placeholder="Enter FP to bet"
               className="text-center text-lg font-bold"
             />
             <div className="flex justify-between mt-1.5">
