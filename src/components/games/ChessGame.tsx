@@ -102,7 +102,7 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
       if (won) {
         const winnings = betAmount * 2;
         await supabase.from("profiles").update({ coins: currentCoins + winnings }).eq("id", profile.id);
-        toast({ title: `🎉 You won ${winnings} coins!`, duration: 3000 });
+        toast({ title: `🎉 You won ${winnings} FP!`, duration: 3000 });
       } else if (draw) {
         toast({ title: "🤝 Draw! No refunds.", duration: 3000 });
       } else {

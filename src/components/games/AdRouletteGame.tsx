@@ -80,7 +80,7 @@ export function AdRouletteGame({ onClose, onMinimize, partnerName, room }: AdRou
     const { data } = await supabase.from("profiles").select("coins").eq("id", profile.id).single();
     const currentCoins = data?.coins ?? 0;
     await supabase.from("profiles").update({ coins: currentCoins + amount }).eq("id", profile.id);
-    toast({ title: `🎉 You won ${amount} coins!`, description: "Added to your balance", duration: 3000 });
+    toast({ title: `🎉 You won ${amount} FP!`, description: "Added to your balance", duration: 3000 });
   };
 
   const resetForNewSpin = () => {

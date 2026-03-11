@@ -1619,7 +1619,7 @@ export default function Profile() {
                 onClick={async () => {
                   if (!profile) return;
                   if ((profile.coins ?? 0) < 2000) {
-                    toast({ title: "Not enough coins!", description: "You need 2,000 coins to unlock the Silver Vault.", variant: "destructive" });
+                    toast({ title: "Not enough FP!", description: "You need 2,000 Flow Points to unlock the Silver Vault.", variant: "destructive" });
                     return;
                   }
                   const newCoins = (profile.coins ?? 0) - 2000;
@@ -1638,7 +1638,7 @@ export default function Profile() {
                     <span className="text-base">{(profile?.coins ?? 0) >= 2000 ? "🔓" : "🔒"}</span>
                     <div>
                       <p className="text-xs font-bold text-foreground">
-                        <span className="text-muted-foreground">Silver Vault</span> — 2,000 Coins
+                        <span className="text-muted-foreground">Silver Vault</span> — 2,000 FP 💎
                       </p>
                       <p className="text-[9px] text-muted-foreground">Unlock for +500 XP reward! 🎁</p>
                     </div>
@@ -1648,7 +1648,7 @@ export default function Profile() {
                 onClick={async () => {
                   if (!profile) return;
                   if ((profile.coins ?? 0) < 5000) {
-                    toast({ title: "Not enough coins!", description: "You need 5,000 coins to unlock the Gold Vault.", variant: "destructive" });
+                    toast({ title: "Not enough FP!", description: "You need 5,000 Flow Points to unlock the Gold Vault.", variant: "destructive" });
                     return;
                   }
                   const newCoins = (profile.coins ?? 0) - 5000;
@@ -1667,7 +1667,7 @@ export default function Profile() {
                     <span className="text-base">{(profile?.coins ?? 0) >= 5000 ? "🔓" : "💎"}</span>
                     <div>
                       <p className="text-xs font-bold text-foreground">
-                        <span className="text-[hsl(45,100%,50%)]">Super Gold Vault</span> — 5,000 Coins
+                        <span className="text-[hsl(45,100%,50%)]">Super Gold Vault</span> — 5,000 FP 💎
                       </p>
                       <p className="text-[9px] text-muted-foreground">Unlock for +2000 XP ultimate reward! 🏆</p>
                     </div>
