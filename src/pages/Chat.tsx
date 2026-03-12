@@ -2186,40 +2186,61 @@ export default function Chat() {
           <div
             className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
             onClick={async () => {
-              // On close, nuke the image: update content to "Photo Viewed", clear media_url
               const msgId = viewOnceMessageId;
               const mediaUrl = viewOnceImageUrl;
+              const myId = profile?.id || "";
               setViewOnceImageUrl(null);
               setViewOnceMessageId(null);
-              // Delete from storage
-              if (mediaUrl) {
-                const pathMatch = mediaUrl.match(/chat_media\/(.+?)(\?|$)/);
-                if (pathMatch?.[1]) {
-                  await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
-                }
+
+              // Fetch current deleted_for from DB to get fresh state
+              const { data: freshMsg } = await supabase
+                .from("chat_messages")
+                .select("deleted_for, sender_id, receiver_id")
+                .eq("id", msgId)
+                .single();
+
+              const currentDeletedFor = (freshMsg?.deleted_for || []) as string[];
+              if (currentDeletedFor.includes(myId)) {
+                // Already recorded — just update local
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deletedFor: currentDeletedFor } : m));
+                return;
               }
-              // Nuke the message: set content, clear media, unmark view_once
-              await supabase.from("chat_messages").update({ content: "Photo Viewed", media_url: null, deleted_for_everyone: true } as any).eq("id", msgId);
-              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: "Photo Viewed", mediaUrl: undefined, viewOnce: false, deletedForEveryone: true } : m));
-              toast({ title: "View Once photo destroyed" });
-            }}
-          >
-            <button
-              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-              onClick={async () => {
-                const msgId = viewOnceMessageId;
-                const mediaUrl = viewOnceImageUrl;
-                setViewOnceImageUrl(null);
-                setViewOnceMessageId(null);
+
+              const newDeletedFor = [...currentDeletedFor, myId];
+              const senderId = freshMsg?.sender_id || "";
+              const receiverId = freshMsg?.receiver_id || "";
+              const bothViewed = newDeletedFor.includes(senderId) && newDeletedFor.includes(receiverId);
+
+              if (bothViewed) {
+                // Both have viewed — destroy storage + clear media_url
                 if (mediaUrl) {
                   const pathMatch = mediaUrl.match(/chat_media\/(.+?)(\?|$)/);
                   if (pathMatch?.[1]) {
                     await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
                   }
                 }
-                await supabase.from("chat_messages").update({ content: "Photo Viewed", media_url: null, deleted_for_everyone: true } as any).eq("id", msgId);
-                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: "Photo Viewed", mediaUrl: undefined, viewOnce: false, deletedForEveryone: true } : m));
-                toast({ title: "View Once photo destroyed" });
+                await supabase.from("chat_messages").update({
+                  deleted_for: newDeletedFor,
+                  media_url: null,
+                  content: "📸 View once photo",
+                } as any).eq("id", msgId);
+              } else {
+                // Only this user viewed — keep media for the other user
+                await supabase.from("chat_messages").update({
+                  deleted_for: newDeletedFor,
+                } as any).eq("id", msgId);
+              }
+
+              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deletedFor: newDeletedFor } : m));
+              toast({ title: "View Once photo viewed" });
+            }}
+          >
+            <button
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              onClick={async (e) => {
+                e.stopPropagation();
+                // Trigger the same close logic by simulating parent click
+                (e.currentTarget.parentElement as HTMLElement)?.click();
               }}
             >
               <X className="w-6 h-6 text-white" />
