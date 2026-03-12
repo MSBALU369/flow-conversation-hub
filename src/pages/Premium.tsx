@@ -24,7 +24,7 @@ const durationLabels: Record<string, string> = {
   "1_week": "1 Week",
   "1_month": "1 Month",
   "6_month": "6 Months",
-  "lifetime": "1 Year"
+  "1_year": "1 Year"
 };
 
 const premiumFeatures = [
@@ -43,7 +43,7 @@ const bonusCoinsMap: Record<string, number> = {
   "1_week": 100,
   "1_month": 250,
   "6_month": 500,
-  "lifetime": 1000
+  "1_year": 1000
 };
 
 export default function Premium() {
@@ -74,8 +74,8 @@ export default function Premium() {
 
       if (!error && data) {
         setPlans(data);
-        const lifetime = data.find((p) => p.duration === "lifetime");
-        if (lifetime) setSelectedPlan(lifetime.id);
+      const yearly = data.find((p) => p.duration === "1_year");
+        if (yearly) setSelectedPlan(yearly.id);
       }
       setLoading(false);
     };
@@ -89,13 +89,13 @@ export default function Premium() {
 
   const getWeeklyPrice = (price: number, duration: string) => {
     const weeks: Record<string, number> = {
-      "1_day": 1 / 7, "1_week": 1, "1_month": 4, "6_month": 26, "lifetime": 520
+      "1_day": 1 / 7, "1_week": 1, "1_month": 4, "6_month": 26, "1_year": 52
     };
     return Math.round(price / weeks[duration]);
   };
 
   const getSavingsPercent = (duration: string) => {
-    const savings: Record<string, number> = { "lifetime": 95, "6_month": 83, "1_month": 60, "1_week": 0 };
+    const savings: Record<string, number> = { "1_year": 90, "6_month": 83, "1_month": 60, "1_week": 0 };
     return savings[duration] || 0;
   };
 
@@ -195,7 +195,7 @@ export default function Premium() {
 
           <div className="space-y-1.5">
           {plans.
-          filter((p) => ["lifetime", "6_month", "1_month", "1_week"].includes(p.duration)).
+          filter((p) => ["1_year", "6_month", "1_month", "1_week"].includes(p.duration)).
           map((plan) => {
               const isSelected = selectedPlan === plan.id;
               const savings = getSavingsPercent(plan.duration);
