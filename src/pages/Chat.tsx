@@ -566,6 +566,7 @@ export default function Chat() {
             timestamp: new Date(msg.created_at),
             status: "read" as const,
             type: msg.media_url ? (msg.content?.startsWith("🎤") ? "voice" as const : "image" as const) : "text" as const,
+            viewOnce: (msg.content || "").startsWith("📸 View once"),
             mediaUrl: msg.media_url || undefined,
             editedAt: (msg as any).edited_at || null,
             deletedFor: (msg as any).deleted_for || [],
