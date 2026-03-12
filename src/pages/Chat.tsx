@@ -698,6 +698,7 @@ export default function Chat() {
       timestamp: new Date(msg.created_at),
       status: msg.is_read ? "read" as const : "delivered" as const,
       type: msg.media_url ? (msg.content?.startsWith("🎤") ? "voice" as const : "image" as const) : "text" as const,
+      viewOnce: (msg.content || "").startsWith("📸 View once"),
       mediaUrl: msg.media_url || undefined,
       editedAt: (msg as any).edited_at || null,
       deletedFor: (msg as any).deleted_for || [],
@@ -1569,44 +1570,60 @@ export default function Chat() {
                     ) : message.type === "image" ? (
                       // Image message rendering
                       message.viewOnce ? (
-                        // View Once image — both sender and receiver can view once, then it's destroyed
-                        message.deletedForEveryone ? (
-                          <div className="flex items-center gap-2 py-1">
-                            <Eye className={cn("w-4 h-4", isMe ? "text-primary-foreground/50" : "text-muted-foreground")} />
-                            <span className={cn("text-sm italic", isMe ? "text-primary-foreground/50" : "text-muted-foreground")}>Opened</span>
-                          </div>
-                        ) : (
-                          <button
-                            className={cn(
-                              "flex items-center gap-2 py-2 px-3 rounded-xl border border-border/50",
-                              isMe ? "bg-primary-foreground/10" : "bg-gradient-to-r from-muted/80 to-muted/40 backdrop-blur-sm"
-                            )}
-                            onClick={async () => {
-                              const msgRow = await supabase
-                                .from("chat_messages")
-                                .select("media_url")
-                                .eq("id", message.id)
-                                .single();
-                              const mediaUrl = msgRow.data?.media_url;
-                              if (mediaUrl) {
-                                setViewOnceImageUrl(mediaUrl);
-                                setViewOnceMessageId(message.id);
-                              } else {
-                                toast({ title: "Image no longer available", variant: "destructive" });
-                                // Already viewed/destroyed — mark locally
-                                setMessages(prev => prev.map(m => m.id === message.id ? { ...m, deletedForEveryone: true, content: "Photo Viewed" } : m));
-                              }
-                            }}
-                          >
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                              <span className="text-base">📷</span>
-                            </div>
-                            <div className="text-left">
-                              <p className={cn("text-sm font-medium", isMe ? "text-primary-foreground" : "text-foreground")}>Photo</p>
-                              <p className={cn("text-[10px]", isMe ? "text-primary-foreground/60" : "text-muted-foreground")}>View Once · Tap to open</p>
-                            </div>
-                          </button>
-                        )
+                        // View Once image — each user can view once independently
+                        (() => {
+                          const myRealId = profile?.id || "";
+                          const hasMyIdViewed = (message.deletedFor || []).includes(myRealId);
+                          // If current user already viewed, show "Opened"
+                          if (hasMyIdViewed || message.deletedForEveryone) {
+                            return (
+                              <div className="flex items-center gap-2 py-1">
+                                <Eye className={cn("w-4 h-4", isMe ? "text-primary-foreground/50" : "text-muted-foreground")} />
+                                <span className={cn("text-sm italic", isMe ? "text-primary-foreground/50" : "text-muted-foreground")}>Opened</span>
+                              </div>
+                            );
+                          }
+                          // Not yet viewed by this user — show tap to open
+                          return (
+                            <button
+                              className={cn(
+                                "flex items-center gap-2 py-2 px-3 rounded-xl border border-border/50",
+                                isMe ? "bg-primary-foreground/10" : "bg-gradient-to-r from-muted/80 to-muted/40 backdrop-blur-sm"
+                              )}
+                              onClick={async () => {
+                                // Fetch fresh row to get media_url and current deleted_for
+                                const msgRow = await supabase
+                                  .from("chat_messages")
+                                  .select("media_url, deleted_for")
+                                  .eq("id", message.id)
+                                  .single();
+                                const mediaUrl = msgRow.data?.media_url;
+                                const currentDeletedFor = (msgRow.data?.deleted_for || []) as string[];
+                                // If this user already viewed (race condition), mark locally
+                                if (currentDeletedFor.includes(myRealId)) {
+                                  setMessages(prev => prev.map(m => m.id === message.id ? { ...m, deletedFor: currentDeletedFor } : m));
+                                  toast({ title: "Already viewed" });
+                                  return;
+                                }
+                                if (mediaUrl) {
+                                  setViewOnceImageUrl(mediaUrl);
+                                  setViewOnceMessageId(message.id);
+                                } else {
+                                  toast({ title: "Image no longer available", variant: "destructive" });
+                                  setMessages(prev => prev.map(m => m.id === message.id ? { ...m, deletedFor: [...(m.deletedFor || []), myRealId] } : m));
+                                }
+                              }}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                <span className="text-base">📷</span>
+                              </div>
+                              <div className="text-left">
+                                <p className={cn("text-sm font-medium", isMe ? "text-primary-foreground" : "text-foreground")}>Photo</p>
+                                <p className={cn("text-[10px]", isMe ? "text-primary-foreground/60" : "text-muted-foreground")}>View Once · Tap to open</p>
+                              </div>
+                            </button>
+                          );
+                        })()
                       ) : (
                         // Regular image — render as WhatsApp-style bubble with download protection
                         <div className="relative">
@@ -2170,40 +2187,61 @@ export default function Chat() {
           <div
             className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
             onClick={async () => {
-              // On close, nuke the image: update content to "Photo Viewed", clear media_url
               const msgId = viewOnceMessageId;
               const mediaUrl = viewOnceImageUrl;
+              const myId = profile?.id || "";
               setViewOnceImageUrl(null);
               setViewOnceMessageId(null);
-              // Delete from storage
-              if (mediaUrl) {
-                const pathMatch = mediaUrl.match(/chat_media\/(.+?)(\?|$)/);
-                if (pathMatch?.[1]) {
-                  await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
-                }
+
+              // Fetch current deleted_for from DB to get fresh state
+              const { data: freshMsg } = await supabase
+                .from("chat_messages")
+                .select("deleted_for, sender_id, receiver_id")
+                .eq("id", msgId)
+                .single();
+
+              const currentDeletedFor = (freshMsg?.deleted_for || []) as string[];
+              if (currentDeletedFor.includes(myId)) {
+                // Already recorded — just update local
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deletedFor: currentDeletedFor } : m));
+                return;
               }
-              // Nuke the message: set content, clear media, unmark view_once
-              await supabase.from("chat_messages").update({ content: "Photo Viewed", media_url: null, deleted_for_everyone: true } as any).eq("id", msgId);
-              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: "Photo Viewed", mediaUrl: undefined, viewOnce: false, deletedForEveryone: true } : m));
-              toast({ title: "View Once photo destroyed" });
-            }}
-          >
-            <button
-              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-              onClick={async () => {
-                const msgId = viewOnceMessageId;
-                const mediaUrl = viewOnceImageUrl;
-                setViewOnceImageUrl(null);
-                setViewOnceMessageId(null);
+
+              const newDeletedFor = [...currentDeletedFor, myId];
+              const senderId = freshMsg?.sender_id || "";
+              const receiverId = freshMsg?.receiver_id || "";
+              const bothViewed = newDeletedFor.includes(senderId) && newDeletedFor.includes(receiverId);
+
+              if (bothViewed) {
+                // Both have viewed — destroy storage + clear media_url
                 if (mediaUrl) {
                   const pathMatch = mediaUrl.match(/chat_media\/(.+?)(\?|$)/);
                   if (pathMatch?.[1]) {
                     await supabase.storage.from("chat_media").remove([decodeURIComponent(pathMatch[1])]);
                   }
                 }
-                await supabase.from("chat_messages").update({ content: "Photo Viewed", media_url: null, deleted_for_everyone: true } as any).eq("id", msgId);
-                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: "Photo Viewed", mediaUrl: undefined, viewOnce: false, deletedForEveryone: true } : m));
-                toast({ title: "View Once photo destroyed" });
+                await supabase.from("chat_messages").update({
+                  deleted_for: newDeletedFor,
+                  media_url: null,
+                  content: "📸 View once photo",
+                } as any).eq("id", msgId);
+              } else {
+                // Only this user viewed — keep media for the other user
+                await supabase.from("chat_messages").update({
+                  deleted_for: newDeletedFor,
+                } as any).eq("id", msgId);
+              }
+
+              setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deletedFor: newDeletedFor } : m));
+              toast({ title: "View Once photo viewed" });
+            }}
+          >
+            <button
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              onClick={async (e) => {
+                e.stopPropagation();
+                // Trigger the same close logic by simulating parent click
+                (e.currentTarget.parentElement as HTMLElement)?.click();
               }}
             >
               <X className="w-6 h-6 text-white" />
