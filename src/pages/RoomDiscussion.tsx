@@ -122,7 +122,15 @@ export default function RoomDiscussion() {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const isHost = room?.host_id === user?.id;
+  // Host succession: original host → earliest joinee still in room
+  const effectiveHostId = (() => {
+    if (!room || members.length === 0) return room?.host_id;
+    // If original host is still a member, they remain host
+    if (members.some(m => m.user_id === room.host_id)) return room.host_id;
+    // Otherwise, the member list is ordered by join time from the fetch; first member becomes host
+    return members[0]?.user_id;
+  })();
+  const isHost = effectiveHostId === user?.id;
 
   // Fetch room info
   useEffect(() => {
