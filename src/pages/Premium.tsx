@@ -95,7 +95,7 @@ export default function Premium() {
   };
 
   const getSavingsPercent = (duration: string) => {
-    const savings: Record<string, number> = { "lifetime": 95, "6_month": 83, "1_month": 60, "1_week": 0 };
+    const savings: Record<string, number> = { "1_year": 90, "6_month": 83, "1_month": 60, "1_week": 0 };
     return savings[duration] || 0;
   };
 
