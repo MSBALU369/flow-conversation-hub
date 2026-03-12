@@ -39,11 +39,11 @@ const premiumFeatures = [
 
 // Bonus coins per plan duration
 const bonusCoinsMap: Record<string, number> = {
-  "1_day": 10,
-  "1_week": 25,
-  "1_month": 50,
-  "6_month": 150,
-  "1_year": 300
+  "1_day": 50,
+  "1_week": 100,
+  "1_month": 250,
+  "6_month": 500,
+  "lifetime": 1000
 };
 
 export default function Premium() {
