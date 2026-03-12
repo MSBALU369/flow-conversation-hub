@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ToolMetricsModal } from "@/components/admin/ToolMetricsModal";
 import { AdminUserActionModal } from "@/components/admin/AdminUserActionModal";
+import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { PendingDeletionsTab } from "@/components/admin/PendingDeletionsTab";
 import { AdminVersionControl } from "@/components/admin/AdminVersionControl";
 
