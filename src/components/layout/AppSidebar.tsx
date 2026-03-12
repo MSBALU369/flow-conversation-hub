@@ -329,15 +329,8 @@ export function AppSidebar({ onHistoryClick }: AppSidebarProps) {
 
           {/* Footer */}
           <div className="p-4 border-t border-border">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4">
               <span className="text-xs text-muted-foreground">Version 3.0</span>
-              <button
-                className="text-xs text-primary flex items-center gap-1"
-                onClick={() => { setOpen(false); setShowSwitchAccount(true); }}
-              >
-                <RefreshCw className="w-3 h-3" />
-                Switch Account
-              </button>
             </div>
 
             <button
