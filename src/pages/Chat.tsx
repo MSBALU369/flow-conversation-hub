@@ -1569,44 +1569,60 @@ export default function Chat() {
                     ) : message.type === "image" ? (
                       // Image message rendering
                       message.viewOnce ? (
-                        // View Once image — both sender and receiver can view once, then it's destroyed
-                        message.deletedForEveryone ? (
-                          <div className="flex items-center gap-2 py-1">
-                            <Eye className={cn("w-4 h-4", isMe ? "text-primary-foreground/50" : "text-muted-foreground")} />
-                            <span className={cn("text-sm italic", isMe ? "text-primary-foreground/50" : "text-muted-foreground")}>Opened</span>
-                          </div>
-                        ) : (
-                          <button
-                            className={cn(
-                              "flex items-center gap-2 py-2 px-3 rounded-xl border border-border/50",
-                              isMe ? "bg-primary-foreground/10" : "bg-gradient-to-r from-muted/80 to-muted/40 backdrop-blur-sm"
-                            )}
-                            onClick={async () => {
-                              const msgRow = await supabase
-                                .from("chat_messages")
-                                .select("media_url")
-                                .eq("id", message.id)
-                                .single();
-                              const mediaUrl = msgRow.data?.media_url;
-                              if (mediaUrl) {
-                                setViewOnceImageUrl(mediaUrl);
-                                setViewOnceMessageId(message.id);
-                              } else {
-                                toast({ title: "Image no longer available", variant: "destructive" });
-                                // Already viewed/destroyed — mark locally
-                                setMessages(prev => prev.map(m => m.id === message.id ? { ...m, deletedForEveryone: true, content: "Photo Viewed" } : m));
-                              }
-                            }}
-                          >
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                              <span className="text-base">📷</span>
-                            </div>
-                            <div className="text-left">
-                              <p className={cn("text-sm font-medium", isMe ? "text-primary-foreground" : "text-foreground")}>Photo</p>
-                              <p className={cn("text-[10px]", isMe ? "text-primary-foreground/60" : "text-muted-foreground")}>View Once · Tap to open</p>
-                            </div>
-                          </button>
-                        )
+                        // View Once image — each user can view once independently
+                        (() => {
+                          const myRealId = profile?.id || "";
+                          const hasMyIdViewed = (message.deletedFor || []).includes(myRealId);
+                          // If current user already viewed, show "Opened"
+                          if (hasMyIdViewed || message.deletedForEveryone) {
+                            return (
+                              <div className="flex items-center gap-2 py-1">
+                                <Eye className={cn("w-4 h-4", isMe ? "text-primary-foreground/50" : "text-muted-foreground")} />
+                                <span className={cn("text-sm italic", isMe ? "text-primary-foreground/50" : "text-muted-foreground")}>Opened</span>
+                              </div>
+                            );
+                          }
+                          // Not yet viewed by this user — show tap to open
+                          return (
+                            <button
+                              className={cn(
+                                "flex items-center gap-2 py-2 px-3 rounded-xl border border-border/50",
+                                isMe ? "bg-primary-foreground/10" : "bg-gradient-to-r from-muted/80 to-muted/40 backdrop-blur-sm"
+                              )}
+                              onClick={async () => {
+                                // Fetch fresh row to get media_url and current deleted_for
+                                const msgRow = await supabase
+                                  .from("chat_messages")
+                                  .select("media_url, deleted_for")
+                                  .eq("id", message.id)
+                                  .single();
+                                const mediaUrl = msgRow.data?.media_url;
+                                const currentDeletedFor = (msgRow.data?.deleted_for || []) as string[];
+                                // If this user already viewed (race condition), mark locally
+                                if (currentDeletedFor.includes(myRealId)) {
+                                  setMessages(prev => prev.map(m => m.id === message.id ? { ...m, deletedFor: currentDeletedFor } : m));
+                                  toast({ title: "Already viewed" });
+                                  return;
+                                }
+                                if (mediaUrl) {
+                                  setViewOnceImageUrl(mediaUrl);
+                                  setViewOnceMessageId(message.id);
+                                } else {
+                                  toast({ title: "Image no longer available", variant: "destructive" });
+                                  setMessages(prev => prev.map(m => m.id === message.id ? { ...m, deletedFor: [...(m.deletedFor || []), myRealId] } : m));
+                                }
+                              }}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                <span className="text-base">📷</span>
+                              </div>
+                              <div className="text-left">
+                                <p className={cn("text-sm font-medium", isMe ? "text-primary-foreground" : "text-foreground")}>Photo</p>
+                                <p className={cn("text-[10px]", isMe ? "text-primary-foreground/60" : "text-muted-foreground")}>View Once · Tap to open</p>
+                              </div>
+                            </button>
+                          );
+                        })()
                       ) : (
                         // Regular image — render as WhatsApp-style bubble with download protection
                         <div className="relative">
