@@ -355,17 +355,7 @@ export default function Chat() {
           });
 
           // If sender is NOT in chatFriends yet, fetch their profile and add them
-          setChatFriends(prev => {
-            if (prev.find(f => f.id === senderId)) return prev; // already added above
-            // Return prev for now; we'll prepend after async fetch below
-            return prev;
-          });
-
-          // Check if we need to add a new friend entry
-          const alreadyExists = (chatFriendsRef: Friend[]) => chatFriendsRef.some(f => f.id === senderId);
-          // Use a micro-task to check after the synchronous setChatFriends above
           setTimeout(async () => {
-            // Re-check current state
             setChatFriends(currentFriends => {
               if (currentFriends.some(f => f.id === senderId)) return currentFriends;
               // Trigger async fetch outside setState
