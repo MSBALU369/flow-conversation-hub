@@ -179,16 +179,23 @@ export default function RoomDiscussion() {
     const fetchMembers = async () => {
       const { data, count } = await supabase
         .from("room_members")
-        .select("user_id", { count: "exact" })
-        .eq("room_id", room.id);
+        .select("user_id, joined_at", { count: "exact" })
+        .eq("room_id", room.id)
+        .order("joined_at", { ascending: true });
       setMemberCount(count ?? 0);
       if (data && data.length > 0) {
         const userIds = data.map(m => m.user_id);
+        const joinOrder = data.map(m => m.user_id); // already sorted by joined_at
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, username, avatar_url")
           .in("id", userIds);
-        setMembers((profiles || []).map(p => ({ user_id: p.id, username: p.username || "Unknown", avatar_url: p.avatar_url })));
+        // Preserve join order for host succession
+        const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+        setMembers(joinOrder.map(uid => {
+          const p = profileMap.get(uid);
+          return { user_id: uid, username: p?.username || "Unknown", avatar_url: p?.avatar_url ?? null };
+        }));
       }
     };
     fetchMembers();
