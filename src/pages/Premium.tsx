@@ -89,7 +89,7 @@ export default function Premium() {
 
   const getWeeklyPrice = (price: number, duration: string) => {
     const weeks: Record<string, number> = {
-      "1_day": 1 / 7, "1_week": 1, "1_month": 4, "6_month": 26, "lifetime": 520
+      "1_day": 1 / 7, "1_week": 1, "1_month": 4, "6_month": 26, "1_year": 52
     };
     return Math.round(price / weeks[duration]);
   };
