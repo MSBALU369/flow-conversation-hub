@@ -355,17 +355,7 @@ export default function Chat() {
           });
 
           // If sender is NOT in chatFriends yet, fetch their profile and add them
-          setChatFriends(prev => {
-            if (prev.find(f => f.id === senderId)) return prev; // already added above
-            // Return prev for now; we'll prepend after async fetch below
-            return prev;
-          });
-
-          // Check if we need to add a new friend entry
-          const alreadyExists = (chatFriendsRef: Friend[]) => chatFriendsRef.some(f => f.id === senderId);
-          // Use a micro-task to check after the synchronous setChatFriends above
           setTimeout(async () => {
-            // Re-check current state
             setChatFriends(currentFriends => {
               if (currentFriends.some(f => f.id === senderId)) return currentFriends;
               // Trigger async fetch outside setState
@@ -566,6 +556,7 @@ export default function Chat() {
             timestamp: new Date(msg.created_at),
             status: "read" as const,
             type: msg.media_url ? (msg.content?.startsWith("🎤") ? "voice" as const : "image" as const) : "text" as const,
+            viewOnce: (msg.content || "").startsWith("📸 View once"),
             mediaUrl: msg.media_url || undefined,
             editedAt: (msg as any).edited_at || null,
             deletedFor: (msg as any).deleted_for || [],
@@ -712,7 +703,11 @@ export default function Chat() {
       deletedFor: (msg as any).deleted_for || [],
       deletedForEveryone: (msg as any).deleted_for_everyone || false,
     }));
-    setMessages(prev => [...older, ...prev]);
+    setMessages(prev => {
+      const existingIds = new Set(prev.map(m => m.id));
+      const uniqueOlder = older.filter(m => !existingIds.has(m.id));
+      return [...uniqueOlder, ...prev];
+    });
     setLoadingOlder(false);
   }, [selectedFriend?.id, profile?.id, messages, loadingOlder, hasMore]);
 
@@ -1574,15 +1569,18 @@ export default function Chat() {
                     ) : message.type === "image" ? (
                       // Image message rendering
                       message.viewOnce ? (
-                        // View Once image
+                        // View Once image — both sender and receiver can view once, then it's destroyed
                         message.deletedForEveryone ? (
                           <div className="flex items-center gap-2 py-1">
                             <Eye className={cn("w-4 h-4", isMe ? "text-primary-foreground/50" : "text-muted-foreground")} />
                             <span className={cn("text-sm italic", isMe ? "text-primary-foreground/50" : "text-muted-foreground")}>Opened</span>
                           </div>
-                        ) : !isMe ? (
+                        ) : (
                           <button
-                            className="flex items-center gap-2 py-2 px-3 rounded-xl bg-gradient-to-r from-muted/80 to-muted/40 backdrop-blur-sm border border-border/50"
+                            className={cn(
+                              "flex items-center gap-2 py-2 px-3 rounded-xl border border-border/50",
+                              isMe ? "bg-primary-foreground/10" : "bg-gradient-to-r from-muted/80 to-muted/40 backdrop-blur-sm"
+                            )}
                             onClick={async () => {
                               const msgRow = await supabase
                                 .from("chat_messages")
@@ -1595,6 +1593,8 @@ export default function Chat() {
                                 setViewOnceMessageId(message.id);
                               } else {
                                 toast({ title: "Image no longer available", variant: "destructive" });
+                                // Already viewed/destroyed — mark locally
+                                setMessages(prev => prev.map(m => m.id === message.id ? { ...m, deletedForEveryone: true, content: "Photo Viewed" } : m));
                               }
                             }}
                           >
@@ -1602,15 +1602,10 @@ export default function Chat() {
                               <span className="text-base">📷</span>
                             </div>
                             <div className="text-left">
-                              <p className={cn("text-sm font-medium", "text-foreground")}>Photo</p>
-                              <p className="text-[10px] text-muted-foreground">View Once · Tap to open</p>
+                              <p className={cn("text-sm font-medium", isMe ? "text-primary-foreground" : "text-foreground")}>Photo</p>
+                              <p className={cn("text-[10px]", isMe ? "text-primary-foreground/60" : "text-muted-foreground")}>View Once · Tap to open</p>
                             </div>
                           </button>
-                        ) : (
-                          <div className="flex items-center gap-2 py-1">
-                            <Eye className={cn("w-4 h-4", isMe ? "text-primary-foreground/70" : "text-muted-foreground")} />
-                            <span className={cn("text-sm", isMe ? "text-primary-foreground" : "text-foreground")}>{message.content}</span>
-                          </div>
                         )
                       ) : (
                         // Regular image — render as WhatsApp-style bubble with download protection
