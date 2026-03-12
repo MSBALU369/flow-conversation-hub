@@ -74,8 +74,8 @@ export default function Premium() {
 
       if (!error && data) {
         setPlans(data);
-        const lifetime = data.find((p) => p.duration === "lifetime");
-        if (lifetime) setSelectedPlan(lifetime.id);
+      const yearly = data.find((p) => p.duration === "1_year");
+        if (yearly) setSelectedPlan(yearly.id);
       }
       setLoading(false);
     };
