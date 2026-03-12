@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
 const SESSION_KEY = "ef_session_id";
+const POLL_INTERVAL = 15_000; // 15s fallback poll
 
 function generateSessionId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -15,6 +16,20 @@ export function SessionEnforcer() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const initializedRef = useRef(false);
+  const loggingOutRef = useRef(false);
+
+  const forceLogout = useCallback(async () => {
+    if (loggingOutRef.current) return;
+    loggingOutRef.current = true;
+    localStorage.removeItem(SESSION_KEY);
+    toast({
+      title: "Logged out",
+      description: "You logged in on another device.",
+      variant: "destructive",
+    });
+    await signOut();
+    navigate("/login", { replace: true });
+  }, [signOut, toast, navigate]);
 
   // On login, stamp a new session ID
   useEffect(() => {
@@ -24,7 +39,6 @@ export function SessionEnforcer() {
     const sessionId = generateSessionId();
     localStorage.setItem(SESSION_KEY, sessionId);
 
-    // Write to profiles
     supabase
       .from("profiles")
       .update({ current_session_id: sessionId } as any)
@@ -32,7 +46,7 @@ export function SessionEnforcer() {
       .then();
   }, [user]);
 
-  // Listen for profile updates — if current_session_id changes, force logout
+  // Realtime listener — if current_session_id changes, force logout
   useEffect(() => {
     if (!user) return;
 
@@ -50,14 +64,7 @@ export function SessionEnforcer() {
           const newSessionId = payload.new?.current_session_id;
           const localSessionId = localStorage.getItem(SESSION_KEY);
           if (newSessionId && localSessionId && newSessionId !== localSessionId) {
-            // Another device logged in
-            localStorage.removeItem(SESSION_KEY);
-            toast({
-              title: "Logged out",
-              description: "You logged in on another device.",
-              variant: "destructive",
-            });
-            signOut().then(() => navigate("/login", { replace: true }));
+            forceLogout();
           }
         }
       )
@@ -66,7 +73,29 @@ export function SessionEnforcer() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, signOut, toast, navigate]);
+  }, [user, forceLogout]);
+
+  // Polling fallback — catches cases where realtime misses
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(async () => {
+      const localSessionId = localStorage.getItem(SESSION_KEY);
+      if (!localSessionId) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("current_session_id")
+        .eq("id", user.id)
+        .single();
+
+      if (data?.current_session_id && data.current_session_id !== localSessionId) {
+        forceLogout();
+      }
+    }, POLL_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [user, forceLogout]);
 
   return null;
 }
