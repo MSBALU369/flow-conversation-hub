@@ -89,13 +89,13 @@ export default function Premium() {
 
   const getWeeklyPrice = (price: number, duration: string) => {
     const weeks: Record<string, number> = {
-      "1_day": 1 / 7, "1_week": 1, "1_month": 4, "6_month": 26, "1_year": 52
+      "1_day": 1 / 7, "1_week": 1, "1_month": 4, "6_month": 26, "lifetime": 520
     };
     return Math.round(price / weeks[duration]);
   };
 
   const getSavingsPercent = (duration: string) => {
-    const savings: Record<string, number> = { "6_month": 83, "1_month": 60, "1_week": 0 };
+    const savings: Record<string, number> = { "lifetime": 95, "6_month": 83, "1_month": 60, "1_week": 0 };
     return savings[duration] || 0;
   };
 
