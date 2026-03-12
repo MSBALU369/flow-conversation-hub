@@ -1169,6 +1169,10 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: undefined
       }
+      is_effective_host: {
+        Args: { p_room_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_room_member: {
         Args: { p_room_id: string; p_user_id: string }
         Returns: boolean
