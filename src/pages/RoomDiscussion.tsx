@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Users, Copy, Check, LogOut, ShieldBan, VolumeX, Mic, MicOff, Crown, Image, X } from "lucide-react";
+import { ArrowLeft, Send, Users, Copy, Check, LogOut, ShieldBan, VolumeX, Mic, MicOff, Crown, Image, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
@@ -122,7 +122,15 @@ export default function RoomDiscussion() {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const isHost = room?.host_id === user?.id;
+  // Host succession: original host → earliest joinee still in room
+  const effectiveHostId = (() => {
+    if (!room || members.length === 0) return room?.host_id;
+    // If original host is still a member, they remain host
+    if (members.some(m => m.user_id === room.host_id)) return room.host_id;
+    // Otherwise, the member list is ordered by join time from the fetch; first member becomes host
+    return members[0]?.user_id;
+  })();
+  const isHost = effectiveHostId === user?.id;
 
   // Fetch room info
   useEffect(() => {
@@ -171,16 +179,23 @@ export default function RoomDiscussion() {
     const fetchMembers = async () => {
       const { data, count } = await supabase
         .from("room_members")
-        .select("user_id", { count: "exact" })
-        .eq("room_id", room.id);
+        .select("user_id, joined_at", { count: "exact" })
+        .eq("room_id", room.id)
+        .order("joined_at", { ascending: true });
       setMemberCount(count ?? 0);
       if (data && data.length > 0) {
         const userIds = data.map(m => m.user_id);
+        const joinOrder = data.map(m => m.user_id); // already sorted by joined_at
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, username, avatar_url")
           .in("id", userIds);
-        setMembers((profiles || []).map(p => ({ user_id: p.id, username: p.username || "Unknown", avatar_url: p.avatar_url })));
+        // Preserve join order for host succession
+        const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+        setMembers(joinOrder.map(uid => {
+          const p = profileMap.get(uid);
+          return { user_id: uid, username: p?.username || "Unknown", avatar_url: p?.avatar_url ?? null };
+        }));
       }
     };
     fetchMembers();
@@ -447,9 +462,12 @@ export default function RoomDiscussion() {
           <button onClick={handleLeaveRoom} className="p-1.5 rounded-full hover:bg-destructive/10 text-destructive transition-colors" title="Leave room">
             <LogOut className="w-4 h-4" />
           </button>
-          <button onClick={handleCloseRoom} className="p-1.5 rounded-full hover:bg-destructive/10 text-destructive transition-colors" title="Close room for everyone">
-            <span className="text-xs font-bold">✕</span>
-          </button>
+          {isHost && (
+            <button onClick={handleCloseRoom} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive text-[11px] font-semibold transition-colors" title="Delete room permanently">
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
+            </button>
+          )}
         </div>
       </div>
 
@@ -461,7 +479,7 @@ export default function RoomDiscussion() {
         <div className="shrink-0 border-b border-border bg-card/40">
           <RoomTableView
             members={members}
-            hostId={room.host_id}
+            hostId={effectiveHostId || room.host_id}
             currentUserId={user?.id}
             activeSpeakers={activeSpeakers}
             mutedMembers={mutedMembers}
