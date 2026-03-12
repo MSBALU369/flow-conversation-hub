@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Users, Copy, Check, LogOut, ShieldBan, VolumeX, Mic, MicOff, Crown, Image, X } from "lucide-react";
+import { ArrowLeft, Send, Users, Copy, Check, LogOut, ShieldBan, VolumeX, Mic, MicOff, Crown, Image, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
