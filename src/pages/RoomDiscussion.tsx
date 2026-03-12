@@ -462,8 +462,12 @@ export default function RoomDiscussion() {
           <button onClick={handleLeaveRoom} className="p-1.5 rounded-full hover:bg-destructive/10 text-destructive transition-colors" title="Leave room">
             <LogOut className="w-4 h-4" />
           </button>
-          <button onClick={handleCloseRoom} className="p-1.5 rounded-full hover:bg-destructive/10 text-destructive transition-colors" title="Close room for everyone">
-            <span className="text-xs font-bold">✕</span>
+          {isHost && (
+            <button onClick={handleCloseRoom} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive text-[11px] font-semibold transition-colors" title="Delete room permanently">
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
+            </button>
+          )}
           </button>
         </div>
       </div>
