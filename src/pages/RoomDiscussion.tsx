@@ -468,7 +468,6 @@ export default function RoomDiscussion() {
               Delete
             </button>
           )}
-          </button>
         </div>
       </div>
 
