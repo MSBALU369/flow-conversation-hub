@@ -24,7 +24,7 @@ const durationLabels: Record<string, string> = {
   "1_week": "1 Week",
   "1_month": "1 Month",
   "6_month": "6 Months",
-  "1_year": "1 Year"
+  "lifetime": "Lifetime"
 };
 
 const premiumFeatures = [
@@ -39,11 +39,11 @@ const premiumFeatures = [
 
 // Bonus coins per plan duration
 const bonusCoinsMap: Record<string, number> = {
-  "1_day": 10,
-  "1_week": 25,
-  "1_month": 50,
-  "6_month": 150,
-  "1_year": 300
+  "1_day": 50,
+  "1_week": 100,
+  "1_month": 250,
+  "6_month": 500,
+  "lifetime": 1000
 };
 
 export default function Premium() {
@@ -74,8 +74,8 @@ export default function Premium() {
 
       if (!error && data) {
         setPlans(data);
-        const sixMonth = data.find((p) => p.duration === "6_month");
-        if (sixMonth) setSelectedPlan(sixMonth.id);
+        const lifetime = data.find((p) => p.duration === "lifetime");
+        if (lifetime) setSelectedPlan(lifetime.id);
       }
       setLoading(false);
     };
@@ -89,13 +89,13 @@ export default function Premium() {
 
   const getWeeklyPrice = (price: number, duration: string) => {
     const weeks: Record<string, number> = {
-      "1_day": 1 / 7, "1_week": 1, "1_month": 4, "6_month": 26, "1_year": 52
+      "1_day": 1 / 7, "1_week": 1, "1_month": 4, "6_month": 26, "lifetime": 520
     };
     return Math.round(price / weeks[duration]);
   };
 
   const getSavingsPercent = (duration: string) => {
-    const savings: Record<string, number> = { "6_month": 83, "1_month": 60, "1_week": 0 };
+    const savings: Record<string, number> = { "lifetime": 95, "6_month": 83, "1_month": 60, "1_week": 0 };
     return savings[duration] || 0;
   };
 
@@ -194,9 +194,9 @@ export default function Premium() {
           </div>
 
           <div className="space-y-1.5">
-            {plans.
-            filter((p) => ["6_month", "1_month", "1_week"].includes(p.duration)).
-            map((plan) => {
+          {plans.
+          filter((p) => ["lifetime", "6_month", "1_month", "1_week"].includes(p.duration)).
+          map((plan) => {
               const isSelected = selectedPlan === plan.id;
               const savings = getSavingsPercent(plan.duration);
               const bonus = bonusCoinsMap[plan.duration] || 50;

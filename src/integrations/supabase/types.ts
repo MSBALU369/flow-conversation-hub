@@ -1217,7 +1217,13 @@ export type Database = {
         | "node"
         | "test"
       gender_type: "male" | "female" | "unknown"
-      plan_duration: "1_day" | "1_week" | "1_month" | "6_month" | "1_year"
+      plan_duration:
+        | "1_day"
+        | "1_week"
+        | "1_month"
+        | "6_month"
+        | "1_year"
+        | "lifetime"
       region_tier: "INDIA" | "GULF_RICH" | "WEST_TIER2" | "POOR_TIER4"
     }
     CompositeTypes: {
@@ -1356,7 +1362,14 @@ export const Constants = {
         "test",
       ],
       gender_type: ["male", "female", "unknown"],
-      plan_duration: ["1_day", "1_week", "1_month", "6_month", "1_year"],
+      plan_duration: [
+        "1_day",
+        "1_week",
+        "1_month",
+        "6_month",
+        "1_year",
+        "lifetime",
+      ],
       region_tier: ["INDIA", "GULF_RICH", "WEST_TIER2", "POOR_TIER4"],
     },
   },
