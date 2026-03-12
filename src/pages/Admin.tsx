@@ -416,71 +416,31 @@ export default function Admin() {
           </TabsContent>
 
           {/* TAB 2: DEEP USER MANAGEMENT */}
-          <TabsContent value="users" className="space-y-4 mt-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search users by name or email..."
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                className="pl-9 h-9 text-sm bg-muted border-border"
-              />
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              {filteredUsers.length} users found • Click a row for actions
-            </p>
-
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : (
-              <div className="rounded-lg border border-border overflow-hidden">
-                <div className="max-h-[50vh] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-[10px]">Name</TableHead>
-                        <TableHead className="text-[10px]">Email</TableHead>
-                        <TableHead className="text-[10px]">⚡</TableHead>
-                        <TableHead className="text-[10px]">🪙</TableHead>
-                        <TableHead className="text-[10px]">Status</TableHead>
-                        <TableHead className="text-[10px]">Joined</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.map((u) => (
-                        <TableRow
-                          key={u.id}
-                          className="cursor-pointer hover:bg-primary/5 transition-colors"
-                          onClick={() => setSelectedUser(u)}
-                        >
-                          <TableCell className="text-xs font-medium py-2">{u.username || "—"}</TableCell>
-                          <TableCell className="text-[10px] text-muted-foreground py-2 max-w-[100px] truncate">{u.email || "—"}</TableCell>
-                          <TableCell className="text-xs py-2">{u.energy_bars ?? 0}/7</TableCell>
-                          <TableCell className="text-xs py-2">{u.coins ?? 0}</TableCell>
-                          <TableCell className="py-2">
-                            {(u as any).deletion_requested_at ? (
-                              <span className="text-[9px] bg-orange-500/20 text-orange-500 px-1.5 py-0.5 rounded font-medium">FROZEN</span>
-                            ) : u.is_banned ? (
-                              <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded font-medium">BANNED</span>
-                            ) : u.is_premium ? (
-                              <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-medium">PREMIUM</span>
-                            ) : (
-                              <span className="text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">FREE</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-[10px] text-muted-foreground py-2">
-                            {new Date(u.created_at).toLocaleDateString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
+          <TabsContent value="users">
+            <AdminUserManagement
+              users={users}
+              loading={loading}
+              onSelectUser={setSelectedUser}
+              onBanUsers={async (ids) => {
+                if (!confirm(`Ban ${ids.length} user(s)?`)) return;
+                for (const id of ids) {
+                  await supabase.from("profiles").update({ is_banned: true } as any).eq("id", id);
+                }
+                fetchAll();
+              }}
+              onWarnUsers={async (ids) => {
+                for (const id of ids) {
+                  await supabase.from("notifications").insert({
+                    user_id: id,
+                    type: "warning",
+                    title: "⚠️ Warning from Admin",
+                    message: "You have been warned for violating community guidelines. Continued violations may result in a ban.",
+                    from_user_id: user.id,
+                  });
+                }
+                fetchAll();
+              }}
+            />
           </TabsContent>
 
           {/* TAB: PENDING DELETIONS */}
