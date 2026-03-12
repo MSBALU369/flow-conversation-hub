@@ -195,7 +195,7 @@ export default function Premium() {
 
           <div className="space-y-1.5">
           {plans.
-          filter((p) => ["lifetime", "6_month", "1_month", "1_week"].includes(p.duration)).
+          filter((p) => ["1_year", "6_month", "1_month", "1_week"].includes(p.duration)).
           map((plan) => {
               const isSelected = selectedPlan === plan.id;
               const savings = getSavingsPercent(plan.duration);
