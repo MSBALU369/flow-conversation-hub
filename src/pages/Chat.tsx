@@ -713,7 +713,11 @@ export default function Chat() {
       deletedFor: (msg as any).deleted_for || [],
       deletedForEveryone: (msg as any).deleted_for_everyone || false,
     }));
-    setMessages(prev => [...older, ...prev]);
+    setMessages(prev => {
+      const existingIds = new Set(prev.map(m => m.id));
+      const uniqueOlder = older.filter(m => !existingIds.has(m.id));
+      return [...uniqueOlder, ...prev];
+    });
     setLoadingOlder(false);
   }, [selectedFriend?.id, profile?.id, messages, loadingOlder, hasMore]);
 
