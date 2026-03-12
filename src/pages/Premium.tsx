@@ -96,7 +96,7 @@ export default function Premium() {
           >
             <Sparkles className="w-3 h-3 text-accent" />
             <span className="text-xs">
-              Try{"\u00A0\u00A0\u00A0"}{dayPlan.price} ( 1 Day — One-time )
+              Try{"\u00A0\u00A0\u00A0"}{dayPlan.price} ( 1 Day )
             </span>
           </button>
         </div>
