@@ -479,7 +479,7 @@ export default function RoomDiscussion() {
         <div className="shrink-0 border-b border-border bg-card/40">
           <RoomTableView
             members={members}
-            hostId={room.host_id}
+            hostId={effectiveHostId || room.host_id}
             currentUserId={user?.id}
             activeSpeakers={activeSpeakers}
             mutedMembers={mutedMembers}
