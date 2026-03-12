@@ -24,7 +24,7 @@ const durationLabels: Record<string, string> = {
   "1_week": "1 Week",
   "1_month": "1 Month",
   "6_month": "6 Months",
-  "1_year": "1 Year"
+  "lifetime": "Lifetime"
 };
 
 const premiumFeatures = [
