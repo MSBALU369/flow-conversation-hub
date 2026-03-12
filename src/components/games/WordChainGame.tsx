@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Trophy, Send, Clock, Diamond } from "lucide-react";
+import { X, Trophy, Send, Clock, Coins } from "lucide-react";
 import { GameCallBubble } from "./GameCallBubble";
 import { cn } from "@/lib/utils";
 import { useGameBet } from "@/hooks/useGameBet";
@@ -179,8 +179,8 @@ export function WordChainGame({ onClose, onMinimize, betAmount = 0, partnerName,
         </div>
         {betAmount > 0 && (
           <p className="text-sm font-semibold flex items-center gap-1">
-            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
-            {won ? `+${betAmount * 2} FP` : tied ? "Bet refunded" : `-${betAmount} FP`}
+            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            {won ? `+${betAmount * 2} coins` : tied ? "Bet refunded" : `-${betAmount} coins`}
           </p>
         )}
         <Button onClick={onClose} className="mt-4 w-full max-w-[200px]">Back to Call</Button>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Mic, Play, Pause, Heart, MessageCircle, Star, Upload, Clock, Share2, Users, ArrowLeft, MoreVertical, EyeOff, Eye, Trash2, Flag, Send, Link, UserPlus, Reply, FolderOpen, ListMusic, Plus, Check, ThumbsDown, X, Lock, Globe, Diamond } from "lucide-react";
+import { Mic, Play, Pause, Heart, MessageCircle, Star, Upload, Clock, Share2, Users, ArrowLeft, MoreVertical, EyeOff, Eye, Trash2, Flag, Send, Link, UserPlus, Reply, FolderOpen, ListMusic, Plus, Check, ThumbsDown, X, Lock, Globe, Coins } from "lucide-react";
 import { UserProfilePopup } from "@/components/UserProfilePopup";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -805,7 +805,7 @@ export default function Talent() {
                   onClick={async () => {
                     if (!profile?.id) return;
                     if ((profile.coins ?? 0) < 5) {
-                      toast({ title: "Not enough Flow Points", description: "You need at least 5 FP to tip.", variant: "destructive" });
+                      toast({ title: "Not enough coins", description: "You need at least 5 coins to tip.", variant: "destructive" });
                       return;
                     }
                     // Find talent creator's user_id
@@ -824,7 +824,7 @@ export default function Talent() {
                       p_amount: 5
                     });
                     if (!error) {
-                      toast({ title: `💰 Tipped ${post.username}!`, description: "-5 FP" });
+                      toast({ title: `💰 Tipped ${post.username}!`, description: "-5 coins" });
                       if (navigator.vibrate) navigator.vibrate(15);
                     } else {
                       toast({ title: "Tip failed", variant: "destructive" });
@@ -832,7 +832,7 @@ export default function Talent() {
                   }}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[hsl(45,100%,50%)] transition-colors">
 
-                      <Diamond className="w-3.5 h-3.5" />
+                      <Coins className="w-3.5 h-3.5" />
                       <span>Tip</span>
                     </button>
 

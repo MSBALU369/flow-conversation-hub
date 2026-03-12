@@ -261,7 +261,7 @@ export default function Login() {
             </div>
             <div className="flex items-center gap-1">
               <Gift className="w-3 h-3 text-primary" />
-              <span className="text-[10px] text-muted-foreground">Earn Flow Points</span>
+              <span className="text-[10px] text-muted-foreground">Earn Coins</span>
             </div>
           </div>
         )}

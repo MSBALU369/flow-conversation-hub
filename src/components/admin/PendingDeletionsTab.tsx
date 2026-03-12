@@ -216,7 +216,7 @@ export function PendingDeletionsTab() {
               <AlertTriangle className="w-5 h-5" /> Permanent Deletion
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this user and ALL their data (messages, calls, Flow Points, friends, etc.). This action is <strong>irreversible</strong>.
+              This will permanently delete this user and ALL their data (messages, calls, coins, friends, etc.). This action is <strong>irreversible</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

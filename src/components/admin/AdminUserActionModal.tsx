@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Ban, Diamond, Trash2, LogOut, Zap, Clock } from "lucide-react";
+import { Ban, Coins, Trash2, LogOut, Zap, Clock } from "lucide-react";
 
 interface UserRow {
   id: string;
@@ -122,8 +122,8 @@ export function AdminUserActionModal({ open, onOpenChange, user, onRefresh }: Ad
           {/* User Stats */}
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-muted/50 rounded-lg p-2 text-center">
-              <p className="text-lg font-bold text-foreground">💎 {user.coins ?? 0}</p>
-              <p className="text-[10px] text-muted-foreground">Flow Points</p>
+              <p className="text-lg font-bold text-foreground">🪙 {user.coins ?? 0}</p>
+              <p className="text-[10px] text-muted-foreground">Coins</p>
             </div>
             <div className="bg-muted/50 rounded-lg p-2 text-center">
               <p className="text-lg font-bold text-foreground">⚡ {user.energy_bars ?? 0}/7</p>
@@ -162,7 +162,7 @@ export function AdminUserActionModal({ open, onOpenChange, user, onRefresh }: Ad
           {/* Economy Actions */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-              <Diamond className="w-3.5 h-3.5" /> Economy Actions
+              <Coins className="w-3.5 h-3.5" /> Economy Actions
             </h4>
             <div className="flex gap-2">
               <Input

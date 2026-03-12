@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, Volume2, Info, Users, BadgeCheck, Diamond, Crown, ShieldAlert, Target } from "lucide-react";
+import { Lock, Phone, ShieldCheck, Zap, Clock, Flame, Play, Volume2, Info, Users, BadgeCheck, Coins, Crown, ShieldAlert, Target } from "lucide-react";
 import { TopPicksCarousel } from "@/components/home/TopPicksCarousel";
 import { AdBanner } from "@/components/AdBanner";
 import { SpeakWithModal } from "@/components/SpeakWithModal";
@@ -89,9 +89,9 @@ export default function Home() {
                 .single();
               if (!error && data) {
                 updateProfile({ coins: data.coins });
-                toast({ title: "+5 Flow Points!", description: "FP awarded for watching the ad." });
+                toast({ title: "+5 Coins!", description: "Coins awarded for watching the ad." });
               } else {
-                toast({ title: "Failed to add Flow Points", variant: "destructive" });
+                toast({ title: "Failed to add coins", variant: "destructive" });
               }
             })();
           }
@@ -190,7 +190,7 @@ export default function Home() {
                       </span>
                     )}
                     <span className="inline-flex items-center gap-0.5 bg-accent/10 px-1.5 py-0.5 rounded-full">
-                      <Diamond className="w-2.5 h-2.5 text-accent" />
+                      <Coins className="w-2.5 h-2.5 text-accent" />
                       <span className="text-[9px] font-semibold text-accent">{profile?.coins ?? 0}</span>
                     </span>
                   </div>

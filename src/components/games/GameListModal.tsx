@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Gamepad2, Diamond, Lock, Crown } from "lucide-react";
+import { Gamepad2, Coins, Lock, Crown } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
 interface GameListModalProps {
@@ -13,7 +13,7 @@ const games = [
     id: "quiz",
     name: "AI Quiz Battle",
     icon: "🧠",
-    description: "Answer AI-generated questions. Bet FP!",
+    description: "Answer AI-generated questions. Bet coins!",
     available: true,
     premiumOnly: false,
   },
@@ -85,7 +85,7 @@ const games = [
     id: "adroulette",
     name: "Ad Roulette",
     icon: "🎰",
-    description: "Watch an ad, spin the wheel, win FP!",
+    description: "Watch an ad, spin the wheel, win coins!",
     available: true,
     premiumOnly: false,
   },
@@ -143,9 +143,9 @@ export function GameListModal({ open, onOpenChange, onSelectGame }: GameListModa
         </div>
 
         <div className="flex items-center gap-1.5 pt-2 border-t border-border">
-          <Diamond className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+          <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
           <span className="text-[10px] text-muted-foreground">
-            Your FP: <span className="font-bold text-foreground">{profile?.coins ?? 0}</span>
+            Your coins: <span className="font-bold text-foreground">{profile?.coins ?? 0}</span>
           </span>
         </div>
       </DialogContent>

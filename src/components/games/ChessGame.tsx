@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import { Button } from "@/components/ui/button";
-import { X, Trophy, Diamond, Crown } from "lucide-react";
+import { X, Trophy, Coins, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCallBubble } from "./GameCallBubble";
 import { useGameSync } from "@/hooks/useGameSync";
@@ -102,7 +102,7 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
       if (won) {
         const winnings = betAmount * 2;
         await supabase.from("profiles").update({ coins: currentCoins + winnings }).eq("id", profile.id);
-        toast({ title: `🎉 You won ${winnings} FP!`, duration: 3000 });
+        toast({ title: `🎉 You won ${winnings} coins!`, duration: 3000 });
       } else if (draw) {
         toast({ title: "🤝 Draw! No refunds.", duration: 3000 });
       } else {
@@ -144,9 +144,9 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
         <h2 className="text-2xl font-bold text-foreground">{gameOver.result} {gameOver.won ? "🎉" : gameOver.draw ? "🤝" : "💀"}</h2>
         {betAmount > 0 && (
           <div className="flex items-center gap-1.5 mt-2">
-            <Diamond className="w-4 h-4 text-[hsl(45,100%,50%)]" />
+            <Coins className="w-4 h-4 text-[hsl(45,100%,50%)]" />
             <span className="text-sm text-foreground font-semibold">
-              {gameOver.won ? `+${betAmount * 2} FP` : gameOver.draw ? "No refund" : `-${betAmount} FP`}
+              {gameOver.won ? `+${betAmount * 2} coins` : gameOver.draw ? "No refund" : `-${betAmount} coins`}
             </span>
           </div>
         )}
@@ -168,7 +168,7 @@ export function ChessGame({ onClose, onMinimize, betAmount = 0, partnerName, roo
           <span className="text-sm font-bold text-foreground">♟️ Chess</span>
           {betAmount > 0 && (
             <div className="flex items-center gap-1">
-              <Diamond className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
+              <Coins className="w-3.5 h-3.5 text-[hsl(45,100%,50%)]" />
               <span className="text-xs font-bold text-[hsl(45,100%,50%)]">{betAmount}</span>
             </div>
           )}

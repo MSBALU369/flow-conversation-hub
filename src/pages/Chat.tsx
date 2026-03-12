@@ -1045,7 +1045,7 @@ export default function Chat() {
   const handleSendGift = async (gift: typeof GIFT_EMOJIS[0]) => {
     if (!profile?.id || !selectedFriend) return;
     if ((profile.coins ?? 0) < gift.cost) {
-      toast({ title: "Not enough Flow Points!", description: `You need ${gift.cost} FP.`, variant: "destructive" });
+      toast({ title: "Not enough coins!", description: `You need ${gift.cost} coins.`, variant: "destructive" });
       return;
     }
     // Deduct coins via RPC
@@ -1065,7 +1065,7 @@ export default function Chat() {
       content: `🎁 ${gift.emoji} ${gift.name} gift!`,
     });
     setShowGiftPicker(false);
-    toast({ title: `${gift.emoji} Sent!`, description: `-${gift.cost} FP` });
+    toast({ title: `${gift.emoji} Sent!`, description: `-${gift.cost} coins` });
     if (navigator.vibrate) navigator.vibrate(20);
   };
 
@@ -1850,10 +1850,10 @@ export default function Chat() {
                   key={gift.emoji}
                   onClick={() => handleSendGift(gift)}
                   className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
-                  title={`${gift.name} (${gift.cost} FP)`}
+                  title={`${gift.name} (${gift.cost} coins)`}
                 >
                   <span className="text-lg">{gift.emoji}</span>
-                  <span className="text-[8px] text-muted-foreground">{gift.cost}💎</span>
+                  <span className="text-[8px] text-muted-foreground">{gift.cost}🪙</span>
                 </button>
               ))}
               <button onClick={() => setShowGiftPicker(false)} className="ml-auto p-1">
