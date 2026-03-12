@@ -213,6 +213,21 @@ export default function Chat() {
   const touchStartRef = useRef<{ x: number; y: number; id: string } | null>(null);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Handle browser back button: go back to chat list instead of Home
+  useEffect(() => {
+    if (selectedFriend) {
+      // Push a dummy state so pressing back triggers popstate instead of leaving /chat
+      window.history.pushState({ chatOpen: true }, "");
+      const handlePopState = () => {
+        setSelectedFriend(null);
+      };
+      window.addEventListener("popstate", handlePopState);
+      return () => {
+        window.removeEventListener("popstate", handlePopState);
+      };
+    }
+  }, [selectedFriend]);
+
   // Handle deep-link from global message banner (openConversationWith)
   useEffect(() => {
     const state = (location as any).state;
