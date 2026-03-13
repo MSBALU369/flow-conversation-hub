@@ -382,7 +382,6 @@ export default function Admin() {
                 </div>
               );
             })()}
-            </div>
 
             {/* Tool Cards — Clickable */}
             <div>
