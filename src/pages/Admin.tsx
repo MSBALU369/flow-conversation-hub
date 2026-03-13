@@ -22,6 +22,7 @@ import { PendingDeletionsTab } from "@/components/admin/PendingDeletionsTab";
 import { AdminVersionControl } from "@/components/admin/AdminVersionControl";
 import { SystemHealthDashboard } from "@/components/admin/SystemHealthDashboard";
 import { GlobalControlsPanel } from "@/components/admin/GlobalControlsPanel";
+import { PowerPanel } from "@/components/admin/PowerPanel";
 
 const ADMIN_EMAILS = [
   "balumothe@gmail.com", "balumothe+test1@gmail.com",
@@ -528,6 +529,14 @@ export default function Admin() {
                         <Trash2 className="w-3 h-3 text-destructive" /> Pending Deletes
                       </Button>
                     </div>
+                  </div>
+
+                  {/* Power Panel — Admin/Premium management */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5" /> Role & Membership
+                    </h4>
+                    <PowerPanel users={users} onRefresh={fetchAll} />
                   </div>
 
                   {/* Global Entity Controls */}
