@@ -16,6 +16,7 @@ import { CombinedHistoryModal } from "@/components/CombinedHistoryModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { useRole } from "@/hooks/useRole";
 type GenderFilter = "random" | "female" | "male";
 
