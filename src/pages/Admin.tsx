@@ -81,6 +81,7 @@ export default function Admin() {
   const [replyText, setReplyText] = useState("");
   const [activeTab, setActiveTab] = useState("health");
   const [userFilterPreset, setUserFilterPreset] = useState<string | null>(null);
+  const [showSuperAdmin, setShowSuperAdmin] = useState(false);
 
   // Guard
   useEffect(() => {
