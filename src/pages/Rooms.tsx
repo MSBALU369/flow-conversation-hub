@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Users, Plus, Lock, Globe, Copy, Check, Crown, ArrowLeft } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
