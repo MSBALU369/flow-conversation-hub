@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Send, Image, Link2, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Send, Image, Link2, X, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,8 +16,20 @@ export function RoomChatInput({ roomId, userId, onSend }: RoomChatInputProps) {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Check if current user is admin
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      const roles = (data || []).map((r: any) => r.role);
+      setIsAdmin(roles.includes("admin") || roles.includes("root"));
+    })();
+  }, [userId]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
