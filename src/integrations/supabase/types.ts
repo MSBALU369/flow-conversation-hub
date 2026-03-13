@@ -83,6 +83,30 @@ export type Database = {
         }
         Relationships: []
       }
+      banned_emails: {
+        Row: {
+          banned_by: string | null
+          created_at: string
+          email: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          banned_by?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          banned_by?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       call_history: {
         Row: {
           created_at: string
@@ -608,6 +632,7 @@ export type Database = {
           id: string
           is_banned: boolean | null
           is_ghost_mode: boolean | null
+          is_hidden: boolean | null
           is_online: boolean | null
           is_premium: boolean | null
           last_avatar_change: string | null
@@ -652,6 +677,7 @@ export type Database = {
           id: string
           is_banned?: boolean | null
           is_ghost_mode?: boolean | null
+          is_hidden?: boolean | null
           is_online?: boolean | null
           is_premium?: boolean | null
           last_avatar_change?: string | null
@@ -696,6 +722,7 @@ export type Database = {
           id?: string
           is_banned?: boolean | null
           is_ghost_mode?: boolean | null
+          is_hidden?: boolean | null
           is_online?: boolean | null
           is_premium?: boolean | null
           last_avatar_change?: string | null
