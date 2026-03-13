@@ -531,6 +531,14 @@ export default function Admin() {
                     </div>
                   </div>
 
+                  {/* Power Panel — Admin/Premium management */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5" /> Role & Membership
+                    </h4>
+                    <PowerPanel users={users} onRefresh={fetchAll} />
+                  </div>
+
                   {/* Global Entity Controls */}
                   <GlobalControlsPanel />
                 </div>
