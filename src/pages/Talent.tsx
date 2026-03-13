@@ -140,7 +140,7 @@ export default function Talent() {
           username: p?.username || "User",
           avatar: p?.avatar_url || null,
           language: t.language || "English",
-          category: "Singing",
+          category: (t as any).category || "Singing",
           title: t.title || "Untitled",
           likes: t.likes_count,
           plays: t.plays_count,
