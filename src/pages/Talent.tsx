@@ -464,8 +464,8 @@ export default function Talent() {
       }
     }
   };
-  const toggleLike = (id: string) => {
-    setPosts(posts.map((post) => {
+  const toggleLike = useCallback((id: string) => {
+    setPosts(prev => prev.map((post) => {
       if (post.id === id) {
         return {
           ...post,
@@ -475,9 +475,9 @@ export default function Talent() {
       }
       return post;
     }));
-  };
-  const toggleFan = (id: string) => {
-    setPosts(posts.map((post) => {
+  }, []);
+  const toggleFan = useCallback((id: string) => {
+    setPosts(prev => prev.map((post) => {
       if (post.id === id) {
         return {
           ...post,
@@ -486,7 +486,7 @@ export default function Talent() {
       }
       return post;
     }));
-  };
+  }, []);
   const canRecord = uploadLanguage && uploadCategory;
 
   const handleHide = async (id: string) => {
