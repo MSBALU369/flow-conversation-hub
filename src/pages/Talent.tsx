@@ -711,6 +711,22 @@ export default function Talent() {
           </button>
         </div>
 
+        {/* Background Upload Spinner */}
+        {isBackgroundUploading && (
+          <div className="mb-4 flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20 animate-pulse">
+            <div className="relative w-8 h-8 shrink-0">
+              <svg className="w-8 h-8 animate-spin" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="15" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
+                <circle cx="18" cy="18" r="15" fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeDasharray="70 30" strokeLinecap="round" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">Uploading your talent...</p>
+              <p className="text-xs text-muted-foreground">This may take a moment</p>
+            </div>
+          </div>
+        )}
+
         {/* Talent Cards - COMPACT */}
         <div className="space-y-2">
           {filteredPosts.length === 0 ?
