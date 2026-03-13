@@ -94,10 +94,16 @@ export function RoomChatInput({ roomId, userId, onSend }: RoomChatInputProps) {
       )}
 
       <div className="px-3 py-2 flex items-center gap-2">
-        <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+        {isAdmin && <input ref={videoRef} type="file" accept="video/*" className="hidden" onChange={handleFileSelect} />}
         <button onClick={() => fileRef.current?.click()} className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground">
           <Image className="w-5 h-5" />
         </button>
+        {isAdmin && (
+          <button onClick={() => videoRef.current?.click()} className="p-2 rounded-full hover:bg-muted transition-colors text-primary">
+            <Video className="w-5 h-5" />
+          </button>
+        )}
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
