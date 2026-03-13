@@ -120,6 +120,7 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
   const [hasMutualTalk, setHasMutualTalk] = useState(false);
   const [followRequestSent, setFollowRequestSent] = useState(false);
   const [isMutualFollow, setIsMutualFollow] = useState(false);
+  const [isViewedUserAdmin, setIsViewedUserAdmin] = useState(false);
 
   // Stack for infinite drill-down
   const [userStack, setUserStack] = useState<UserProfilePopupProps["user"][]>([]);
