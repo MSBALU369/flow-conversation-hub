@@ -81,6 +81,8 @@ export default function Profile() {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [showPremiumModalFromVisitors, setShowPremiumModalFromVisitors] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [chartTimeframe, setChartTimeframe] = useState<"1m" | "1h" | "1d" | "1w" | "custom">("1w");
+  const [customMinutes, setCustomMinutes] = useState(30);
 
   // Ad watching effect for coins
   useEffect(() => {
@@ -427,40 +429,60 @@ export default function Profile() {
     } = await supabase.auth.getUser();
     if (!user) return;
     const now = new Date();
-    const weekStart = startOfWeek(now, {
-      weekStartsOn: 1
-    });
-    const weekEnd = endOfWeek(now, {
-      weekStartsOn: 1
-    });
+    const isAdmin = role === "admin" || role === "root";
 
-    // Fetch this week's calls
-    const {
-      data: weekCalls
-    } = await supabase.from("call_history").select("duration, created_at").eq("user_id", user.id).gte("created_at", weekStart.toISOString()).lte("created_at", weekEnd.toISOString());
+    // Determine time range based on admin timeframe setting
+    let rangeStart: Date;
+    let bucketLabels: string[];
+    if (isAdmin && chartTimeframe !== "1w") {
+      if (chartTimeframe === "1m") {
+        rangeStart = new Date(now.getTime() - 60 * 1000);
+        bucketLabels = ["0s", "10s", "20s", "30s", "40s", "50s", "60s"];
+      } else if (chartTimeframe === "1h") {
+        rangeStart = new Date(now.getTime() - 60 * 60 * 1000);
+        bucketLabels = ["0m", "10m", "20m", "30m", "40m", "50m", "60m"];
+      } else if (chartTimeframe === "1d") {
+        rangeStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        bucketLabels = ["0h", "4h", "8h", "12h", "16h", "20h", "24h"];
+      } else {
+        // custom
+        rangeStart = new Date(now.getTime() - customMinutes * 60 * 1000);
+        const step = customMinutes / 6;
+        bucketLabels = Array.from({ length: 7 }, (_, i) => `${Math.round(i * step)}m`);
+      }
 
-    // Aggregate per day (Mon=0 ... Sun=6)
-    const perDay = new Array(7).fill(0);
-    (weekCalls || []).forEach((call) => {
-      const d = new Date(call.created_at);
-      // getDay: 0=Sun,1=Mon...6=Sat -> convert to Mon=0...Sun=6
-      const jsDay = getDay(d);
-      const idx = jsDay === 0 ? 6 : jsDay - 1;
-      perDay[idx] += (call.duration || 0) / 60; // seconds to minutes
-    });
-    setWeeklyData(dayLabels.map((day, i) => ({
-      day,
-      minutes: perDay[i]
-    })));
-    setTotalWeekMinutes(perDay.reduce((a, b) => a + b, 0));
+      const { data: calls } = await supabase.from("call_history").select("duration, created_at").eq("user_id", user.id).gte("created_at", rangeStart.toISOString());
+      const rangeDuration = now.getTime() - rangeStart.getTime();
+      const buckets = new Array(7).fill(0);
+      (calls || []).forEach((call) => {
+        const t = new Date(call.created_at).getTime();
+        const pct = (t - rangeStart.getTime()) / rangeDuration;
+        const idx = Math.min(6, Math.floor(pct * 7));
+        buckets[idx] += (call.duration || 0) / 60;
+      });
+      setWeeklyData(bucketLabels.map((label, i) => ({ day: label, minutes: buckets[i] })));
+      setTotalWeekMinutes(buckets.reduce((a, b) => a + b, 0));
+    } else {
+      // Default: weekly view
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+      const { data: weekCalls } = await supabase.from("call_history").select("duration, created_at").eq("user_id", user.id).gte("created_at", weekStart.toISOString()).lte("created_at", weekEnd.toISOString());
+      const perDay = new Array(7).fill(0);
+      (weekCalls || []).forEach((call) => {
+        const d = new Date(call.created_at);
+        const jsDay = getDay(d);
+        const idx = jsDay === 0 ? 6 : jsDay - 1;
+        perDay[idx] += (call.duration || 0) / 60;
+      });
+      setWeeklyData(dayLabels.map((day, i) => ({ day, minutes: perDay[i] })));
+      setTotalWeekMinutes(perDay.reduce((a, b) => a + b, 0));
+    }
 
     // Fetch all-time total
-    const {
-      data: allCalls
-    } = await supabase.from("call_history").select("duration").eq("user_id", user.id);
+    const { data: allCalls } = await supabase.from("call_history").select("duration").eq("user_id", user.id);
     const allTime = (allCalls || []).reduce((sum, c) => sum + (c.duration || 0), 0) / 60;
     setTotalAllTimeMinutes(allTime);
-  }, []);
+  }, [role, chartTimeframe, customMinutes]);
   useEffect(() => {
     fetchCallStats();
   }, [fetchCallStats]);
@@ -827,7 +849,7 @@ export default function Profile() {
 
           {/* Weekly Line Chart - Speaking Time */}
           <div className="glass-card p-5 mb-4 w-full">
-            {/* Header */}
+           {/* Header */}
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-primary" />
@@ -845,6 +867,46 @@ export default function Profile() {
                 {showCompare && selectedCompareUser ? selectedCompareUser.name : 'Compare'}
               </button>
             </div>
+
+            {/* Admin Graph Timeframe Controls */}
+            {(role === "admin" || role === "root") && (
+              <div className="mb-3 space-y-1.5">
+                <div className="flex items-center gap-1 flex-wrap">
+                  {([
+                    { key: "1m" as const, label: "1 Min" },
+                    { key: "1h" as const, label: "1 Hour" },
+                    { key: "1d" as const, label: "1 Day" },
+                    { key: "1w" as const, label: "1 Week" },
+                    { key: "custom" as const, label: "Custom" },
+                  ]).map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => setChartTimeframe(t.key)}
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-medium transition-colors border ${
+                        chartTimeframe === t.key
+                          ? "bg-primary/15 border-primary/30 text-primary"
+                          : "bg-muted/50 border-border text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                {chartTimeframe === "custom" && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={10080}
+                      value={customMinutes}
+                      onChange={e => setCustomMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-20 h-6 text-[10px] bg-muted border border-border rounded px-1.5 text-foreground"
+                    />
+                    <span className="text-[9px] text-muted-foreground">minutes ago</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Stats area - above chart */}
             {showCompare && selectedCompareUser ? (
