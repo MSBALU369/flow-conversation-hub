@@ -1142,12 +1142,6 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           )}
         </div>
 
-        {/* Ad Area */}
-        <div className="px-4 mb-3">
-          <div className="rounded-xl bg-muted/20 border border-border/30 flex items-center justify-center overflow-hidden" style={{ minHeight: 150 }}>
-          </div>
-        </div>
-
         {/* Progress Bar */}
         <div className="flex justify-center mb-3 mt-4">
           <div className="max-w-[200px] w-full">
@@ -1201,6 +1195,12 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
               <Volume2 className={`w-4 h-4 ${isSpeaker ? 'text-primary' : 'text-foreground'}`} />
               <span className="text-[10px] mt-0.5">Speaker</span>
             </button>
+          </div>
+        </div>
+
+        {/* Ad Area */}
+        <div className="px-4 pb-2 mt-auto">
+          <div className="rounded-xl bg-muted/20 border border-border/30 flex items-center justify-center overflow-hidden" style={{ minHeight: 150 }}>
           </div>
         </div>
       </div>
