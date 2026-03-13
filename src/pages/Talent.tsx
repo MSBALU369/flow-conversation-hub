@@ -115,10 +115,7 @@ export default function Talent() {
     loadHidden();
   }, [user?.id]);
 
-  // Fetch real talent posts from Supabase — uses cached fetchTalentsList
-  useEffect(() => {
-    fetchTalentsList();
-  }, [location.key, fetchTalentsList]);
+  // (talent fetch useEffect moved below fetchTalentsList definition)
 
   // Fetch real friends for sharing from mutual followers
   const [shareFriends, setShareFriends] = useState<{id: string;name: string;avatar: string | null;}[]>([]);
