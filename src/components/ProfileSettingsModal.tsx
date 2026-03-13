@@ -129,6 +129,13 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
   };
 
   const menuItems = [
+    {
+      icon: Bell,
+      label: "Support Team Alerts",
+      description: "View admin broadcasts",
+      onClick: () => { setShowAlerts(true); fetchAlerts(); },
+      color: "text-primary",
+    },
     ...(profile?.is_premium ? [{
       icon: CreditCard,
       label: "Payment History",
