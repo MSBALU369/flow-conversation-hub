@@ -118,9 +118,10 @@ export default function Home() {
           streak_count: newStreak,
           last_refill_time: new Date().toISOString()
         });
-        toast({
-          title: `⚡ Day ${newStreak} Charged!`,
-          description: "Streak Active. Keep practicing!"
+        sonnerToast(`⚡ Day ${newStreak} Charged!`, {
+          description: "Streak Active. Keep practicing!",
+          duration: 1000,
+          className: "!py-2 !px-3 !min-h-0 !text-xs !gap-1 [&_[data-description]]:!text-[10px]",
         });
       }
     };
