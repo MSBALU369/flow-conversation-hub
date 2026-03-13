@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Smartphone, Save, Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface AppSettings {
   id: string;
@@ -19,8 +25,11 @@ export function AdminVersionControl() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
+    setLoading(true);
     (async () => {
       const { data } = await supabase
         .from("app_settings" as any)
@@ -30,7 +39,7 @@ export function AdminVersionControl() {
       if (data) setSettings(data as any);
       setLoading(false);
     })();
-  }, []);
+  }, [open]);
 
   const handleSave = async () => {
     if (!settings) return;
@@ -45,78 +54,86 @@ export function AdminVersionControl() {
         updated_at: new Date().toISOString(),
       } as any)
       .eq("id", settings.id);
-    
+
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "✅ App Settings Saved", description: `Latest: ${settings.latest_version} | Min: ${settings.min_required_version}` });
+      setOpen(false);
     }
     setSaving(false);
   };
 
-  if (loading) return null;
-
-  if (!settings) {
-    return (
-      <Card className="border-border">
-        <CardContent className="p-4 text-center text-xs text-muted-foreground">
-          No app_settings row found. Insert a default row in Supabase.
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardHeader className="p-4 pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Smartphone className="w-4 h-4 text-primary" /> 📱 App Version Control
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 pt-2 space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Latest Version</label>
-            <Input
-              value={settings.latest_version}
-              onChange={e => setSettings({ ...settings, latest_version: e.target.value })}
-              className="h-8 text-xs mt-1 bg-background"
-              placeholder="1.0.1"
-            />
-          </div>
-          <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Min Required</label>
-            <Input
-              value={settings.min_required_version}
-              onChange={e => setSettings({ ...settings, min_required_version: e.target.value })}
-              className="h-8 text-xs mt-1 bg-background"
-              placeholder="1.0.0"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Store URL</label>
-          <Input
-            value={settings.store_url}
-            onChange={e => setSettings({ ...settings, store_url: e.target.value })}
-            className="h-8 text-xs mt-1 bg-background"
-            placeholder="https://play.google.com/store/apps/..."
-          />
-        </div>
-        <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Update Message</label>
-          <Input
-            value={settings.update_message}
-            onChange={e => setSettings({ ...settings, update_message: e.target.value })}
-            className="h-8 text-xs mt-1 bg-background"
-            placeholder="A new version is available..."
-          />
-        </div>
-        <Button size="sm" className="w-full text-xs" onClick={handleSave} disabled={saving}>
-          {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
-          Save Settings
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 text-xs">
+          <Smartphone className="w-3.5 h-3.5" />
+          Version Update
         </Button>
-      </CardContent>
-    </Card>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-sm flex items-center gap-2">
+            <Smartphone className="w-4 h-4 text-primary" /> App Version Control
+          </DialogTitle>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : !settings ? (
+          <p className="text-xs text-muted-foreground text-center py-4">
+            No app_settings row found. Insert a default row in Supabase.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Latest Version</label>
+                <Input
+                  value={settings.latest_version}
+                  onChange={e => setSettings({ ...settings, latest_version: e.target.value })}
+                  className="h-8 text-xs mt-1 bg-background"
+                  placeholder="1.0.1"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Min Required</label>
+                <Input
+                  value={settings.min_required_version}
+                  onChange={e => setSettings({ ...settings, min_required_version: e.target.value })}
+                  className="h-8 text-xs mt-1 bg-background"
+                  placeholder="1.0.0"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Store URL</label>
+              <Input
+                value={settings.store_url}
+                onChange={e => setSettings({ ...settings, store_url: e.target.value })}
+                className="h-8 text-xs mt-1 bg-background"
+                placeholder="https://play.google.com/store/apps/..."
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Update Message</label>
+              <Input
+                value={settings.update_message}
+                onChange={e => setSettings({ ...settings, update_message: e.target.value })}
+                className="h-8 text-xs mt-1 bg-background"
+                placeholder="A new version is available..."
+              />
+            </div>
+            <Button size="sm" className="w-full text-xs" onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
+              Save Settings
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
