@@ -1198,10 +1198,11 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
           </div>
         </div>
 
-        {/* Ad Area */}
-        <div className="px-4 pb-2 mt-auto">
-          <div className="rounded-xl bg-muted/20 border border-border/30 flex items-center justify-center overflow-hidden" style={{ minHeight: 150 }}>
-          </div>
+      </div>
+
+      {/* Ad Area */}
+      <div className="px-4 pb-2">
+        <div className="rounded-xl bg-muted/20 border border-border/30 flex items-center justify-center overflow-hidden" style={{ minHeight: 150 }}>
         </div>
       </div>
 
