@@ -51,6 +51,7 @@ import { useEnergySystem } from "@/hooks/useEnergySystem";
 import { useNotificationSound } from "@/hooks/useNotificationSound";
 import { cn, isInAppBrowser } from "@/lib/utils";
 import { useGameSync, type GameMessage } from "@/hooks/useGameSync";
+import { KeepAwake } from "@capacitor-community/keep-awake";
 
 import { GameListModal } from "@/components/games/GameListModal";
 import { QuizBetModal } from "@/components/games/QuizBetModal";
@@ -298,6 +299,16 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [room, profile?.id]);
+
+  // KeepAwake: prevent screen lock during active call
+  useEffect(() => {
+    if (room?.state === 'connected') {
+      KeepAwake.keepAwake().catch(() => {});
+    }
+    return () => {
+      KeepAwake.allowSleep().catch(() => {});
+    };
+  }, [room?.state]);
 
   // LiveKit: toggle mute — only after room is connected
   useEffect(() => {
