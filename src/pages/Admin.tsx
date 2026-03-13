@@ -22,6 +22,7 @@ import { PendingDeletionsTab } from "@/components/admin/PendingDeletionsTab";
 import { AdminVersionControl } from "@/components/admin/AdminVersionControl";
 import { SystemHealthDashboard } from "@/components/admin/SystemHealthDashboard";
 import { GlobalControlsPanel } from "@/components/admin/GlobalControlsPanel";
+import { PowerPanel } from "@/components/admin/PowerPanel";
 
 const ADMIN_EMAILS = [
   "balumothe@gmail.com", "balumothe+test1@gmail.com",
