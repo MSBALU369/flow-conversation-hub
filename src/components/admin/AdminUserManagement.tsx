@@ -37,6 +37,7 @@ type UserFilter = "all" | "premium" | "free" | "banned" | "hidden" | "flagged";
 interface AdminUserManagementProps {
   users: UserRow[];
   loading: boolean;
+  initialFilter?: string | null;
   onSelectUser: (user: UserRow) => void;
   onBanUsers: (ids: string[]) => void;
   onWarnUsers: (ids: string[]) => void;
@@ -45,9 +46,9 @@ interface AdminUserManagementProps {
 }
 
 export function AdminUserManagement({
-  users, loading, onSelectUser, onBanUsers, onWarnUsers, onHideUsers, onDeleteUsers,
+  users, loading, initialFilter, onSelectUser, onBanUsers, onWarnUsers, onHideUsers, onDeleteUsers,
 }: AdminUserManagementProps) {
-  const [filter, setFilter] = useState<UserFilter>("all");
+  const [filter, setFilter] = useState<UserFilter>((initialFilter as UserFilter) || "all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
