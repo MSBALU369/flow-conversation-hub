@@ -426,6 +426,7 @@ export default function Admin() {
             <AdminUserManagement
               users={users}
               loading={loading}
+              initialFilter={userFilterPreset}
               onSelectUser={setSelectedUser}
               onBanUsers={async (ids) => {
                 if (!confirm(`Ban ${ids.length} user(s)? Their email(s) will be permanently blocked from re-registering.`)) return;
