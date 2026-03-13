@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Users, DollarSign, Database, Phone, Mail, Crown,
-  AlertTriangle, Zap, Activity, Shield, Rocket, CreditCard, Globe,
+  AlertTriangle, Zap, Activity, Shield, Rocket, CreditCard, Globe, Server,
   Search, Trash2, Ban, Ticket, CheckCircle2, Gift, UserMinus, Bomb, Reply, Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,8 @@ import { AdminUserActionModal } from "@/components/admin/AdminUserActionModal";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { PendingDeletionsTab } from "@/components/admin/PendingDeletionsTab";
 import { AdminVersionControl } from "@/components/admin/AdminVersionControl";
+import { SystemHealthDashboard } from "@/components/admin/SystemHealthDashboard";
+import { GlobalControlsPanel } from "@/components/admin/GlobalControlsPanel";
 
 const ADMIN_EMAILS = [
   "balumothe@gmail.com", "balumothe+test1@gmail.com",
@@ -242,9 +244,12 @@ export default function Admin() {
 
       <div className="px-4 mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-7 h-10 bg-muted/50">
+          <TabsList className="w-full grid grid-cols-8 h-10 bg-muted/50">
             <TabsTrigger value="health" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
               <Activity className="w-3.5 h-3.5 mr-0.5" /> Health
+            </TabsTrigger>
+            <TabsTrigger value="system" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
+              <Server className="w-3.5 h-3.5 mr-0.5" /> Sys
             </TabsTrigger>
             <TabsTrigger value="users" className="text-[10px] data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
               <Users className="w-3.5 h-3.5 mr-0.5" /> Users
@@ -524,6 +529,9 @@ export default function Admin() {
                       </Button>
                     </div>
                   </div>
+
+                  {/* Global Entity Controls */}
+                  <GlobalControlsPanel />
                 </div>
               )}
             </div>
@@ -564,6 +572,11 @@ export default function Admin() {
 
             {/* App Version Control */}
             <AdminVersionControl />
+          </TabsContent>
+
+          {/* TAB: SYSTEM HEALTH DASHBOARD */}
+          <TabsContent value="system">
+            <SystemHealthDashboard />
           </TabsContent>
 
           {/* TAB 2: DEEP USER MANAGEMENT */}
