@@ -236,7 +236,7 @@ export default function Home() {
                   <div className="w-1.5 h-1.5 bg-[hsl(var(--ef-online))] rounded-full animate-pulse" />
                   {isAdmin ? (
                     <span className="text-xs font-bold text-[hsl(var(--ef-online))]">
-                      Real: {realOnlineCount} | Fake: {fakeCount}
+                      R: {realOnlineCount} | UR: {fakeCount}
                     </span>
                   ) : (
                     <span className="text-xs font-bold text-[hsl(var(--ef-online))]">
