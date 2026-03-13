@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Mic, Play, Pause, Heart, MessageCircle, Star, Upload, Clock, Share2, Users, ArrowLeft, MoreVertical, EyeOff, Eye, Trash2, Flag, Send, Link, UserPlus, Reply, FolderOpen, ListMusic, Plus, Check, ThumbsDown, X, Lock, Globe, Coins } from "lucide-react";
@@ -101,6 +101,7 @@ export default function Talent() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [profilePopupUser, setProfilePopupUser] = useState<any>(null);
+  const [isBackgroundUploading, setIsBackgroundUploading] = useState(false);
 
   // Load hidden_talents from profile on mount
   useEffect(() => {
@@ -114,46 +115,7 @@ export default function Talent() {
     loadHidden();
   }, [user?.id]);
 
-  // Fetch real talent posts from Supabase
-  useEffect(() => {
-    const fetchTalents = async () => {
-      const { data } = await supabase.
-      from("talent_uploads").
-      select("id, title, language, category, likes_count, plays_count, duration_sec, created_at, user_id, is_private").
-      eq("is_private", false).
-      order("created_at", { ascending: false }).
-      limit(50);
-
-      if (!data || data.length === 0) {setPosts([]);return;}
-
-      const userIds = [...new Set(data.map((t) => t.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_url").in("id", userIds);
-      const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
-
-      setPosts(data.map((t) => {
-        const p = profileMap.get(t.user_id);
-        const durMin = Math.floor((t.duration_sec || 0) / 60);
-        const durSec = (t.duration_sec || 0) % 60;
-        return {
-          id: t.id,
-          user_id: t.user_id,
-          username: p?.username || "User",
-          avatar: p?.avatar_url || null,
-          language: t.language || "English",
-          category: (t as any).category || "Singing",
-          title: t.title || "Untitled",
-          likes: t.likes_count,
-          plays: t.plays_count,
-          shares: 0,
-          duration: `${durMin}:${durSec.toString().padStart(2, '0')}`,
-          isLiked: false,
-          isFan: false,
-          isPrivate: t.is_private
-        };
-      }));
-    };
-    fetchTalents();
-  }, [location.key]);
+  // (talent fetch useEffect moved below fetchTalentsList definition)
 
   // Fetch real friends for sharing from mutual followers
   const [shareFriends, setShareFriends] = useState<{id: string;name: string;avatar: string | null;}[]>([]);
@@ -208,7 +170,7 @@ export default function Talent() {
   const [audioCurrentTime, setAudioCurrentTime] = useState<Record<string, number>>({});
   const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>, postId: string) => {
+  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>, postId: string) => {
     const audio = audioElementsRef.current.get(postId);
     if (!audio || !audio.duration || !isFinite(audio.duration)) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -216,7 +178,7 @@ export default function Talent() {
     audio.currentTime = ratio * audio.duration;
     setAudioProgress(prev => ({ ...prev, [postId]: ratio * 100 }));
     setAudioCurrentTime(prev => ({ ...prev, [postId]: audio.currentTime }));
-  };
+  }, []);
 
   // Recording timer
   useEffect(() => {
@@ -313,6 +275,48 @@ export default function Talent() {
     }
   };
 
+  const fetchTalentsList = useCallback(async () => {
+    const { data } = await supabase
+      .from("talent_uploads")
+      .select("id, title, language, category, likes_count, plays_count, duration_sec, created_at, user_id, is_private")
+      .eq("is_private", false)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (!data || data.length === 0) { setPosts([]); return; }
+
+    const userIds = [...new Set(data.map((t) => t.user_id))];
+    const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_url").in("id", userIds);
+    const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+
+    setPosts(data.map((t) => {
+      const p = profileMap.get(t.user_id);
+      const durMin = Math.floor((t.duration_sec || 0) / 60);
+      const durSec = (t.duration_sec || 0) % 60;
+      return {
+        id: t.id,
+        user_id: t.user_id,
+        username: p?.username || "User",
+        avatar: p?.avatar_url || null,
+        language: t.language || "English",
+        category: (t as any).category || "Singing",
+        title: t.title || "Untitled",
+        likes: t.likes_count,
+        plays: t.plays_count,
+        shares: 0,
+        duration: `${durMin}:${durSec.toString().padStart(2, '0')}`,
+        isLiked: false,
+        isFan: false,
+        isPrivate: t.is_private
+      };
+    }));
+  }, []);
+
+  // Fetch talents on mount and navigation
+  useEffect(() => {
+    fetchTalentsList();
+  }, [location.key, fetchTalentsList]);
+
   const handleUploadTalent = async () => {
     if (!user?.id) {
       toast({ title: "Login required", description: "Please log in to upload talent.", variant: "destructive" });
@@ -334,13 +338,27 @@ export default function Talent() {
       return;
     }
 
-    setUploading(true);
+    // Capture values before closing modal
+    const blob = recordedBlob;
+    const lang = uploadLanguage;
+    const cat = uploadCategory;
+    const title = uploadTitle.trim() || `${uploadCategory} in ${uploadLanguage}`;
+    const dur = Math.max(1, Math.round(previewDuration || recordingTime));
+    const vis = uploadVisibility;
+
+    // IMMEDIATELY close modal and reset form
+    setShowUploadModal(false);
+    cancelTalentRecording();
+    setUploadTitle("");
+    setUploadLanguage("");
+    setUploadCategory("");
+    setIsBackgroundUploading(true);
 
     try {
-      const extension = recordedBlob.type.includes("mp4") ? "mp4" : "webm";
-      const normalizedBlob = recordedBlob.type
-        ? recordedBlob
-        : new Blob([recordedBlob], { type: "audio/webm" });
+      const extension = blob.type.includes("mp4") ? "mp4" : "webm";
+      const normalizedBlob = blob.type
+        ? blob
+        : new Blob([blob], { type: "audio/webm" });
       const filePath = `${user.id}/talents/talent_${Date.now()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
@@ -353,6 +371,7 @@ export default function Talent() {
       if (uploadError) {
         console.error("Talent storage upload failed:", { uploadError, filePath, userId: user.id });
         toast({ title: "Storage upload failed", description: uploadError.message, variant: "destructive" });
+        setIsBackgroundUploading(false);
         return;
       }
 
@@ -362,18 +381,18 @@ export default function Talent() {
       if (!publicUrl) {
         console.error("Talent public URL generation failed:", { filePath, userId: user.id });
         toast({ title: "Failed to get file URL", description: "Upload succeeded but URL generation failed.", variant: "destructive" });
+        setIsBackgroundUploading(false);
         return;
       }
 
-      const durationSeconds = Math.max(1, Math.round(previewDuration || recordingTime));
       const insertPayload = {
         user_id: user.id,
         audio_url: publicUrl,
-        language: uploadLanguage,
-        category: uploadCategory,
-        title: uploadTitle.trim() || `${uploadCategory} in ${uploadLanguage}`,
-        duration_sec: durationSeconds,
-        is_private: uploadVisibility === "private",
+        language: lang,
+        category: cat,
+        title,
+        duration_sec: dur,
+        is_private: vis === "private",
       };
 
       const { error: insertError } = await supabase.from("talent_uploads").insert(insertPayload);
@@ -381,21 +400,18 @@ export default function Talent() {
       if (insertError) {
         console.error("Talent DB insert failed:", { insertError, insertPayload });
         toast({ title: "Failed to save talent", description: insertError.message, variant: "destructive" });
+        setIsBackgroundUploading(false);
         return;
       }
 
-      toast({ title: "Talent uploaded!", description: "Your recording is now live." });
-      setShowUploadModal(false);
-      cancelTalentRecording();
-      setUploadTitle("");
-      setUploadLanguage("");
-      setUploadCategory("");
-      window.location.reload();
+      toast({ title: "🎉 Talent uploaded!", description: "Your recording is now live." });
+      // Refetch talent list instead of full page reload
+      await fetchTalentsList();
     } catch (error: any) {
       console.error("Talent upload error:", error);
       toast({ title: "Upload failed", description: error?.message || "Unexpected upload error", variant: "destructive" });
     } finally {
-      setUploading(false);
+      setIsBackgroundUploading(false);
     }
   };
   const togglePlay = async (id: string) => {
@@ -448,8 +464,8 @@ export default function Talent() {
       }
     }
   };
-  const toggleLike = (id: string) => {
-    setPosts(posts.map((post) => {
+  const toggleLike = useCallback((id: string) => {
+    setPosts(prev => prev.map((post) => {
       if (post.id === id) {
         return {
           ...post,
@@ -459,9 +475,9 @@ export default function Talent() {
       }
       return post;
     }));
-  };
-  const toggleFan = (id: string) => {
-    setPosts(posts.map((post) => {
+  }, []);
+  const toggleFan = useCallback((id: string) => {
+    setPosts(prev => prev.map((post) => {
       if (post.id === id) {
         return {
           ...post,
@@ -470,7 +486,7 @@ export default function Talent() {
       }
       return post;
     }));
-  };
+  }, []);
   const canRecord = uploadLanguage && uploadCategory;
 
   const handleHide = async (id: string) => {
@@ -620,7 +636,7 @@ export default function Talent() {
     setReplyingTo(null);
   };
 
-  const filteredPosts = posts.filter((post) => !hiddenIds.has(post.id)).filter((post) => !post.isPrivate || post.username === (profile?.username || "You")).filter((post) => selectedLanguage === "All" || post.language === selectedLanguage).filter((post) => selectedCategory === "All" || post.category === selectedCategory).sort((a, b) => sortBy === "popular" ? b.likes - a.likes : 0);
+  const filteredPosts = useMemo(() => posts.filter((post) => !hiddenIds.has(post.id)).filter((post) => !post.isPrivate || post.username === (profile?.username || "You")).filter((post) => selectedLanguage === "All" || post.language === selectedLanguage).filter((post) => selectedCategory === "All" || post.category === selectedCategory).sort((a, b) => sortBy === "popular" ? b.likes - a.likes : 0), [posts, hiddenIds, profile?.username, selectedLanguage, selectedCategory, sortBy]);
   return <div className="min-h-screen bg-background pb-24">
       <AppHeader streakDays={profile?.streak_count ?? 1} level={profile?.level ?? 1} showLogout />
 
@@ -694,6 +710,22 @@ export default function Talent() {
             <ListMusic className="w-4 h-4 text-primary" />
           </button>
         </div>
+
+        {/* Background Upload Spinner */}
+        {isBackgroundUploading && (
+          <div className="mb-4 flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20 animate-pulse">
+            <div className="relative w-8 h-8 shrink-0">
+              <svg className="w-8 h-8 animate-spin" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="15" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
+                <circle cx="18" cy="18" r="15" fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeDasharray="70 30" strokeLinecap="round" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">Uploading your talent...</p>
+              <p className="text-xs text-muted-foreground">This may take a moment</p>
+            </div>
+          </div>
+        )}
 
         {/* Talent Cards - COMPACT */}
         <div className="space-y-2">
