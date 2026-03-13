@@ -429,40 +429,60 @@ export default function Profile() {
     } = await supabase.auth.getUser();
     if (!user) return;
     const now = new Date();
-    const weekStart = startOfWeek(now, {
-      weekStartsOn: 1
-    });
-    const weekEnd = endOfWeek(now, {
-      weekStartsOn: 1
-    });
+    const isAdmin = role === "admin" || role === "root";
 
-    // Fetch this week's calls
-    const {
-      data: weekCalls
-    } = await supabase.from("call_history").select("duration, created_at").eq("user_id", user.id).gte("created_at", weekStart.toISOString()).lte("created_at", weekEnd.toISOString());
+    // Determine time range based on admin timeframe setting
+    let rangeStart: Date;
+    let bucketLabels: string[];
+    if (isAdmin && chartTimeframe !== "1w") {
+      if (chartTimeframe === "1m") {
+        rangeStart = new Date(now.getTime() - 60 * 1000);
+        bucketLabels = ["0s", "10s", "20s", "30s", "40s", "50s", "60s"];
+      } else if (chartTimeframe === "1h") {
+        rangeStart = new Date(now.getTime() - 60 * 60 * 1000);
+        bucketLabels = ["0m", "10m", "20m", "30m", "40m", "50m", "60m"];
+      } else if (chartTimeframe === "1d") {
+        rangeStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        bucketLabels = ["0h", "4h", "8h", "12h", "16h", "20h", "24h"];
+      } else {
+        // custom
+        rangeStart = new Date(now.getTime() - customMinutes * 60 * 1000);
+        const step = customMinutes / 6;
+        bucketLabels = Array.from({ length: 7 }, (_, i) => `${Math.round(i * step)}m`);
+      }
 
-    // Aggregate per day (Mon=0 ... Sun=6)
-    const perDay = new Array(7).fill(0);
-    (weekCalls || []).forEach((call) => {
-      const d = new Date(call.created_at);
-      // getDay: 0=Sun,1=Mon...6=Sat -> convert to Mon=0...Sun=6
-      const jsDay = getDay(d);
-      const idx = jsDay === 0 ? 6 : jsDay - 1;
-      perDay[idx] += (call.duration || 0) / 60; // seconds to minutes
-    });
-    setWeeklyData(dayLabels.map((day, i) => ({
-      day,
-      minutes: perDay[i]
-    })));
-    setTotalWeekMinutes(perDay.reduce((a, b) => a + b, 0));
+      const { data: calls } = await supabase.from("call_history").select("duration, created_at").eq("user_id", user.id).gte("created_at", rangeStart.toISOString());
+      const rangeDuration = now.getTime() - rangeStart.getTime();
+      const buckets = new Array(7).fill(0);
+      (calls || []).forEach((call) => {
+        const t = new Date(call.created_at).getTime();
+        const pct = (t - rangeStart.getTime()) / rangeDuration;
+        const idx = Math.min(6, Math.floor(pct * 7));
+        buckets[idx] += (call.duration || 0) / 60;
+      });
+      setWeeklyData(bucketLabels.map((label, i) => ({ day: label, minutes: buckets[i] })));
+      setTotalWeekMinutes(buckets.reduce((a, b) => a + b, 0));
+    } else {
+      // Default: weekly view
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+      const { data: weekCalls } = await supabase.from("call_history").select("duration, created_at").eq("user_id", user.id).gte("created_at", weekStart.toISOString()).lte("created_at", weekEnd.toISOString());
+      const perDay = new Array(7).fill(0);
+      (weekCalls || []).forEach((call) => {
+        const d = new Date(call.created_at);
+        const jsDay = getDay(d);
+        const idx = jsDay === 0 ? 6 : jsDay - 1;
+        perDay[idx] += (call.duration || 0) / 60;
+      });
+      setWeeklyData(dayLabels.map((day, i) => ({ day, minutes: perDay[i] })));
+      setTotalWeekMinutes(perDay.reduce((a, b) => a + b, 0));
+    }
 
     // Fetch all-time total
-    const {
-      data: allCalls
-    } = await supabase.from("call_history").select("duration").eq("user_id", user.id);
+    const { data: allCalls } = await supabase.from("call_history").select("duration").eq("user_id", user.id);
     const allTime = (allCalls || []).reduce((sum, c) => sum + (c.duration || 0), 0) / 60;
     setTotalAllTimeMinutes(allTime);
-  }, []);
+  }, [role, chartTimeframe, customMinutes]);
   useEffect(() => {
     fetchCallStats();
   }, [fetchCallStats]);
