@@ -360,6 +360,7 @@ export default function Talent() {
         user_id: user.id,
         audio_url: publicUrl,
         language: uploadLanguage,
+        category: uploadCategory,
         title: uploadTitle.trim() || `${uploadCategory} in ${uploadLanguage}`,
         duration_sec: durationSeconds,
         is_private: uploadVisibility === "private",
