@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Mic, DoorOpen, Eye, EyeOff, Trash2, Search,
-  Loader2, CheckCircle2, X,
+  Loader2, CheckCircle2, Play, Pause, Square,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,8 @@ interface TalentRow {
   language: string;
   created_at: string;
   is_private: boolean;
+  audio_url: string;
+  duration_sec: number | null;
 }
 
 interface RoomRow {
@@ -41,6 +43,9 @@ export function GlobalControlsPanel() {
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
     action: string;
@@ -52,8 +57,8 @@ export function GlobalControlsPanel() {
   const fetchEntities = async () => {
     setLoading(true);
     const [talentsRes, roomsRes] = await Promise.all([
-      supabase.from("talent_uploads").select("id, title, user_id, language, created_at, is_private").order("created_at", { ascending: false }).limit(100),
-      supabase.from("rooms").select("id, title, host_id, language, created_at, is_private").order("created_at", { ascending: false }).limit(100),
+      supabase.from("talent_uploads").select("id, title, user_id, language, created_at, is_private, audio_url, duration_sec").order("created_at", { ascending: false }).limit(200),
+      supabase.from("rooms").select("id, title, host_id, language, created_at, is_private").order("created_at", { ascending: false }).limit(200),
     ]);
     setTalents((talentsRes.data as TalentRow[]) || []);
     setRooms((roomsRes.data as RoomRow[]) || []);
@@ -62,29 +67,83 @@ export function GlobalControlsPanel() {
 
   useEffect(() => { fetchEntities(); }, []);
 
+  // Audio player
+  const playTalent = (talent: TalentRow) => {
+    if (playingId === talent.id) {
+      audioRef.current?.pause();
+      setPlayingId(null);
+      return;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    const audio = new Audio(talent.audio_url);
+    audio.onended = () => setPlayingId(null);
+    audio.play();
+    audioRef.current = audio;
+    setPlayingId(talent.id);
+  };
+
+  const stopAudio = () => {
+    audioRef.current?.pause();
+    if (audioRef.current) audioRef.current.currentTime = 0;
+    setPlayingId(null);
+  };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => { audioRef.current?.pause(); };
+  }, []);
+
   const handleDeleteTalent = async (id: string) => {
-    await supabase.from("talent_uploads").delete().eq("id", id);
-    toast({ title: "✅ Talent Deleted" });
-    fetchEntities();
+    setActionLoading(id);
+    stopAudio();
+    const { error } = await supabase.from("talent_uploads").delete().eq("id", id);
+    if (error) {
+      toast({ title: "❌ Delete Failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "✅ Talent Permanently Deleted" });
+      setTalents(prev => prev.filter(t => t.id !== id));
+    }
+    setActionLoading(null);
   };
 
   const handleToggleTalentVisibility = async (id: string, currentPrivate: boolean) => {
-    await supabase.from("talent_uploads").update({ is_private: !currentPrivate }).eq("id", id);
-    toast({ title: currentPrivate ? "👁 Talent Made Public" : "🙈 Talent Hidden" });
-    fetchEntities();
+    setActionLoading(id);
+    const { error } = await supabase.from("talent_uploads").update({ is_private: !currentPrivate }).eq("id", id);
+    if (error) {
+      toast({ title: "❌ Update Failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: currentPrivate ? "👁 Talent Made Public" : "🙈 Talent Hidden" });
+      setTalents(prev => prev.map(t => t.id === id ? { ...t, is_private: !currentPrivate } : t));
+    }
+    setActionLoading(null);
   };
 
   const handleDeleteRoom = async (id: string) => {
+    setActionLoading(id);
+    await supabase.from("room_messages").delete().eq("room_id", id);
     await supabase.from("room_members").delete().eq("room_id", id);
-    await supabase.from("rooms").delete().eq("id", id);
-    toast({ title: "✅ Room Deleted" });
-    fetchEntities();
+    const { error } = await supabase.from("rooms").delete().eq("id", id);
+    if (error) {
+      toast({ title: "❌ Delete Failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "✅ Room Permanently Deleted" });
+      setRooms(prev => prev.filter(r => r.id !== id));
+    }
+    setActionLoading(null);
   };
 
   const handleToggleRoomVisibility = async (id: string, currentPrivate: boolean) => {
-    await supabase.from("rooms").update({ is_private: !currentPrivate }).eq("id", id);
-    toast({ title: currentPrivate ? "👁 Room Made Public" : "🔒 Room Made Private" });
-    fetchEntities();
+    setActionLoading(id);
+    const { error } = await supabase.from("rooms").update({ is_private: !currentPrivate }).eq("id", id);
+    if (error) {
+      toast({ title: "❌ Update Failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: currentPrivate ? "👁 Room Made Public" : "🔒 Room Made Private" });
+      setRooms(prev => prev.map(r => r.id === id ? { ...r, is_private: !currentPrivate } : r));
+    }
+    setActionLoading(null);
   };
 
   const confirmAction = () => {
@@ -119,7 +178,7 @@ export function GlobalControlsPanel() {
         <Eye className="w-4 h-4 text-primary" /> Global Entity Controls
       </h3>
       <p className="text-[10px] text-muted-foreground">
-        Hide or delete any Talent, Room directly from the dashboard.
+        Listen, Hide, or Delete any Talent or Room permanently from the database.
       </p>
 
       {/* Entity Tabs */}
@@ -130,7 +189,7 @@ export function GlobalControlsPanel() {
         ].map(tab => (
           <button
             key={tab.key}
-            onClick={() => setActiveEntity(tab.key)}
+            onClick={() => { setActiveEntity(tab.key); stopAudio(); }}
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 p-2.5 rounded-lg border transition-all text-xs font-medium",
               activeEntity === tab.key
@@ -170,43 +229,61 @@ export function GlobalControlsPanel() {
             ) : (
               filteredTalents.map(t => (
                 <Card key={t.id} className="overflow-hidden">
-                  <CardContent className="p-3 flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <Mic className="w-3 h-3 text-muted-foreground shrink-0" />
-                        <span className="text-xs font-medium truncate">{t.title || "Untitled"}</span>
-                        {t.is_private && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-4">Private</Badge>
-                        )}
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <Mic className="w-3 h-3 text-muted-foreground shrink-0" />
+                          <span className="text-xs font-medium truncate">{t.title || "Untitled"}</span>
+                          {t.is_private && (
+                            <Badge variant="outline" className="text-[8px] px-1 py-0 h-4">Hidden</Badge>
+                          )}
+                        </div>
+                        <p className="text-[9px] text-muted-foreground">
+                          {t.language} • {new Date(t.created_at).toLocaleDateString()}
+                          {t.duration_sec ? ` • ${t.duration_sec}s` : ""}
+                        </p>
                       </div>
-                      <p className="text-[9px] text-muted-foreground">
-                        {t.language} • {new Date(t.created_at).toLocaleDateString()}
-                      </p>
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                    {/* Actions row: Play, Hide, Delete */}
+                    <div className="flex gap-1.5">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-6 w-6 p-0"
+                        className={cn("h-7 text-[9px] flex-1 gap-1", playingId === t.id && "bg-primary/10 text-primary border-primary/30")}
+                        onClick={() => playTalent(t)}
+                        disabled={actionLoading === t.id}
+                      >
+                        {playingId === t.id ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                        {playingId === t.id ? "Pause" : "Listen"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-[9px] flex-1 gap-1"
                         title={t.is_private ? "Make Public" : "Hide"}
+                        disabled={actionLoading === t.id}
                         onClick={() => setConfirmModal({
                           open: true, action: "hide", entityType: "talents",
                           entityId: t.id, entityName: t.title || "Untitled",
                         })}
                       >
                         {t.is_private ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                        {t.is_private ? "Unhide" : "Hide"}
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
-                        className="h-6 w-6 p-0"
-                        title="Delete"
+                        className="h-7 text-[9px] flex-1 gap-1"
+                        title="Delete permanently"
+                        disabled={actionLoading === t.id}
                         onClick={() => setConfirmModal({
                           open: true, action: "delete", entityType: "talents",
                           entityId: t.id, entityName: t.title || "Untitled",
                         })}
                       >
-                        <Trash2 className="w-3 h-3" />
+                        {actionLoading === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                        Delete
                       </Button>
                     </div>
                   </CardContent>
@@ -222,43 +299,49 @@ export function GlobalControlsPanel() {
             ) : (
               filteredRooms.map(r => (
                 <Card key={r.id} className="overflow-hidden">
-                  <CardContent className="p-3 flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <DoorOpen className="w-3 h-3 text-muted-foreground shrink-0" />
-                        <span className="text-xs font-medium truncate">{r.title}</span>
-                        {r.is_private && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-4">Private</Badge>
-                        )}
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <DoorOpen className="w-3 h-3 text-muted-foreground shrink-0" />
+                          <span className="text-xs font-medium truncate">{r.title}</span>
+                          {r.is_private && (
+                            <Badge variant="outline" className="text-[8px] px-1 py-0 h-4">Private</Badge>
+                          )}
+                        </div>
+                        <p className="text-[9px] text-muted-foreground">
+                          {r.language} • {new Date(r.created_at).toLocaleDateString()}
+                        </p>
                       </div>
-                      <p className="text-[9px] text-muted-foreground">
-                        {r.language} • {new Date(r.created_at).toLocaleDateString()}
-                      </p>
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                    <div className="flex gap-1.5">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-6 w-6 p-0"
+                        className="h-7 text-[9px] flex-1 gap-1"
                         title={r.is_private ? "Make Public" : "Make Private"}
+                        disabled={actionLoading === r.id}
                         onClick={() => setConfirmModal({
                           open: true, action: "hide", entityType: "rooms",
                           entityId: r.id, entityName: r.title,
                         })}
                       >
                         {r.is_private ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                        {r.is_private ? "Unhide" : "Hide"}
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
-                        className="h-6 w-6 p-0"
-                        title="Delete"
+                        className="h-7 text-[9px] flex-1 gap-1"
+                        title="Delete permanently"
+                        disabled={actionLoading === r.id}
                         onClick={() => setConfirmModal({
                           open: true, action: "delete", entityType: "rooms",
                           entityId: r.id, entityName: r.title,
                         })}
                       >
-                        <Trash2 className="w-3 h-3" />
+                        {actionLoading === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                        Delete
                       </Button>
                     </div>
                   </CardContent>
@@ -274,13 +357,13 @@ export function GlobalControlsPanel() {
         <DialogContent className="max-w-xs">
           <DialogHeader>
             <DialogTitle className="text-sm">
-              {confirmModal.action === "delete" ? "Delete" : "Toggle Visibility"} — {confirmModal.entityName}
+              {confirmModal.action === "delete" ? "⚠️ Permanent Delete" : "Toggle Visibility"} — {confirmModal.entityName}
             </DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground">
             {confirmModal.action === "delete"
-              ? `Are you sure you want to permanently delete this ${confirmModal.entityType === "talents" ? "talent" : "room"}? This cannot be undone.`
-              : `Toggle the visibility of this ${confirmModal.entityType === "talents" ? "talent" : "room"}?`}
+              ? `This will PERMANENTLY delete this ${confirmModal.entityType === "talents" ? "talent" : "room"} from the database. This cannot be undone.`
+              : `Toggle the visibility of this ${confirmModal.entityType === "talents" ? "talent" : "room"}? This change is immediate.`}
           </p>
           <div className="flex gap-2 justify-end mt-2">
             <Button variant="outline" size="sm" className="text-xs" onClick={() => setConfirmModal({ ...confirmModal, open: false })}>
@@ -292,7 +375,7 @@ export function GlobalControlsPanel() {
               className="text-xs"
               onClick={confirmAction}
             >
-              {confirmModal.action === "delete" ? "Delete" : "Confirm"}
+              {confirmModal.action === "delete" ? "Delete Forever" : "Confirm"}
             </Button>
           </div>
         </DialogContent>
