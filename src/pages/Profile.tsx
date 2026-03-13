@@ -718,8 +718,9 @@ export default function Profile() {
             </p>
 
             <LocationSelector country={profile?.country || null} city={profile?.location_city || null} lastLocationChange={profile?.last_location_change || null} compact onSelect={async (country, city) => {
-            // Enforce 24-hour cooldown on location changes
-            if (profile?.last_location_change) {
+            // Admin bypass: no location cooldown
+            const isAdminRole = role === "admin" || role === "root";
+            if (!isAdminRole && profile?.last_location_change) {
               const lastChange = new Date(profile.last_location_change);
               const hoursSince = (Date.now() - lastChange.getTime()) / (1000 * 60 * 60);
               if (hoursSince < 24) {

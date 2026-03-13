@@ -488,7 +488,7 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
               {/* Clickable Stats row */}
               <div className="flex items-center gap-5 mt-3">
                 <button onClick={() => openList("following")} className="text-center hover:opacity-70 transition-opacity">
-                  <p className="text-sm font-bold text-foreground">{liveFollowing}</p>
+                  <p className="text-sm font-bold text-foreground">{isViewedUserAdmin ? 1 : liveFollowing}</p>
                   <p className="text-[10px] text-muted-foreground uppercase">Following</p>
                 </button>
                 <button onClick={() => openList("followers")} className="text-center hover:opacity-70 transition-opacity">
@@ -496,7 +496,7 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
                   <p className="text-[10px] text-muted-foreground uppercase">Followers</p>
                 </button>
                 <button onClick={() => openList("fans")} className="text-center hover:opacity-70 transition-opacity">
-                  <p className="text-sm font-bold text-foreground">{currentUser.fansCount ?? 0}</p>
+                  <p className="text-sm font-bold text-foreground">{isViewedUserAdmin ? 255 : (currentUser.fansCount ?? 0)}</p>
                   <p className="text-[10px] text-muted-foreground uppercase">Fans</p>
                 </button>
               </div>

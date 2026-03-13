@@ -639,6 +639,83 @@ export default function Admin() {
             />
           </TabsContent>
 
+          {/* TAB: TOXIC USERS */}
+          <TabsContent value="toxic" className="space-y-4 mt-4">
+            {(() => {
+              const toxicUsers = [...users]
+                .filter(u => (u as any).reports_count > 0)
+                .sort((a, b) => ((b as any).reports_count ?? 0) - ((a as any).reports_count ?? 0));
+              return (
+                <>
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-destructive" /> Toxic Users ({toxicUsers.length})
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground">
+                    Users sorted by highest report count. Take strict action.
+                  </p>
+                  <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                    {toxicUsers.map(tu => (
+                      <div key={tu.id} className="flex items-center justify-between p-3 rounded-xl border border-destructive/20 bg-destructive/5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-medium text-foreground truncate">{(tu as any).username || "—"}</p>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive font-bold">
+                              {(tu as any).reports_count} reports
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate">{tu.email || "—"}</p>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="text-[9px] h-7 px-2 gap-1"
+                            onClick={async () => {
+                              if (!confirm(`Ban ${(tu as any).username || tu.email}? Email will be permanently blocked.`)) return;
+                              await supabase.from("profiles").update({ is_banned: true } as any).eq("id", tu.id);
+                              if (tu.email) {
+                                await supabase.from("banned_emails" as any).upsert({ email: tu.email.toLowerCase(), reason: "Banned as toxic user" } as any, { onConflict: "email" });
+                              }
+                              fetchAll();
+                            }}
+                          >
+                            <Ban className="w-3 h-3" /> Ban
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="text-[9px] h-7 px-2 gap-1"
+                            onClick={async () => {
+                              if (!confirm(`Delete ${(tu as any).username || tu.email}? They can re-register.`)) return;
+                              await supabase.rpc("delete_user_account", { p_user_id: tu.id });
+                              fetchAll();
+                            }}
+                          >
+                            <Trash2 className="w-3 h-3" /> Delete
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[9px] h-7 px-2"
+                            onClick={() => setSelectedUser(tu)}
+                          >
+                            More
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {toxicUsers.length === 0 && (
+                      <div className="text-center py-8">
+                        <CheckCircle2 className="w-8 h-8 text-primary/40 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No toxic users found 🎉</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </TabsContent>
+
           {/* TAB: PENDING DELETIONS */}
           <TabsContent value="deletions">
             <PendingDeletionsTab />
