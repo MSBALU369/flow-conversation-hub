@@ -92,23 +92,24 @@ export default function Learn() {
     let result = filtered;
     if (selectedCategory !== "All") result = result.filter(c => c.subcategory === selectedCategory);
     if (typeFilter !== "all") result = result.filter(c => c.category === typeFilter);
-    // Sort: items with working cover images first, then fallback-logo ones last
-    // Within each group: ONE English item first, then other categories, then remaining English
-    const hasImage = (c: Course) => !!c.cover_url && !c.cover_url.includes('ef-logo') && !c.cover_url.includes('placeholder');
-    const withCovers = result.filter(hasImage);
-    const withoutCovers = result.filter(c => !hasImage(c));
-
-    const reorder = (items: typeof result) => {
-      const eng = items.filter(c => c.subcategory?.toLowerCase().includes("english"));
-      const rest = items.filter(c => !c.subcategory?.toLowerCase().includes("english"));
-      const out: typeof result = [];
-      if (eng.length > 0) out.push(eng[0]);
-      out.push(...rest);
-      out.push(...eng.slice(1));
-      return out;
+    // Prioritize items with reliable images (local, youtube, udemy) over Amazon (often blocked)
+    const imageScore = (c: Course) => {
+      if (!c.cover_url || c.cover_url.includes('ef-logo') || c.cover_url.includes('placeholder')) return 0;
+      if (c.cover_url.startsWith('/')) return 3; // local
+      if (c.cover_url.includes('ytimg.com') || c.cover_url.includes('udemycdn.com')) return 2; // reliable CDN
+      return 1; // amazon etc (may be blocked)
     };
 
-    return [...reorder(withCovers), ...reorder(withoutCovers)];
+    // Sort by image reliability desc, then: ONE English first, others, remaining English
+    result.sort((a, b) => imageScore(b) - imageScore(a));
+
+    const eng = result.filter(c => c.subcategory?.toLowerCase().includes("english"));
+    const rest = result.filter(c => !c.subcategory?.toLowerCase().includes("english"));
+    const reordered: typeof result = [];
+    if (eng.length > 0) reordered.push(eng[0]);
+    reordered.push(...rest);
+    reordered.push(...eng.slice(1));
+    return reordered;
   }, [filtered, selectedCategory, typeFilter]);
 
   // Top picks = trending items (highest clicks) for user's country
