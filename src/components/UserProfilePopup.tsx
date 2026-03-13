@@ -120,6 +120,7 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
   const [hasMutualTalk, setHasMutualTalk] = useState(false);
   const [followRequestSent, setFollowRequestSent] = useState(false);
   const [isMutualFollow, setIsMutualFollow] = useState(false);
+  const [isViewedUserAdmin, setIsViewedUserAdmin] = useState(false);
 
   // Stack for infinite drill-down
   const [userStack, setUserStack] = useState<UserProfilePopupProps["user"][]>([]);
@@ -142,8 +143,19 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
       setListUsers([]);
       setHasMutualTalk(false);
       setFollowRequestSent(false);
+      setIsViewedUserAdmin(false);
     }
   }, [open, initialUser.id]);
+
+  // Check if viewed user is admin
+  useEffect(() => {
+    if (!open || !currentUser.id) return;
+    (async () => {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", currentUser.id);
+      const roles = (data || []).map((r: any) => r.role);
+      setIsViewedUserAdmin(roles.includes("admin") || roles.includes("root"));
+    })();
+  }, [open, currentUser.id]);
 
   // Check mutual talk status
   useEffect(() => {
@@ -269,7 +281,22 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
     setListUsers([]);
     try {
       let userIds: string[] = [];
-      if (type === "following") {
+
+      // Admin illusion: "following" list shows only the viewer (if mutual) or a random user
+      if (isViewedUserAdmin && type === "following") {
+        if (isMutualFollow && myProfile?.id) {
+          userIds = [myProfile.id];
+        } else {
+          // Show a random user from the actual following list
+          const { data } = await supabase.from("friendships").select("friend_id").eq("user_id", currentUser.id).eq("status", "accepted").limit(1);
+          userIds = (data || []).map(f => f.friend_id);
+        }
+      } else if (isViewedUserAdmin && type === "fans") {
+        // Don't reveal actual fans for admin
+        setListUsers([]);
+        setListLoading(false);
+        return;
+      } else if (type === "following") {
         const { data } = await supabase.from("friendships").select("friend_id").eq("user_id", currentUser.id).eq("status", "accepted");
         userIds = (data || []).map(f => f.friend_id);
       } else if (type === "followers") {
@@ -476,7 +503,7 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
               {/* Clickable Stats row */}
               <div className="flex items-center gap-5 mt-3">
                 <button onClick={() => openList("following")} className="text-center hover:opacity-70 transition-opacity">
-                  <p className="text-sm font-bold text-foreground">{liveFollowing}</p>
+                  <p className="text-sm font-bold text-foreground">{isViewedUserAdmin ? 1 : liveFollowing}</p>
                   <p className="text-[10px] text-muted-foreground uppercase">Following</p>
                 </button>
                 <button onClick={() => openList("followers")} className="text-center hover:opacity-70 transition-opacity">
@@ -484,7 +511,7 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
                   <p className="text-[10px] text-muted-foreground uppercase">Followers</p>
                 </button>
                 <button onClick={() => openList("fans")} className="text-center hover:opacity-70 transition-opacity">
-                  <p className="text-sm font-bold text-foreground">{currentUser.fansCount ?? 0}</p>
+                  <p className="text-sm font-bold text-foreground">{isViewedUserAdmin ? 255 : (currentUser.fansCount ?? 0)}</p>
                   <p className="text-[10px] text-muted-foreground uppercase">Fans</p>
                 </button>
               </div>

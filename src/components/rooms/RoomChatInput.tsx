@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Send, Image, Link2, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Send, Image, Link2, X, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,8 +16,20 @@ export function RoomChatInput({ roomId, userId, onSend }: RoomChatInputProps) {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Check if current user is admin
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      const roles = (data || []).map((r: any) => r.role);
+      setIsAdmin(roles.includes("admin") || roles.includes("root"));
+    })();
+  }, [userId]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -82,10 +94,16 @@ export function RoomChatInput({ roomId, userId, onSend }: RoomChatInputProps) {
       )}
 
       <div className="px-3 py-2 flex items-center gap-2">
-        <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+        {isAdmin && <input ref={videoRef} type="file" accept="video/*" className="hidden" onChange={handleFileSelect} />}
         <button onClick={() => fileRef.current?.click()} className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground">
           <Image className="w-5 h-5" />
         </button>
+        {isAdmin && (
+          <button onClick={() => videoRef.current?.click()} className="p-2 rounded-full hover:bg-muted transition-colors text-primary">
+            <Video className="w-5 h-5" />
+          </button>
+        )}
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}

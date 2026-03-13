@@ -6,9 +6,7 @@ import { useNotificationSound } from "@/hooks/useNotificationSound";
 import { toast } from "sonner";
 
 /**
- * Global listener for incoming chat messages.
- * Shows an in-app banner (Sonner toast) when a message arrives
- * and the user is NOT currently viewing that specific conversation.
+ * Global listener for incoming chat messages AND admin broadcast alerts.
  */
 export function useGlobalMessageListener() {
   const { user } = useAuth();
@@ -16,10 +14,6 @@ export function useGlobalMessageListener() {
   const playSound = useNotificationSound();
   const openConversationRef = useRef<string | null>(null);
 
-  // Determine if user is on chat page — the chat page stores selectedFriend
-  // in component state, so we use a DOM-based signal: a hidden data attribute
-  // set by Chat.tsx.  Simpler approach: if NOT on /chat, always show banner.
-  // If ON /chat, we read the data attribute from document.
   useEffect(() => {
     const el = document.getElementById("active-chat-partner");
     openConversationRef.current = el?.getAttribute("data-partner-id") || null;
@@ -42,12 +36,10 @@ export function useGlobalMessageListener() {
           const msg = payload.new;
           if (!msg || msg.sender_id === user.id) return;
 
-          // Check if user is currently viewing this conversation
           const el = document.getElementById("active-chat-partner");
           const currentPartnerId = el?.getAttribute("data-partner-id") || null;
-          if (currentPartnerId === msg.sender_id) return; // Already in that chat
+          if (currentPartnerId === msg.sender_id) return;
 
-          // Fetch sender name + avatar
           const { data: sender } = await supabase
             .from("profiles")
             .select("username, avatar_url")
@@ -61,11 +53,9 @@ export function useGlobalMessageListener() {
               : msg.content
             : "📷 Media";
 
-          // Play notification sound
           try { playSound("ting"); } catch {}
 
-          // Show Sonner toast banner — entire toast navigates on click
-          const toastId = toast(senderName, {
+          toast(senderName, {
             description: preview,
             duration: 5000,
             action: {
@@ -85,11 +75,32 @@ export function useGlobalMessageListener() {
           });
         }
       )
+      // Listen for admin broadcast notifications
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          const notif = payload.new;
+          if (!notif || notif.type !== "system") return;
+
+          // Show broadcast popup for 3 seconds
+          toast("📢 " + (notif.title || "Alert"), {
+            description: notif.message || "",
+            duration: 3000,
+          });
+
+          try { playSound("ting"); } catch {}
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, [user?.id, navigate, playSound]);
-
 }

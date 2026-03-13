@@ -12,10 +12,12 @@ import {
   Lock,
   CreditCard,
   Key,
+  Bell,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -36,6 +38,7 @@ import {
 import { BlockedListManager } from "./BlockedListManager";
 import { PaymentHistoryModal } from "./PaymentHistoryModal";
 import { ChangePasswordModal } from "./ChangePasswordModal";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProfileSettingsModalProps {
   open: boolean;
@@ -46,16 +49,34 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile } = useProfile();
+  const { user } = useAuth();
   const [showBlockedList, setShowBlockedList] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showAlerts, setShowAlerts] = useState(false);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
   const [ghostMode, setGhostMode] = useState(false);
   const [appLockEnabled, setAppLockEnabled] = useState(() => localStorage.getItem("app_lock_enabled") === "true");
 
   useEffect(() => {
     if (profile) setGhostMode(!!(profile as any).is_ghost_mode);
   }, [profile]);
+
+  const fetchAlerts = async () => {
+    if (!user?.id) return;
+    setAlertsLoading(true);
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("type", "system")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setAlerts(data || []);
+    setAlertsLoading(false);
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -108,6 +129,13 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
   };
 
   const menuItems = [
+    {
+      icon: Bell,
+      label: "Support Team Alerts",
+      description: "View admin broadcasts",
+      onClick: () => { setShowAlerts(true); fetchAlerts(); },
+      color: "text-primary",
+    },
     ...(profile?.is_premium ? [{
       icon: CreditCard,
       label: "Payment History",
@@ -270,6 +298,38 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Support Team Alerts */}
+      <Dialog open={showAlerts} onOpenChange={setShowAlerts}>
+        <DialogContent className="glass-card border-border max-w-sm max-h-[70vh]">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Bell className="w-4 h-4 text-primary" /> Support Team Alerts
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh]">
+            {alertsLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : alerts.length === 0 ? (
+              <p className="text-center text-muted-foreground text-sm py-8">No alerts yet</p>
+            ) : (
+              <div className="space-y-2">
+                {alerts.map((a: any) => (
+                  <div key={a.id} className="p-3 rounded-xl border border-border bg-muted/30">
+                    <p className="text-xs font-medium text-foreground">{a.title}</p>
+                    {a.message && <p className="text-[10px] text-muted-foreground mt-0.5">{a.message}</p>}
+                    <p className="text-[9px] text-muted-foreground mt-1">
+                      {new Date(a.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
