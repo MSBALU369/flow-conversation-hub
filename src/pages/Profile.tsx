@@ -849,7 +849,7 @@ export default function Profile() {
 
           {/* Weekly Line Chart - Speaking Time */}
           <div className="glass-card p-5 mb-4 w-full">
-            {/* Header */}
+           {/* Header */}
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-primary" />
@@ -867,6 +867,46 @@ export default function Profile() {
                 {showCompare && selectedCompareUser ? selectedCompareUser.name : 'Compare'}
               </button>
             </div>
+
+            {/* Admin Graph Timeframe Controls */}
+            {(role === "admin" || role === "root") && (
+              <div className="mb-3 space-y-1.5">
+                <div className="flex items-center gap-1 flex-wrap">
+                  {([
+                    { key: "1m" as const, label: "1 Min" },
+                    { key: "1h" as const, label: "1 Hour" },
+                    { key: "1d" as const, label: "1 Day" },
+                    { key: "1w" as const, label: "1 Week" },
+                    { key: "custom" as const, label: "Custom" },
+                  ]).map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => setChartTimeframe(t.key)}
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-medium transition-colors border ${
+                        chartTimeframe === t.key
+                          ? "bg-primary/15 border-primary/30 text-primary"
+                          : "bg-muted/50 border-border text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                {chartTimeframe === "custom" && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={10080}
+                      value={customMinutes}
+                      onChange={e => setCustomMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-20 h-6 text-[10px] bg-muted border border-border rounded px-1.5 text-foreground"
+                    />
+                    <span className="text-[9px] text-muted-foreground">minutes ago</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Stats area - above chart */}
             {showCompare && selectedCompareUser ? (
