@@ -92,14 +92,23 @@ export default function Learn() {
     let result = filtered;
     if (selectedCategory !== "All") result = result.filter(c => c.subcategory === selectedCategory);
     if (typeFilter !== "all") result = result.filter(c => c.category === typeFilter);
-    // Put ONE English item first, then other categories, then remaining English
-    const english = result.filter(c => c.subcategory?.toLowerCase().includes("english"));
-    const others = result.filter(c => !c.subcategory?.toLowerCase().includes("english"));
-    const reordered: typeof result = [];
-    if (english.length > 0) reordered.push(english[0]);
-    reordered.push(...others);
-    reordered.push(...english.slice(1));
-    return reordered;
+    // Sort: items with working cover images first, then fallback-logo ones last
+    // Within each group: ONE English item first, then other categories, then remaining English
+    const hasImage = (c: Course) => !!c.cover_url && !c.cover_url.includes('ef-logo') && !c.cover_url.includes('placeholder');
+    const withCovers = result.filter(hasImage);
+    const withoutCovers = result.filter(c => !hasImage(c));
+
+    const reorder = (items: typeof result) => {
+      const eng = items.filter(c => c.subcategory?.toLowerCase().includes("english"));
+      const rest = items.filter(c => !c.subcategory?.toLowerCase().includes("english"));
+      const out: typeof result = [];
+      if (eng.length > 0) out.push(eng[0]);
+      out.push(...rest);
+      out.push(...eng.slice(1));
+      return out;
+    };
+
+    return [...reorder(withCovers), ...reorder(withoutCovers)];
   }, [filtered, selectedCategory, typeFilter]);
 
   // Top picks = trending items (highest clicks) for user's country
