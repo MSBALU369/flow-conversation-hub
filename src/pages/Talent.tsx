@@ -101,6 +101,7 @@ export default function Talent() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [profilePopupUser, setProfilePopupUser] = useState<any>(null);
+  const [isBackgroundUploading, setIsBackgroundUploading] = useState(false);
 
   // Load hidden_talents from profile on mount
   useEffect(() => {
