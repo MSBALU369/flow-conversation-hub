@@ -1,15 +1,12 @@
 import { useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Ban, Coins, Trash2, LogOut, Zap, Clock } from "lucide-react";
+import { Ban, Coins, Trash2, LogOut, Zap, Clock, EyeOff, ShieldAlert } from "lucide-react";
 
 interface UserRow {
   id: string;
@@ -20,6 +17,7 @@ interface UserRow {
   created_at: string;
   is_premium: boolean | null;
   is_banned: boolean | null;
+  is_hidden?: boolean | null;
 }
 
 interface AdminUserActionModalProps {
@@ -35,21 +33,19 @@ export function AdminUserActionModal({ open, onOpenChange, user, onRefresh }: Ad
   const [coinAdjust, setCoinAdjust] = useState("");
   const [energyAdjust, setEnergyAdjust] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!user) return null;
 
+  // BAN: permanently block email from re-registering
   const handleBan = async (duration: string) => {
     setLoading(true);
-    const banUntil = duration === "permanent" ? null : (() => {
-      const d = new Date();
-      if (duration === "1h") d.setHours(d.getHours() + 1);
-      if (duration === "24h") d.setHours(d.getHours() + 24);
-      if (duration === "7d") d.setDate(d.getDate() + 7);
-      return d.toISOString();
-    })();
-    
     await supabase.from("profiles").update({ is_banned: true } as any).eq("id", user.id);
-    toast({ title: "User Banned", description: `${user.username || user.email} banned ${duration === "permanent" ? "permanently" : `for ${duration}`}` });
+    // Add email to banned_emails table so they can never re-register
+    if (user.email) {
+      await supabase.from("banned_emails" as any).upsert({ email: user.email.toLowerCase(), reason: `Banned ${duration}` } as any, { onConflict: "email" });
+    }
+    toast({ title: "User Banned", description: `${user.username || user.email} banned. Email blocked from re-registering.` });
     setBanMenu(false);
     setLoading(false);
     onRefresh();
@@ -58,7 +54,32 @@ export function AdminUserActionModal({ open, onOpenChange, user, onRefresh }: Ad
   const handleUnban = async () => {
     setLoading(true);
     await supabase.from("profiles").update({ is_banned: false } as any).eq("id", user.id);
-    toast({ title: "User Unbanned" });
+    // Remove email from banned list
+    if (user.email) {
+      await supabase.from("banned_emails" as any).delete().eq("email", user.email.toLowerCase());
+    }
+    toast({ title: "User Unbanned", description: "Email removed from block list." });
+    setLoading(false);
+    onRefresh();
+  };
+
+  // DELETE: remove account, allow email re-registration
+  const handleDeleteUser = async () => {
+    setLoading(true);
+    await supabase.rpc("delete_user_account", { p_user_id: user.id });
+    toast({ title: "User Deleted", description: `${user.username || user.email} deleted. Email can be used to register again.`, variant: "destructive" });
+    setConfirmDelete(false);
+    setLoading(false);
+    onOpenChange(false);
+    onRefresh();
+  };
+
+  // HIDE: make user invisible to everyone except admin and themselves
+  const handleToggleHide = async () => {
+    setLoading(true);
+    const newHidden = !(user as any).is_hidden;
+    await supabase.from("profiles").update({ is_hidden: newHidden } as any).eq("id", user.id);
+    toast({ title: newHidden ? "User Hidden" : "User Unhidden", description: newHidden ? "User is now invisible to all other users." : "User is visible again." });
     setLoading(false);
     onRefresh();
   };
@@ -86,25 +107,10 @@ export function AdminUserActionModal({ open, onOpenChange, user, onRefresh }: Ad
     onRefresh();
   };
 
-  const handleWipeData = async () => {
-    setLoading(true);
-    // Delete user data from related tables
-    await Promise.all([
-      supabase.from("call_history").delete().eq("user_id", user.id),
-      supabase.from("chat_messages").delete().or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`),
-      supabase.from("notifications").delete().eq("user_id", user.id),
-      supabase.from("coin_transactions").delete().or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`),
-    ]);
-    toast({ title: "Data Wiped", description: `All data for ${user.username || user.email} has been deleted`, variant: "destructive" });
-    setLoading(false);
-    onRefresh();
-  };
-
   const handleForceLogout = async () => {
     setLoading(true);
-    // Mark user offline - their session can be invalidated server-side
     await supabase.from("profiles").update({ is_online: false } as any).eq("id", user.id);
-    toast({ title: "Force Logout", description: "User marked offline. Session invalidation requires Supabase Admin SDK." });
+    toast({ title: "Force Logout", description: "User marked offline." });
     setLoading(false);
   };
 
@@ -113,7 +119,7 @@ export function AdminUserActionModal({ open, onOpenChange, user, onRefresh }: Ad
       <DialogContent className="border-border max-w-md bg-background max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">
-            User: {user.username || "Unknown"} 
+            User: {user.username || "Unknown"}
             <span className="text-xs text-muted-foreground ml-2">{user.email}</span>
           </DialogTitle>
         </DialogHeader>
@@ -135,14 +141,25 @@ export function AdminUserActionModal({ open, onOpenChange, user, onRefresh }: Ad
             </div>
           </div>
 
-          {/* Timed Ban Actions */}
+          {/* Status Indicators */}
+          <div className="flex gap-2 flex-wrap">
+            {user.is_banned && (
+              <span className="text-[9px] px-2 py-1 rounded-full bg-destructive/20 text-destructive font-medium">🚫 Banned</span>
+            )}
+            {(user as any).is_hidden && (
+              <span className="text-[9px] px-2 py-1 rounded-full bg-purple-500/20 text-purple-600 font-medium">👻 Hidden</span>
+            )}
+          </div>
+
+          {/* Ban Actions */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-              <Ban className="w-3.5 h-3.5" /> Timed Actions
+              <Ban className="w-3.5 h-3.5" /> Ban (blocks email permanently)
             </h4>
+            <p className="text-[10px] text-muted-foreground">Banned users cannot create a new account with the same email.</p>
             {user.is_banned ? (
               <Button variant="outline" size="sm" className="w-full" onClick={handleUnban} disabled={loading}>
-                Unban User
+                Unban User & Remove Email Block
               </Button>
             ) : banMenu ? (
               <div className="grid grid-cols-2 gap-2">
@@ -159,46 +176,68 @@ export function AdminUserActionModal({ open, onOpenChange, user, onRefresh }: Ad
             )}
           </div>
 
+          {/* Hide Action */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <EyeOff className="w-3.5 h-3.5" /> Hide (invisible to others)
+            </h4>
+            <p className="text-[10px] text-muted-foreground">Hidden users are invisible to everyone except admin and the user themselves.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleToggleHide}
+              disabled={loading}
+            >
+              <EyeOff className="w-3.5 h-3.5 mr-1" />
+              {(user as any).is_hidden ? "Unhide User" : "Hide User"}
+            </Button>
+          </div>
+
           {/* Economy Actions */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
               <Coins className="w-3.5 h-3.5" /> Economy Actions
             </h4>
             <div className="flex gap-2">
-              <Input
-                placeholder="+100 or -50"
-                value={coinAdjust}
-                onChange={(e) => setCoinAdjust(e.target.value)}
-                className="h-8 text-xs bg-muted border-border"
-              />
+              <Input placeholder="+100 or -50" value={coinAdjust} onChange={(e) => setCoinAdjust(e.target.value)} className="h-8 text-xs bg-muted border-border" />
               <Button size="sm" onClick={handleAdjustCoins} disabled={loading}>Adjust Coins</Button>
             </div>
             <div className="flex gap-2">
-              <Input
-                placeholder="Set energy (0-7)"
-                value={energyAdjust}
-                onChange={(e) => setEnergyAdjust(e.target.value)}
-                className="h-8 text-xs bg-muted border-border"
-              />
+              <Input placeholder="Set energy (0-7)" value={energyAdjust} onChange={(e) => setEnergyAdjust(e.target.value)} className="h-8 text-xs bg-muted border-border" />
               <Button size="sm" onClick={handleSetEnergy} disabled={loading}>
                 <Zap className="w-3 h-3 mr-1" /> Set
               </Button>
             </div>
           </div>
 
-          {/* Destructive Actions */}
+          {/* Delete Action */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-              <Trash2 className="w-3.5 h-3.5" /> Destructive Actions
+              <Trash2 className="w-3.5 h-3.5" /> Delete (allows re-registration)
             </h4>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="destructive" size="sm" onClick={handleWipeData} disabled={loading}>
-                <Trash2 className="w-3.5 h-3.5 mr-1" /> Wipe Data
+            <p className="text-[10px] text-muted-foreground">Deleted users can create a new account with the same email address.</p>
+            {confirmDelete ? (
+              <div className="flex gap-2">
+                <Button variant="destructive" size="sm" className="flex-1" onClick={handleDeleteUser} disabled={loading}>
+                  ⚠️ Confirm Delete
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)} disabled={loading}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button variant="destructive" size="sm" className="w-full" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete User Account
               </Button>
-              <Button variant="destructive" size="sm" onClick={handleForceLogout} disabled={loading}>
-                <LogOut className="w-3.5 h-3.5 mr-1" /> Force Logout
-              </Button>
-            </div>
+            )}
+          </div>
+
+          {/* Force Logout */}
+          <div className="space-y-2">
+            <Button variant="outline" size="sm" className="w-full" onClick={handleForceLogout} disabled={loading}>
+              <LogOut className="w-3.5 h-3.5 mr-1" /> Force Logout
+            </Button>
           </div>
         </div>
       </DialogContent>

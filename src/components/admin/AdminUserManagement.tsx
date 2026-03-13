@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Users, Crown, UserCheck, Search, MoreVertical, Eye, AlertTriangle,
-  Ban, ChevronDown, X,
+  Ban, ChevronDown, X, EyeOff, Trash2, ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,11 +27,12 @@ interface UserRow {
   created_at: string;
   is_premium: boolean | null;
   is_banned: boolean | null;
+  is_hidden?: boolean | null;
   deletion_requested_at?: string | null;
   reports_count?: number | null;
 }
 
-type UserFilter = "all" | "premium" | "free";
+type UserFilter = "all" | "premium" | "free" | "banned" | "hidden" | "flagged";
 
 interface AdminUserManagementProps {
   users: UserRow[];
@@ -39,19 +40,33 @@ interface AdminUserManagementProps {
   onSelectUser: (user: UserRow) => void;
   onBanUsers: (ids: string[]) => void;
   onWarnUsers: (ids: string[]) => void;
+  onHideUsers?: (ids: string[]) => void;
+  onDeleteUsers?: (ids: string[]) => void;
 }
 
 export function AdminUserManagement({
-  users, loading, onSelectUser, onBanUsers, onWarnUsers,
+  users, loading, onSelectUser, onBanUsers, onWarnUsers, onHideUsers, onDeleteUsers,
 }: AdminUserManagementProps) {
   const [filter, setFilter] = useState<UserFilter>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  const counts = useMemo(() => ({
+    all: users.length,
+    premium: users.filter(u => u.is_premium).length,
+    free: users.filter(u => !u.is_premium).length,
+    banned: users.filter(u => u.is_banned).length,
+    hidden: users.filter(u => (u as any).is_hidden).length,
+    flagged: users.filter(u => (u.reports_count ?? 0) >= 3).length,
+  }), [users]);
+
   const filtered = useMemo(() => {
     let list = users;
     if (filter === "premium") list = list.filter(u => u.is_premium);
     if (filter === "free") list = list.filter(u => !u.is_premium);
+    if (filter === "banned") list = list.filter(u => u.is_banned);
+    if (filter === "hidden") list = list.filter(u => (u as any).is_hidden);
+    if (filter === "flagged") list = list.filter(u => (u.reports_count ?? 0) >= 3);
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(u =>
@@ -66,11 +81,8 @@ export function AdminUserManagement({
   const someSelected = selected.size > 0;
 
   const toggleAll = () => {
-    if (allSelected) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(filtered.map(u => u.id)));
-    }
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(filtered.map(u => u.id)));
   };
 
   const toggleOne = (id: string) => {
@@ -86,6 +98,7 @@ export function AdminUserManagement({
   const getStatus = (u: UserRow) => {
     if (u.deletion_requested_at) return "frozen";
     if (u.is_banned) return "banned";
+    if ((u as any).is_hidden) return "hidden";
     if ((u.reports_count ?? 0) >= 3) return "flagged";
     return "active";
   };
@@ -96,6 +109,8 @@ export function AdminUserManagement({
         return <Badge variant="destructive" className="text-[9px] px-1.5 py-0 h-5">Banned</Badge>;
       case "frozen":
         return <Badge className="text-[9px] px-1.5 py-0 h-5 bg-orange-500/20 text-orange-600 border-orange-500/30 hover:bg-orange-500/30">Frozen</Badge>;
+      case "hidden":
+        return <Badge className="text-[9px] px-1.5 py-0 h-5 bg-purple-500/20 text-purple-600 border-purple-500/30 hover:bg-purple-500/30">Hidden</Badge>;
       case "flagged":
         return <Badge className="text-[9px] px-1.5 py-0 h-5 bg-yellow-500/20 text-yellow-600 border-yellow-500/30 hover:bg-yellow-500/30">Flagged</Badge>;
       default:
@@ -103,35 +118,33 @@ export function AdminUserManagement({
     }
   };
 
-  const tabs: { key: UserFilter; label: string; icon: React.ElementType; count: number }[] = [
-    { key: "all", label: "All Users", icon: Users, count: users.length },
-    { key: "premium", label: "Premium", icon: Crown, count: users.filter(u => u.is_premium).length },
-    { key: "free", label: "Free", icon: UserCheck, count: users.filter(u => !u.is_premium).length },
+  const statCards: { key: UserFilter; label: string; icon: React.ElementType; count: number; color: string }[] = [
+    { key: "all", label: "All Users", icon: Users, count: counts.all, color: "text-foreground" },
+    { key: "premium", label: "Premium", icon: Crown, count: counts.premium, color: "text-primary" },
+    { key: "free", label: "Free", icon: UserCheck, count: counts.free, color: "text-muted-foreground" },
+    { key: "banned", label: "Banned", icon: Ban, count: counts.banned, color: "text-destructive" },
+    { key: "hidden", label: "Hidden", icon: EyeOff, count: counts.hidden, color: "text-purple-500" },
+    { key: "flagged", label: "Flagged", icon: ShieldAlert, count: counts.flagged, color: "text-yellow-500" },
   ];
 
   return (
     <div className="space-y-4 mt-4">
-      {/* Segmented Tabs */}
-      <div className="flex gap-1 p-1 bg-muted/50 rounded-lg">
-        {tabs.map(t => (
+      {/* Clickable Stat Cards */}
+      <div className="grid grid-cols-3 gap-2">
+        {statCards.map(s => (
           <button
-            key={t.key}
-            onClick={() => { setFilter(t.key); clearSelection(); }}
+            key={s.key}
+            onClick={() => { setFilter(s.key); clearSelection(); }}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200",
-              filter === t.key
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              "flex flex-col items-center gap-1 p-3 rounded-xl border transition-all duration-200",
+              filter === s.key
+                ? "bg-primary/10 border-primary/30 shadow-sm ring-1 ring-primary/20"
+                : "bg-muted/30 border-border hover:bg-muted/60 hover:border-primary/20"
             )}
           >
-            <t.icon className="w-3.5 h-3.5" />
-            {t.label}
-            <span className={cn(
-              "text-[9px] px-1.5 py-0.5 rounded-full font-semibold",
-              filter === t.key ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-            )}>
-              {t.count}
-            </span>
+            <s.icon className={cn("w-4 h-4", s.color)} />
+            <span className={cn("text-xl font-bold", s.color)}>{s.count}</span>
+            <span className="text-[9px] text-muted-foreground font-medium">{s.label}</span>
           </button>
         ))}
       </div>
@@ -166,6 +179,19 @@ export function AdminUserManagement({
               <DropdownMenuItem onClick={() => onWarnUsers(Array.from(selected))} className="text-xs gap-2">
                 <AlertTriangle className="w-3.5 h-3.5" /> Send Warning
               </DropdownMenuItem>
+              {onHideUsers && (
+                <DropdownMenuItem onClick={() => onHideUsers(Array.from(selected))} className="text-xs gap-2">
+                  <EyeOff className="w-3.5 h-3.5" /> Hide Selected
+                </DropdownMenuItem>
+              )}
+              {onDeleteUsers && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onDeleteUsers(Array.from(selected))} className="text-destructive text-xs gap-2">
+                    <Trash2 className="w-3.5 h-3.5" /> Delete Selected
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={clearSelection} className="text-xs gap-2">
                 <X className="w-3.5 h-3.5" /> Clear Selection
@@ -192,11 +218,7 @@ export function AdminUserManagement({
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="w-10">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={toggleAll}
-                      aria-label="Select all"
-                    />
+                    <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
                   </TableHead>
                   <TableHead className="text-[10px] font-semibold">User</TableHead>
                   <TableHead className="text-[10px] font-semibold">Email</TableHead>
@@ -219,11 +241,7 @@ export function AdminUserManagement({
                       )}
                     >
                       <TableCell className="py-2">
-                        <Checkbox
-                          checked={isChecked}
-                          onCheckedChange={() => toggleOne(u.id)}
-                          aria-label={`Select ${u.username || u.email}`}
-                        />
+                        <Checkbox checked={isChecked} onCheckedChange={() => toggleOne(u.id)} aria-label={`Select ${u.username || u.email}`} />
                       </TableCell>
                       <TableCell className="py-2">
                         <div className="flex items-center gap-2">
@@ -233,14 +251,10 @@ export function AdminUserManagement({
                               {(u.username || u.email || "?")[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-xs font-medium truncate max-w-[80px]">
-                            {u.username || "—"}
-                          </span>
+                          <span className="text-xs font-medium truncate max-w-[80px]">{u.username || "—"}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-[10px] text-muted-foreground py-2 max-w-[100px] truncate">
-                        {u.email || "—"}
-                      </TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground py-2 max-w-[100px] truncate">{u.email || "—"}</TableCell>
                       <TableCell className="py-2">
                         {u.is_premium ? (
                           <Badge className="text-[9px] px-1.5 py-0 h-5 bg-primary/15 text-primary border-primary/30 hover:bg-primary/20 gap-0.5">
@@ -261,20 +275,27 @@ export function AdminUserManagement({
                               <MoreVertical className="w-4 h-4 text-muted-foreground" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="min-w-[140px]">
+                          <DropdownMenuContent align="end" className="min-w-[160px]">
                             <DropdownMenuItem onClick={() => onSelectUser(u)} className="text-xs gap-2">
-                              <Eye className="w-3.5 h-3.5" /> View Profile
+                              <Eye className="w-3.5 h-3.5" /> View / Actions
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onWarnUsers([u.id])} className="text-xs gap-2">
                               <AlertTriangle className="w-3.5 h-3.5" /> Send Warning
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onBanUsers([u.id])}
-                              className="text-destructive text-xs gap-2"
-                            >
+                            {onHideUsers && (
+                              <DropdownMenuItem onClick={() => onHideUsers([u.id])} className="text-xs gap-2">
+                                <EyeOff className="w-3.5 h-3.5" /> {(u as any).is_hidden ? "Unhide" : "Hide User"}
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => onBanUsers([u.id])} className="text-destructive text-xs gap-2">
                               <Ban className="w-3.5 h-3.5" /> {u.is_banned ? "Unban" : "Ban User"}
                             </DropdownMenuItem>
+                            {onDeleteUsers && (
+                              <DropdownMenuItem onClick={() => onDeleteUsers([u.id])} className="text-destructive text-xs gap-2">
+                                <Trash2 className="w-3.5 h-3.5" /> Delete User
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
