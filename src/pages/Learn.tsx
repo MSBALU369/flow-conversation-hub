@@ -92,6 +92,12 @@ export default function Learn() {
     let result = filtered;
     if (selectedCategory !== "All") result = result.filter(c => c.subcategory === selectedCategory);
     if (typeFilter !== "all") result = result.filter(c => c.category === typeFilter);
+    // Sort: English-related subcategories first
+    result.sort((a, b) => {
+      const aIsEnglish = a.subcategory?.toLowerCase().includes("english") ? 0 : 1;
+      const bIsEnglish = b.subcategory?.toLowerCase().includes("english") ? 0 : 1;
+      return aIsEnglish - bIsEnglish;
+    });
     return result;
   }, [filtered, selectedCategory, typeFilter]);
 
