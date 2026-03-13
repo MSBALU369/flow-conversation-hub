@@ -571,6 +571,11 @@ export default function Admin() {
             <AdminVersionControl />
           </TabsContent>
 
+          {/* TAB: SYSTEM HEALTH DASHBOARD */}
+          <TabsContent value="system">
+            <SystemHealthDashboard />
+          </TabsContent>
+
           {/* TAB 2: DEEP USER MANAGEMENT */}
           <TabsContent value="users">
             <AdminUserManagement
