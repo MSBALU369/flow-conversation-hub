@@ -64,6 +64,20 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
     if (profile) setGhostMode(!!(profile as any).is_ghost_mode);
   }, [profile]);
 
+  const fetchAlerts = async () => {
+    if (!user?.id) return;
+    setAlertsLoading(true);
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("type", "system")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setAlerts(data || []);
+    setAlertsLoading(false);
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast({
