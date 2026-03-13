@@ -76,7 +76,7 @@ export default function Learn() {
 
   const categoryChips = useMemo(() => {
     const subs = new Set(filtered.map(c => c.subcategory).filter(Boolean));
-    const priorityOrder = ["IT(Software) & AI", "Govt Exams", "English", "Communication"];
+    const priorityOrder = ["English Mastery", "English", "IT(Software) & AI", "Govt Exams", "Communication"];
     const sorted = Array.from(subs).sort((a, b) => {
       const ai = priorityOrder.indexOf(a);
       const bi = priorityOrder.indexOf(b);

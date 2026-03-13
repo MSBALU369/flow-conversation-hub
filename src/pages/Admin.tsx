@@ -1078,6 +1078,8 @@ export default function Admin() {
         user={selectedUser}
         onRefresh={fetchAll}
       />
+
+      <BottomNav />
     </div>
   );
 }
