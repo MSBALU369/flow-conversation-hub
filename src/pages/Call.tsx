@@ -1336,8 +1336,10 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
             </Button>
             <Button variant="destructive" onClick={() => {
               setShowEndCallWarning(false);
-              // Use the same deferred flow — handleEndCall will mute + show post-call modal for random calls
-              handleEndCall();
+              // Rating already collected in this warning dialog — skip post-call modal, submit directly
+              pendingEndDurationRef.current = seconds;
+              pendingFeedbackRef.current = true;
+              handleSubmitPostCall();
             }} className="flex-1">
               End Call
             </Button>
