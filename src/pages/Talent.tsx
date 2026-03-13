@@ -312,7 +312,11 @@ export default function Talent() {
     }));
   }, []);
 
-  const handleUploadTalent = async () => {
+  // Fetch talents on mount and navigation
+  useEffect(() => {
+    fetchTalentsList();
+  }, [location.key, fetchTalentsList]);
+
     if (!user?.id) {
       toast({ title: "Login required", description: "Please log in to upload talent.", variant: "destructive" });
       return;
