@@ -384,6 +384,150 @@ export default function Admin() {
               );
             })()}
 
+            {/* Super Admin Panel */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowSuperAdmin(!showSuperAdmin)}
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-primary">Super Admin</p>
+                    <p className="text-[10px] text-muted-foreground">Advanced platform controls</p>
+                  </div>
+                </div>
+                <Rocket className={cn("w-4 h-4 text-primary transition-transform", showSuperAdmin && "rotate-45")} />
+              </button>
+              {showSuperAdmin && (
+                <div className="rounded-xl border border-primary/20 bg-muted/30 p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                  {/* Broadcast Notification */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Send className="w-3.5 h-3.5" /> Broadcast Notification
+                    </h4>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Message to all users..."
+                        className="h-8 text-xs bg-background border-border flex-1"
+                        id="broadcast-msg"
+                      />
+                      <Button
+                        size="sm"
+                        className="h-8 text-[10px] gap-1"
+                        onClick={async () => {
+                          const msg = (document.getElementById("broadcast-msg") as HTMLInputElement)?.value;
+                          if (!msg?.trim()) return;
+                          const batch = users.map(u => ({
+                            user_id: u.id,
+                            type: "system",
+                            title: "📢 Admin Broadcast",
+                            message: msg.trim(),
+                            from_user_id: user.id,
+                          }));
+                          await supabase.from("notifications").insert(batch);
+                          (document.getElementById("broadcast-msg") as HTMLInputElement).value = "";
+                        }}
+                      >
+                        <Send className="w-3 h-3" /> Send
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Grant Premium */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Crown className="w-3.5 h-3.5" /> Grant Premium to User
+                    </h4>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Username or email..."
+                        className="h-8 text-xs bg-background border-border flex-1"
+                        id="grant-premium-input"
+                      />
+                      <Button
+                        size="sm"
+                        className="h-8 text-[10px] gap-1"
+                        onClick={async () => {
+                          const input = (document.getElementById("grant-premium-input") as HTMLInputElement)?.value?.trim().toLowerCase();
+                          if (!input) return;
+                          const target = users.find(u => (u.username || "").toLowerCase() === input || (u.email || "").toLowerCase() === input);
+                          if (!target) return;
+                          await supabase.rpc("admin_grant_premium", { p_target_user_id: target.id, p_duration_days: 30, p_bonus_coins: 100 });
+                          (document.getElementById("grant-premium-input") as HTMLInputElement).value = "";
+                          fetchAll();
+                        }}
+                      >
+                        <Crown className="w-3 h-3" /> Grant 30d
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Platform Stats Summary */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5" /> Platform Overview
+                    </h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-background rounded-lg p-2 text-center border border-border">
+                        <p className="text-lg font-bold text-foreground">{totalCalls}</p>
+                        <p className="text-[9px] text-muted-foreground">Total Calls</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-2 text-center border border-border">
+                        <p className="text-lg font-bold text-foreground">{totalRooms}</p>
+                        <p className="text-[9px] text-muted-foreground">Total Rooms</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-2 text-center border border-border">
+                        <p className="text-lg font-bold text-foreground">{totalTalents}</p>
+                        <p className="text-[9px] text-muted-foreground">Talents</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5" /> Quick Actions
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[10px] gap-1 justify-start"
+                        onClick={() => { setUserFilterPreset("banned"); setActiveTab("users"); }}
+                      >
+                        <Ban className="w-3 h-3 text-destructive" /> View Banned
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[10px] gap-1 justify-start"
+                        onClick={() => { setUserFilterPreset("flagged"); setActiveTab("users"); }}
+                      >
+                        <AlertTriangle className="w-3 h-3 text-yellow-500" /> View Flagged
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[10px] gap-1 justify-start"
+                        onClick={() => setActiveTab("tickets")}
+                      >
+                        <Ticket className="w-3 h-3" /> Open Tickets
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[10px] gap-1 justify-start"
+                        onClick={() => setActiveTab("deletions")}
+                      >
+                        <Trash2 className="w-3 h-3 text-destructive" /> Pending Deletes
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Tool Cards — Clickable */}
             <div>
               <h2 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
