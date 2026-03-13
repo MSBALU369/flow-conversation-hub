@@ -15,6 +15,7 @@ import {
   Search, Trash2, Ban, Ticket, CheckCircle2, Gift, UserMinus, Bomb, Reply, Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { ToolMetricsModal } from "@/components/admin/ToolMetricsModal";
 import { AdminUserActionModal } from "@/components/admin/AdminUserActionModal";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
