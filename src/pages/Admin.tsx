@@ -79,6 +79,8 @@ export default function Admin() {
   const [nukingTests, setNukingTests] = useState(false);
   const [replyingTicket, setReplyingTicket] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [activeTab, setActiveTab] = useState("health");
+  const [userFilterPreset, setUserFilterPreset] = useState<string | null>(null);
 
   // Guard
   useEffect(() => {
