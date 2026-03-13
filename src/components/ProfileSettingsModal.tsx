@@ -298,6 +298,38 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Support Team Alerts */}
+      <Dialog open={showAlerts} onOpenChange={setShowAlerts}>
+        <DialogContent className="glass-card border-border max-w-sm max-h-[70vh]">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Bell className="w-4 h-4 text-primary" /> Support Team Alerts
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh]">
+            {alertsLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : alerts.length === 0 ? (
+              <p className="text-center text-muted-foreground text-sm py-8">No alerts yet</p>
+            ) : (
+              <div className="space-y-2">
+                {alerts.map((a: any) => (
+                  <div key={a.id} className="p-3 rounded-xl border border-border bg-muted/30">
+                    <p className="text-xs font-medium text-foreground">{a.title}</p>
+                    {a.message && <p className="text-[10px] text-muted-foreground mt-0.5">{a.message}</p>}
+                    <p className="text-[9px] text-muted-foreground mt-1">
+                      {new Date(a.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
