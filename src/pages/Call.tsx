@@ -300,6 +300,16 @@ function CallRoomUI({ lk }: { lk: LiveKitState }) {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [room, profile?.id]);
 
+  // KeepAwake: prevent screen lock during active call
+  useEffect(() => {
+    if (room?.state === 'connected') {
+      KeepAwake.keepAwake().catch(() => {});
+    }
+    return () => {
+      KeepAwake.allowSleep().catch(() => {});
+    };
+  }, [room?.state]);
+
   // LiveKit: toggle mute — only after room is connected
   useEffect(() => {
     if (localParticipant && room?.state === 'connected') {
