@@ -317,6 +317,7 @@ export default function Talent() {
     fetchTalentsList();
   }, [location.key, fetchTalentsList]);
 
+  const handleUploadTalent = async () => {
     if (!user?.id) {
       toast({ title: "Login required", description: "Please log in to upload talent.", variant: "destructive" });
       return;
