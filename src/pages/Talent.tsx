@@ -208,6 +208,16 @@ export default function Talent() {
   const [audioCurrentTime, setAudioCurrentTime] = useState<Record<string, number>>({});
   const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
 
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>, postId: string) => {
+    const audio = audioElementsRef.current.get(postId);
+    if (!audio || !audio.duration || !isFinite(audio.duration)) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audio.currentTime = ratio * audio.duration;
+    setAudioProgress(prev => ({ ...prev, [postId]: ratio * 100 }));
+    setAudioCurrentTime(prev => ({ ...prev, [postId]: audio.currentTime }));
+  };
+
   // Recording timer
   useEffect(() => {
     if (isRecording) {
@@ -777,7 +787,7 @@ export default function Talent() {
                     <button onClick={() => togglePlay(post.id)} className={cn("w-7 h-7 rounded-full flex items-center justify-center transition-all", playingId === post.id ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80")}>
                       {playingId === post.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
                     </button>
-                    <div className="flex-1">
+                    <div className="flex-1 cursor-pointer" onClick={(e) => handleSeek(e, post.id)}>
                       <div className="h-1 bg-muted rounded-full overflow-hidden">
                         <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${audioProgress[post.id] || 0}%` }} />
                       </div>
@@ -1321,7 +1331,7 @@ export default function Talent() {
                           <button onClick={() => togglePlay(post.id)} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0", playingId === post.id ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80")}>
                             {playingId === post.id ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
                           </button>
-                          <div className="flex-1 h-0.5 bg-border rounded-full overflow-hidden">
+                          <div className="flex-1 h-0.5 bg-border rounded-full overflow-hidden cursor-pointer" onClick={(e) => handleSeek(e, post.id)}>
                             <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${audioProgress[post.id] || 0}%` }} />
                           </div>
                           <span className="text-[8px] text-muted-foreground shrink-0 tabular-nums">
@@ -1411,7 +1421,7 @@ export default function Talent() {
                         <button onClick={() => togglePlay(post.id)} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0", playingId === post.id ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80")}>
                           {playingId === post.id ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
                         </button>
-                        <div className="flex-1 h-0.5 bg-border rounded-full overflow-hidden">
+                        <div className="flex-1 h-0.5 bg-border rounded-full overflow-hidden cursor-pointer" onClick={(e) => handleSeek(e, post.id)}>
                           <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${audioProgress[post.id] || 0}%` }} />
                         </div>
                         <span className="text-[8px] text-muted-foreground shrink-0 tabular-nums">
@@ -1497,7 +1507,7 @@ export default function Talent() {
                 <button onClick={() => togglePlay(previewPost.id)} className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0", playingId === previewPost.id ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80")}>
                   {playingId === previewPost.id ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
                 </button>
-                <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden">
+                <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden cursor-pointer" onClick={(e) => handleSeek(e, previewPost.id)}>
                   <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${audioProgress[previewPost.id] || 0}%` }} />
                 </div>
                 <span className="text-[8px] text-muted-foreground shrink-0 tabular-nums">
