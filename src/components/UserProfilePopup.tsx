@@ -143,8 +143,19 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
       setListUsers([]);
       setHasMutualTalk(false);
       setFollowRequestSent(false);
+      setIsViewedUserAdmin(false);
     }
   }, [open, initialUser.id]);
+
+  // Check if viewed user is admin
+  useEffect(() => {
+    if (!open || !currentUser.id) return;
+    (async () => {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", currentUser.id);
+      const roles = (data || []).map((r: any) => r.role);
+      setIsViewedUserAdmin(roles.includes("admin") || roles.includes("root"));
+    })();
+  }, [open, currentUser.id]);
 
   // Check mutual talk status
   useEffect(() => {
