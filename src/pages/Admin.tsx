@@ -423,9 +423,13 @@ export default function Admin() {
               loading={loading}
               onSelectUser={setSelectedUser}
               onBanUsers={async (ids) => {
-                if (!confirm(`Ban ${ids.length} user(s)?`)) return;
+                if (!confirm(`Ban ${ids.length} user(s)? Their email(s) will be permanently blocked from re-registering.`)) return;
                 for (const id of ids) {
+                  const u = users.find(x => x.id === id);
                   await supabase.from("profiles").update({ is_banned: true } as any).eq("id", id);
+                  if (u?.email) {
+                    await supabase.from("banned_emails" as any).upsert({ email: u.email.toLowerCase(), reason: "Bulk banned by admin" } as any, { onConflict: "email" });
+                  }
                 }
                 fetchAll();
               }}
@@ -438,6 +442,21 @@ export default function Admin() {
                     message: "You have been warned for violating community guidelines. Continued violations may result in a ban.",
                     from_user_id: user.id,
                   });
+                }
+                fetchAll();
+              }}
+              onHideUsers={async (ids) => {
+                for (const id of ids) {
+                  const u = users.find(x => x.id === id);
+                  const isHidden = (u as any)?.is_hidden;
+                  await supabase.from("profiles").update({ is_hidden: !isHidden } as any).eq("id", id);
+                }
+                fetchAll();
+              }}
+              onDeleteUsers={async (ids) => {
+                if (!confirm(`Delete ${ids.length} user(s)? This is permanent but they can re-register with the same email.`)) return;
+                for (const id of ids) {
+                  await supabase.rpc("delete_user_account", { p_user_id: id });
                 }
                 fetchAll();
               }}
