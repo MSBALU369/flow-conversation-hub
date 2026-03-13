@@ -474,18 +474,15 @@ export default function Profile() {
     }
   };
   const canEditProfile = () => {
+    // Admin bypass: no rate limits
+    if (role === "admin" || role === "root") return true;
     if (!profile?.last_username_change) return true;
     const lastChange = new Date(profile.last_username_change);
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    // If last change was more than a week ago, allow
     if (lastChange < oneWeekAgo) return true;
-    // Count how many times changed this week by checking if last_username_change is within this week
-    // Since we only store the last change timestamp, we use a simple rule:
-    // Allow max 2 changes per week. We track this by checking the time gap.
-    // If the last change was less than 3.5 days ago (half a week), that means likely 2 changes already.
     const diffDays = (now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
-    if (diffDays < 3.5) return false; // Block: too soon after last change
+    if (diffDays < 3.5) return false;
     return true;
   };
   const handleEditName = async () => {
