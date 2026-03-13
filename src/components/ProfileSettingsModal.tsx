@@ -12,10 +12,12 @@ import {
   Lock,
   CreditCard,
   Key,
+  Bell,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -36,6 +38,7 @@ import {
 import { BlockedListManager } from "./BlockedListManager";
 import { PaymentHistoryModal } from "./PaymentHistoryModal";
 import { ChangePasswordModal } from "./ChangePasswordModal";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProfileSettingsModalProps {
   open: boolean;
@@ -46,10 +49,14 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile } = useProfile();
+  const { user } = useAuth();
   const [showBlockedList, setShowBlockedList] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showAlerts, setShowAlerts] = useState(false);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
   const [ghostMode, setGhostMode] = useState(false);
   const [appLockEnabled, setAppLockEnabled] = useState(() => localStorage.getItem("app_lock_enabled") === "true");
 
