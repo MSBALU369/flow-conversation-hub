@@ -1271,7 +1271,6 @@ export default function Talent() {
                   </div>
                 </div>
               </div>)
-              )
               }
               </div>
             </ScrollArea>
