@@ -119,7 +119,7 @@ export default function Talent() {
     const fetchTalents = async () => {
       const { data } = await supabase.
       from("talent_uploads").
-      select("id, title, language, likes_count, plays_count, duration_sec, created_at, user_id, is_private").
+      select("id, title, language, category, likes_count, plays_count, duration_sec, created_at, user_id, is_private").
       eq("is_private", false).
       order("created_at", { ascending: false }).
       limit(50);
@@ -140,7 +140,7 @@ export default function Talent() {
           username: p?.username || "User",
           avatar: p?.avatar_url || null,
           language: t.language || "English",
-          category: "Singing",
+          category: (t as any).category || "Singing",
           title: t.title || "Untitled",
           likes: t.likes_count,
           plays: t.plays_count,
@@ -360,6 +360,7 @@ export default function Talent() {
         user_id: user.id,
         audio_url: publicUrl,
         language: uploadLanguage,
+        category: uploadCategory,
         title: uploadTitle.trim() || `${uploadCategory} in ${uploadLanguage}`,
         duration_sec: durationSeconds,
         is_private: uploadVisibility === "private",

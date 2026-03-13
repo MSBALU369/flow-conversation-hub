@@ -1076,6 +1076,7 @@ export type Database = {
       talent_uploads: {
         Row: {
           audio_url: string
+          category: string
           created_at: string
           description: string | null
           duration_sec: number | null
@@ -1089,6 +1090,7 @@ export type Database = {
         }
         Insert: {
           audio_url: string
+          category?: string
           created_at?: string
           description?: string | null
           duration_sec?: number | null
@@ -1102,6 +1104,7 @@ export type Database = {
         }
         Update: {
           audio_url?: string
+          category?: string
           created_at?: string
           description?: string | null
           duration_sec?: number | null
