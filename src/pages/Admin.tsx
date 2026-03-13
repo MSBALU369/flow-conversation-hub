@@ -529,6 +529,9 @@ export default function Admin() {
                       </Button>
                     </div>
                   </div>
+
+                  {/* Global Entity Controls */}
+                  <GlobalControlsPanel />
                 </div>
               )}
             </div>
