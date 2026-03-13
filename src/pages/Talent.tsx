@@ -115,46 +115,10 @@ export default function Talent() {
     loadHidden();
   }, [user?.id]);
 
-  // Fetch real talent posts from Supabase
+  // Fetch real talent posts from Supabase — uses cached fetchTalentsList
   useEffect(() => {
-    const fetchTalents = async () => {
-      const { data } = await supabase.
-      from("talent_uploads").
-      select("id, title, language, category, likes_count, plays_count, duration_sec, created_at, user_id, is_private").
-      eq("is_private", false).
-      order("created_at", { ascending: false }).
-      limit(50);
-
-      if (!data || data.length === 0) {setPosts([]);return;}
-
-      const userIds = [...new Set(data.map((t) => t.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_url").in("id", userIds);
-      const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
-
-      setPosts(data.map((t) => {
-        const p = profileMap.get(t.user_id);
-        const durMin = Math.floor((t.duration_sec || 0) / 60);
-        const durSec = (t.duration_sec || 0) % 60;
-        return {
-          id: t.id,
-          user_id: t.user_id,
-          username: p?.username || "User",
-          avatar: p?.avatar_url || null,
-          language: t.language || "English",
-          category: (t as any).category || "Singing",
-          title: t.title || "Untitled",
-          likes: t.likes_count,
-          plays: t.plays_count,
-          shares: 0,
-          duration: `${durMin}:${durSec.toString().padStart(2, '0')}`,
-          isLiked: false,
-          isFan: false,
-          isPrivate: t.is_private
-        };
-      }));
-    };
-    fetchTalents();
-  }, [location.key]);
+    fetchTalentsList();
+  }, [location.key, fetchTalentsList]);
 
   // Fetch real friends for sharing from mutual followers
   const [shareFriends, setShareFriends] = useState<{id: string;name: string;avatar: string | null;}[]>([]);
