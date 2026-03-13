@@ -119,7 +119,7 @@ export default function Talent() {
     const fetchTalents = async () => {
       const { data } = await supabase.
       from("talent_uploads").
-      select("id, title, language, likes_count, plays_count, duration_sec, created_at, user_id, is_private").
+      select("id, title, language, category, likes_count, plays_count, duration_sec, created_at, user_id, is_private").
       eq("is_private", false).
       order("created_at", { ascending: false }).
       limit(50);
