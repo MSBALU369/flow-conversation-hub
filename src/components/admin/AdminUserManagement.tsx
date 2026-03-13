@@ -52,6 +52,13 @@ export function AdminUserManagement({
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  // Sync filter when initialFilter changes (e.g. clicking stat cards on Health tab)
+  useEffect(() => {
+    if (initialFilter && ["all", "premium", "free", "banned", "hidden", "flagged"].includes(initialFilter)) {
+      setFilter(initialFilter as UserFilter);
+    }
+  }, [initialFilter]);
+
   const counts = useMemo(() => ({
     all: users.length,
     premium: users.filter(u => u.is_premium).length,
