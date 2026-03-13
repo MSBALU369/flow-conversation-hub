@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Users, DollarSign, Database, Phone, Mail, Crown,
-  AlertTriangle, Zap, Activity, Shield, Rocket, CreditCard, Globe,
+  AlertTriangle, Zap, Activity, Shield, Rocket, CreditCard, Globe, Server,
   Search, Trash2, Ban, Ticket, CheckCircle2, Gift, UserMinus, Bomb, Reply, Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
