@@ -15,6 +15,7 @@ import {
   Search, Trash2, Ban, Ticket, CheckCircle2, Gift, UserMinus, Bomb, Reply, Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { ToolMetricsModal } from "@/components/admin/ToolMetricsModal";
 import { AdminUserActionModal } from "@/components/admin/AdminUserActionModal";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
@@ -228,7 +229,7 @@ export default function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-8">
+    <div className="min-h-screen bg-background text-foreground pb-24">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate("/")} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
@@ -1077,6 +1078,8 @@ export default function Admin() {
         user={selectedUser}
         onRefresh={fetchAll}
       />
+
+      <BottomNav />
     </div>
   );
 }
