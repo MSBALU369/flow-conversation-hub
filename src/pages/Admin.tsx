@@ -92,7 +92,7 @@ export default function Admin() {
     setLoading(true);
 
     const [usersRes, todayTxRes, monthTxRes, callsRes, roomsRes, talentsRes, reportsRes, ticketsRes] = await Promise.all([
-      supabase.from("profiles").select("id, username, email, avatar_url, energy_bars, coins, created_at, is_premium, is_banned, deletion_requested_at, reports_count").order("created_at", { ascending: false }).limit(500),
+      supabase.from("profiles").select("id, username, email, avatar_url, energy_bars, coins, created_at, is_premium, is_banned, is_hidden, deletion_requested_at, reports_count").order("created_at", { ascending: false }).limit(500),
       (() => {
         const todayStart = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).toISOString();
         return supabase.from("coin_transactions").select("amount").gte("created_at", todayStart).eq("status", "completed");
