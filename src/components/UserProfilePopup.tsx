@@ -281,7 +281,22 @@ export function UserProfilePopup({ open, onOpenChange, user: initialUser, myName
     setListUsers([]);
     try {
       let userIds: string[] = [];
-      if (type === "following") {
+
+      // Admin illusion: "following" list shows only the viewer (if mutual) or a random user
+      if (isViewedUserAdmin && type === "following") {
+        if (isMutualFollow && myProfile?.id) {
+          userIds = [myProfile.id];
+        } else {
+          // Show a random user from the actual following list
+          const { data } = await supabase.from("friendships").select("friend_id").eq("user_id", currentUser.id).eq("status", "accepted").limit(1);
+          userIds = (data || []).map(f => f.friend_id);
+        }
+      } else if (isViewedUserAdmin && type === "fans") {
+        // Don't reveal actual fans for admin
+        setListUsers([]);
+        setListLoading(false);
+        return;
+      } else if (type === "following") {
         const { data } = await supabase.from("friendships").select("friend_id").eq("user_id", currentUser.id).eq("status", "accepted");
         userIds = (data || []).map(f => f.friend_id);
       } else if (type === "followers") {
