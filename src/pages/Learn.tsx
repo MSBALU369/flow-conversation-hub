@@ -92,13 +92,14 @@ export default function Learn() {
     let result = filtered;
     if (selectedCategory !== "All") result = result.filter(c => c.subcategory === selectedCategory);
     if (typeFilter !== "all") result = result.filter(c => c.category === typeFilter);
-    // Sort: English-related subcategories first
-    result.sort((a, b) => {
-      const aIsEnglish = a.subcategory?.toLowerCase().includes("english") ? 0 : 1;
-      const bIsEnglish = b.subcategory?.toLowerCase().includes("english") ? 0 : 1;
-      return aIsEnglish - bIsEnglish;
-    });
-    return result;
+    // Put ONE English item first, then other categories, then remaining English
+    const english = result.filter(c => c.subcategory?.toLowerCase().includes("english"));
+    const others = result.filter(c => !c.subcategory?.toLowerCase().includes("english"));
+    const reordered: typeof result = [];
+    if (english.length > 0) reordered.push(english[0]);
+    reordered.push(...others);
+    reordered.push(...english.slice(1));
+    return reordered;
   }, [filtered, selectedCategory, typeFilter]);
 
   // Top picks = trending items (highest clicks) for user's country
