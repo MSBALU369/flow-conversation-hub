@@ -1206,35 +1206,71 @@ export default function Talent() {
               filter((p) => myTalentFilter === "All" || p.category === myTalentFilter).
               filter((p) => myTalentVisibility === "all" || (myTalentVisibility === "public" ? !p.isPrivate : p.isPrivate)).
               map((post) =>
-              <button
-                key={post.id}
-                onClick={() => {setShowMyTalents(false);navigate(`/talent?id=${post.id}`);}}
-                className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left">
+              <div key={post.id} className="glass-card p-2.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    {post.avatar ? <img src={post.avatar} alt={post.username} className="w-full h-full rounded-full object-cover" /> : <span className="text-sm font-semibold">{post.username[0].toUpperCase()}</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="font-semibold text-foreground text-sm">{post.username}</span>
+                      <span className="text-[9px] text-primary bg-primary/20 px-1.5 py-0.5 rounded-full font-medium">{post.category}</span>
+                      <span className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{post.language}</span>
+                      {post.isPrivate && <span className="text-[9px] text-amber-500/90 bg-amber-500/10 px-1.5 py-0.5 rounded-full flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" />Private</span>}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="ml-auto p-1 rounded-full hover:bg-muted transition-colors">
+                            <MoreVertical className="w-3.5 h-3.5 text-muted-foreground" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-[140px] bg-popover border-border z-[200]">
+                          <DropdownMenuItem onClick={() => {setShowMyTalents(false);navigate(`/talent?id=${post.id}`);}}>
+                            <Eye className="w-4 h-4 mr-2" /> View in Feed
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDelete(post.id, true)} className="text-destructive focus:text-destructive">
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-1.5 truncate">{post.title}</p>
 
-                        <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                          <Mic className="w-4 h-4 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1">
-                            <p className="text-sm font-medium text-foreground truncate">{post.title}</p>
-                            {post.isPrivate && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] text-primary bg-primary/20 px-1.5 py-0.5 rounded-full">{post.category}</span>
-                            <span className="text-[10px] text-muted-foreground">{post.language}</span>
-                            {post.isPrivate && <span className="text-[10px] text-amber-500/90 bg-amber-500/10 px-1.5 py-0.5 rounded-full flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" />Private</span>}
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              <Heart className="w-2.5 h-2.5" /> {post.likes}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              <Play className="w-2.5 h-2.5" /> {post.plays}
-                            </span>
-                          </div>
-                        </div>
-                        <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-xs text-muted-foreground">{post.duration}</span>
+                    {/* Audio Player - same as main feed */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <button onClick={() => togglePlay(post.id)} className={cn("w-7 h-7 rounded-full flex items-center justify-center transition-all", playingId === post.id ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80")}>
+                        {playingId === post.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
                       </button>
-              )
+                      <div className="flex-1 cursor-pointer" onClick={(e) => handleSeek(e, post.id)}>
+                        <div className="h-1 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${audioProgress[post.id] || 0}%` }} />
+                        </div>
+                      </div>
+                      <span className="text-[9px] text-muted-foreground tabular-nums">
+                        {playingId === post.id && audioCurrentTime[post.id] != null
+                          ? `${Math.floor(audioCurrentTime[post.id] / 60)}:${Math.floor(audioCurrentTime[post.id] % 60).toString().padStart(2, '0')} / `
+                          : ""}
+                        {audioDuration[post.id] && isFinite(audioDuration[post.id])
+                          ? `${Math.floor(audioDuration[post.id] / 60)}:${Math.floor(audioDuration[post.id] % 60).toString().padStart(2, '0')}`
+                          : post.duration}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => toggleLike(post.id)} className="flex items-center gap-1 text-xs">
+                        <Heart className={cn("w-3.5 h-3.5 transition-colors", post.isLiked ? "fill-destructive text-destructive" : "text-muted-foreground")} />
+                        <span className={post.isLiked ? "text-destructive" : "text-muted-foreground"}>{post.likes}</span>
+                      </button>
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Play className="w-3.5 h-3.5" /> {post.plays}
+                      </span>
+                      <button onClick={() => handleCopyLink(post)} className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Share2 className="w-3.5 h-3.5" /> {post.shares}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>)
               }
               </div>
             </ScrollArea>
