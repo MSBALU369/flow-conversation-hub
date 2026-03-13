@@ -170,7 +170,7 @@ export default function Talent() {
   const [audioCurrentTime, setAudioCurrentTime] = useState<Record<string, number>>({});
   const [audioDuration, setAudioDuration] = useState<Record<string, number>>({});
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>, postId: string) => {
+  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>, postId: string) => {
     const audio = audioElementsRef.current.get(postId);
     if (!audio || !audio.duration || !isFinite(audio.duration)) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -178,7 +178,7 @@ export default function Talent() {
     audio.currentTime = ratio * audio.duration;
     setAudioProgress(prev => ({ ...prev, [postId]: ratio * 100 }));
     setAudioCurrentTime(prev => ({ ...prev, [postId]: audio.currentTime }));
-  };
+  }, []);
 
   // Recording timer
   useEffect(() => {
