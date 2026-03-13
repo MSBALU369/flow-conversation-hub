@@ -786,7 +786,7 @@ export default function Talent() {
                     <button onClick={() => togglePlay(post.id)} className={cn("w-7 h-7 rounded-full flex items-center justify-center transition-all", playingId === post.id ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/80")}>
                       {playingId === post.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
                     </button>
-                    <div className="flex-1">
+                    <div className="flex-1 cursor-pointer" onClick={(e) => handleSeek(e, post.id)}>
                       <div className="h-1 bg-muted rounded-full overflow-hidden">
                         <div className="h-full bg-primary rounded-full transition-all duration-100" style={{ width: `${audioProgress[post.id] || 0}%` }} />
                       </div>
