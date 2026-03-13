@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -37,6 +37,7 @@ type UserFilter = "all" | "premium" | "free" | "banned" | "hidden" | "flagged";
 interface AdminUserManagementProps {
   users: UserRow[];
   loading: boolean;
+  initialFilter?: string | null;
   onSelectUser: (user: UserRow) => void;
   onBanUsers: (ids: string[]) => void;
   onWarnUsers: (ids: string[]) => void;
@@ -45,11 +46,18 @@ interface AdminUserManagementProps {
 }
 
 export function AdminUserManagement({
-  users, loading, onSelectUser, onBanUsers, onWarnUsers, onHideUsers, onDeleteUsers,
+  users, loading, initialFilter, onSelectUser, onBanUsers, onWarnUsers, onHideUsers, onDeleteUsers,
 }: AdminUserManagementProps) {
-  const [filter, setFilter] = useState<UserFilter>("all");
+  const [filter, setFilter] = useState<UserFilter>((initialFilter as UserFilter) || "all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Sync filter when initialFilter changes (e.g. clicking stat cards on Health tab)
+  useEffect(() => {
+    if (initialFilter && ["all", "premium", "free", "banned", "hidden", "flagged"].includes(initialFilter)) {
+      setFilter(initialFilter as UserFilter);
+    }
+  }, [initialFilter]);
 
   const counts = useMemo(() => ({
     all: users.length,
