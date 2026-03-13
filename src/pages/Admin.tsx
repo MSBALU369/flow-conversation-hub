@@ -20,6 +20,8 @@ import { AdminUserActionModal } from "@/components/admin/AdminUserActionModal";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { PendingDeletionsTab } from "@/components/admin/PendingDeletionsTab";
 import { AdminVersionControl } from "@/components/admin/AdminVersionControl";
+import { SystemHealthDashboard } from "@/components/admin/SystemHealthDashboard";
+import { GlobalControlsPanel } from "@/components/admin/GlobalControlsPanel";
 
 const ADMIN_EMAILS = [
   "balumothe@gmail.com", "balumothe+test1@gmail.com",

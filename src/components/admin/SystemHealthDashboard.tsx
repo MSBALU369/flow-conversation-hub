@@ -59,7 +59,7 @@ export function SystemHealthDashboard() {
     const results: ServiceStatus[] = [];
 
     for (const svc of SERVICE_LIST) {
-      let status: "online" | "offline" = "offline";
+      let status: ServiceStatus["status"] = "offline";
       let latency = 0;
       const start = Date.now();
 
@@ -68,13 +68,11 @@ export function SystemHealthDashboard() {
           const { error } = await supabase.from("profiles").select("id").limit(1);
           status = error ? "offline" : "online";
         } else if (svc.name === "LiveKit") {
-          // Check via env var presence and a simple ping
           const lkUrl = import.meta.env.VITE_LIVEKIT_URL;
           status = lkUrl ? "online" : "unknown";
         } else if (svc.name === "Brevo (Email)") {
-          // Check if edge function responds
           try {
-            const { error } = await supabase.functions.invoke("send-support-reply", {
+            await supabase.functions.invoke("send-support-reply", {
               body: { ping: true },
             });
             status = "online";
@@ -82,9 +80,8 @@ export function SystemHealthDashboard() {
             status = "offline";
           }
         } else if (svc.name === "Vercel") {
-          status = window.location.hostname.includes("lovable") || window.location.hostname.includes("vercel") ? "online" : "online";
+          status = "online";
         } else {
-          // For services we can't directly ping, show as unknown
           status = "unknown";
         }
       } catch {
