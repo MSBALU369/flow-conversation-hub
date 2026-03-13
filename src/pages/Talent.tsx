@@ -68,6 +68,15 @@ const languages = [
 "Vietnamese",
 "Nepali"];
 
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>, postId: string) => {
+    const audio = audioElementsRef.current.get(postId);
+    if (!audio || !audio.duration || !isFinite(audio.duration)) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audio.currentTime = ratio * audio.duration;
+    setAudioProgress(prev => ({ ...prev, [postId]: ratio * 100 }));
+    setAudioCurrentTime(prev => ({ ...prev, [postId]: audio.currentTime }));
+  };
 
 // No mock data - talent posts fetched from Supabase
 export default function Talent() {
