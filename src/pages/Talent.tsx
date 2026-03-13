@@ -636,7 +636,7 @@ export default function Talent() {
     setReplyingTo(null);
   };
 
-  const filteredPosts = posts.filter((post) => !hiddenIds.has(post.id)).filter((post) => !post.isPrivate || post.username === (profile?.username || "You")).filter((post) => selectedLanguage === "All" || post.language === selectedLanguage).filter((post) => selectedCategory === "All" || post.category === selectedCategory).sort((a, b) => sortBy === "popular" ? b.likes - a.likes : 0);
+  const filteredPosts = useMemo(() => posts.filter((post) => !hiddenIds.has(post.id)).filter((post) => !post.isPrivate || post.username === (profile?.username || "You")).filter((post) => selectedLanguage === "All" || post.language === selectedLanguage).filter((post) => selectedCategory === "All" || post.category === selectedCategory).sort((a, b) => sortBy === "popular" ? b.likes - a.likes : 0), [posts, hiddenIds, profile?.username, selectedLanguage, selectedCategory, sortBy]);
   return <div className="min-h-screen bg-background pb-24">
       <AppHeader streakDays={profile?.streak_count ?? 1} level={profile?.level ?? 1} showLogout />
 
