@@ -81,6 +81,8 @@ export default function Profile() {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [showPremiumModalFromVisitors, setShowPremiumModalFromVisitors] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [chartTimeframe, setChartTimeframe] = useState<"1m" | "1h" | "1d" | "1w" | "custom">("1w");
+  const [customMinutes, setCustomMinutes] = useState(30);
 
   // Ad watching effect for coins
   useEffect(() => {
