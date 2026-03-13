@@ -298,19 +298,23 @@ export default function Admin() {
               </Card>
             </div>
 
-            {/* Quick Stats */}
+            {/* Quick Stats — Clickable to open Users tab with filter */}
             <div className="grid grid-cols-3 gap-2">
-              <div className="bg-muted/50 rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-foreground">{users.length}</p>
-                <p className="text-[10px] text-muted-foreground">Users</p>
-              </div>
-              <div className="bg-muted/50 rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-foreground">{premiumCount}</p>
-                <p className="text-[10px] text-muted-foreground">Premium</p>
-              </div>
-              <div className="bg-muted/50 rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-foreground">{freeCount}</p>
-                <p className="text-[10px] text-muted-foreground">Free</p>
+              {[
+                { label: "Users", count: users.length, filter: "all", icon: Users, color: "text-foreground" },
+                { label: "Premium", count: premiumCount, filter: "premium", icon: Crown, color: "text-primary" },
+                { label: "Free", count: freeCount, filter: "free", icon: Users, color: "text-muted-foreground" },
+              ].map(s => (
+                <button
+                  key={s.filter}
+                  onClick={() => { setUserFilterPreset(s.filter); setActiveTab("users"); }}
+                  className="bg-muted/50 rounded-xl p-3 text-center hover:bg-primary/10 hover:ring-1 hover:ring-primary/20 transition-all cursor-pointer"
+                >
+                  <s.icon className={cn("w-4 h-4 mx-auto mb-1", s.color)} />
+                  <p className={cn("text-xl font-bold", s.color)}>{s.count}</p>
+                  <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                </button>
+              ))}
             </div>
 
             {/* Deleted Accounts Monitor */}
